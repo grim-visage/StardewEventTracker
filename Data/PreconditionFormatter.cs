@@ -80,10 +80,11 @@ namespace NpcEventTracker.Data
                 end = Time(window.End),
                 duration = FormatDuration(eval.MinutesUntilStart ?? 0)
             };
-            if (eval.TimeOpen)
-                return I18n.Get("time.open", tokens);
+            // a locked door or festival can push the start later than the event's own window
             if (eval.MinutesUntilStart > 0)
                 return I18n.Get("time.starts-in", tokens);
+            if (eval.TimeOpen)
+                return I18n.Get("time.open", tokens);
             return I18n.Get("time.over", tokens);
         }
 

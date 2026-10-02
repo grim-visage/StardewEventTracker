@@ -501,13 +501,16 @@ namespace NpcEventTracker.UI
             if (eval.Festival is { } festival)
                 this.AddRow(I18n.Get("menu.festival", new { start = PreconditionFormatter.Time(festival.Start), end = PreconditionFormatter.Time(festival.End) }), MutedColor, inner);
 
-            if (evt.Conditions.Count == 0)
+            if (eval.Door is { } door)
+                this.AddDoorRows(door, eval, inner);
+
+            if (evt.Conditions.Count == 0 && eval.Door == null)
                 this.AddRow(I18n.Get("menu.no-requirements"), MetColor, inner);
             for (int i = 0; i < evt.Conditions.Count; i++)
             {
                 if (eval.States[i] == ConditionState.Soft)
                 {
-                    Color timeColor = eval.TimeOpen ? MetColor : eval.MinutesUntilStart > 0 ? SoonColor : MutedColor;
+                    Color timeColor = eval.MinutesUntilStart > 0 ? SoonColor : eval.TimeOpen ? MetColor : MutedColor;
                     this.AddRow($"~ {PreconditionFormatter.DescribeTimeWindow(evt, eval)}", timeColor, inner);
                     continue;
                 }
@@ -534,6 +537,35 @@ namespace NpcEventTracker.UI
 
             this.AddRow($"#{evt.Id}", MutedColor * 0.7f, inner);
             this.AddSpacer(8);
+        }
+
+        /// <summary>Rows for the locked door into the event's location: its hours, friendship rule and festival closure.</summary>
+        private void AddDoorRows(DoorState door, EventEvaluation eval, int indent)
+        {
+            if (door.FestivalClosed)
+                this.AddRow("x " + I18n.Get("door.festival"), UnmetColor, indent);
+
+            if (door.Door.MinFriendship > 0 && door.Door.Npc != null)
+            {
+                string name = EventIndex.GetNpcDisplayName(door.Door.Npc);
+                int hearts = (int)Math.Ceiling(door.Door.MinFriendship / (double)NPC.friendshipPointsPerHeartLevel);
+                int current = Game1.player.getFriendshipHeartLevelForNPC(door.Door.Npc);
+                if (door.HeartsOk)
+                    this.AddRow("+ " + I18n.Get("door.hearts.ok", new { name, hearts }), MetColor, indent);
+                else
+                    this.AddRow("x " + I18n.Get("door.hearts", new { name, hearts, current }), UnmetColor, indent);
+            }
+
+            if (door.AllDay)
+                this.AddRow("+ " + I18n.Get("door.town-key"), MetColor, indent);
+            else if (eval.DoorNeverOpen)
+                this.AddRow("x " + I18n.Get("door.never-open", new { open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close) }), UnmetColor, indent);
+            else
+            {
+                int now = Game1.timeOfDay;
+                Color color = now >= door.Open && now < door.Close ? MetColor : now < door.Open ? SoonColor : MutedColor;
+                this.AddRow("~ " + I18n.Get("door.hours", new { open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close) }), color, indent);
+            }
         }
 
         private static Color StatusColor(EventStatus status) => status switch

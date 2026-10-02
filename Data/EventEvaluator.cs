@@ -77,8 +77,16 @@ namespace NpcEventTracker.Data
         /// <summary>Whether the calendar, weather and festivals allow it tomorrow (null if unpredictable or not relevant).</summary>
         public bool? WorksTomorrow { get; }
 
-        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null)
+        /// <summary>The locked door into the event's location, if it's behind one.</summary>
+        public DoorState? Door { get; }
+
+        /// <summary>The door's hours and the event's time window never overlap, so it can't start without the Town Key.</summary>
+        public bool DoorNeverOpen { get; }
+
+        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false)
         {
+            this.Door = door;
+            this.DoorNeverOpen = doorNeverOpen;
             this.Status = status;
             this.States = states;
             this.TimeOpen = timeOpen;
@@ -89,7 +97,10 @@ namespace NpcEventTracker.Data
         }
 
         /// <summary>Requirements that aren't met, not counting the time window.</summary>
-        public int UnmetCount => this.States.Count(s => s is ConditionState.Unmet or ConditionState.Unknown);
+        public int UnmetCount =>
+            this.States.Count(s => s is ConditionState.Unmet or ConditionState.Unknown)
+            + (this.Door is { HeartsOk: false } ? 1 : 0)
+            + (this.DoorNeverOpen ? 1 : 0);
     }
 
     internal static class EventEvaluator
@@ -104,6 +115,7 @@ namespace NpcEventTracker.Data
             var states = new ConditionState[evt.Conditions.Count];
             FestivalInfo? festival = CalendarInfo.GetFestivalAt(evt.LocationName, SDate.Now());
             int? startTime = evt.Window?.Start;
+            DoorState? door = DoorAccess.GetState(evt.LocationName);
             bool timeOpen = true, locked = false, unreachable = false, progressUnmet = false, calendarUnmet = false;
 
             for (int i = 0; i < states.Length; i++)
@@ -136,6 +148,10 @@ namespace NpcEventTracker.Data
                     progressUnmet = true;
             }
 
+            // the door's hours, unless the Town Key opens it any time
+            (int Open, int Close)? doorHours = door is { AllDay: false } d ? (d.Open, d.Close) : null;
+            bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(evt.Window?.End ?? 2600, hours.Close);
+
             EventStatus status;
             if (unreachable)
                 status = EventStatus.Unreachable;
@@ -143,32 +159,41 @@ namespace NpcEventTracker.Data
                 status = EventStatus.Special;
             else if (locked)
                 status = EventStatus.Locked;
-            else if (progressUnmet)
+            else if (progressUnmet || door is { HeartsOk: false } || doorNeverOpen)
                 status = EventStatus.NotYet;
             else if (calendarUnmet)
                 status = EventStatus.WrongDay;
             else if (SafeIsGreenRaining(location))
                 status = EventStatus.GreenRain;
+            else if (door is { FestivalClosed: true })
+                status = EventStatus.FestivalHere;
             else
-                (status, untilStart, startTime) = WithFestival(evt, festival, timeOpen, untilStart);
+                (status, untilStart, startTime) = WithFestival(evt, festival, doorHours, timeOpen, untilStart);
 
             // only worth predicting once nothing but the day is in the way
             bool? worksTomorrow = status is EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere or EventStatus.MissedToday
                 ? SafeWorksTomorrow(evt, location)
                 : null;
+            if (worksTomorrow == true && door is { } lockedDoor && DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))))
+                worksTomorrow = false;
 
-            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow);
+            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen);
         }
 
         /// <summary>
-        /// Applies the game's festival rule: while a festival runs at a location, entering it loads the festival
-        /// instead of any event, so the event can only start outside festival hours.
+        /// Works out when the event can start today: within its time window, while the door into its location is open,
+        /// and outside festival hours there (entering during a festival loads the festival instead of any event).
         /// </summary>
-        private static (EventStatus Status, int? UntilStart, int? StartTime) WithFestival(EventInfo evt, FestivalInfo? festival, bool timeOpen, int? untilStart)
+        private static (EventStatus Status, int? UntilStart, int? StartTime) WithFestival(EventInfo evt, FestivalInfo? festival, (int Open, int Close)? doorHours, bool timeOpen, int? untilStart)
         {
             int now = Game1.timeOfDay;
             int start = evt.Window?.Start ?? 600;
             int end = evt.Window?.End ?? 2600;
+            if (doorHours is { } hours)
+            {
+                start = Math.Max(start, hours.Open);
+                end = Math.Min(end, hours.Close);
+            }
 
             if (festival is { } f && f.Start < end && f.End > start)
             {
@@ -182,12 +207,12 @@ namespace NpcEventTracker.Data
                     return (EventStatus.LaterToday, TimeWindow.ToMinutes(f.End) - TimeWindow.ToMinutes(now), f.End);
             }
 
-            if (timeOpen && now >= start)
+            if (timeOpen && now >= start && now < end)
                 return (EventStatus.AvailableNow, null, start);
             int minutes = TimeWindow.ToMinutes(start) - TimeWindow.ToMinutes(now);
             if (minutes > 0 && start < end)
                 return (EventStatus.LaterToday, minutes, start);
-            return (timeOpen ? EventStatus.AvailableNow : EventStatus.MissedToday, untilStart, start);
+            return (EventStatus.MissedToday, untilStart, start);
         }
 
         private static bool SafeIsGreenRaining(GameLocation location)

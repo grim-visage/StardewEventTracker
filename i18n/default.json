@@ -293,5 +293,12 @@
   "menu.pinned.story": "Story events",
   "msg.morning.story": "Something might happen at {{place}} today{{window}}.",
   "config.story-reminders": "Story event reminders",
-  "config.story-reminders.tip": "Send reminders for story events you've pinned (pin them from the Story tab), the same way as for pinned NPCs."
+  "config.story-reminders.tip": "Send reminders for story events you've pinned (pin them from the Story tab), the same way as for pinned NPCs.",
+  "status.door-festival": "Doors are locked for today's festival",
+  "door.festival": "Shops and houses are locked for today's festival",
+  "door.hearts": "Door locked: needs {{hearts}} hearts with {{name}} (you: {{current}})",
+  "door.hearts.ok": "Door opens for friends of {{name}} ({{hearts}} hearts)",
+  "door.town-key": "Door open any time (you have the Town Key)",
+  "door.hours": "Door open {{open}}-{{close}}",
+  "door.never-open": "The door is locked at that time of day (open {{open}}-{{close}}). The Town Key would open it."
 }

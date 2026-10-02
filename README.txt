@@ -133,6 +133,12 @@ Each requirement has a mark showing whether it's met right now:
                 on a specific tile)
   ?  (grey)     The game couldn't check it
 
+Events inside shops and houses also account for the door: its opening hours
+(the Town Key opens it any time), any hearts the resident requires before
+letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
+when every shop and house in the valley is locked. These show as "Door" lines
+under the event.
+
 Events only start when you arrive at a location. If you're already there
 when one becomes available, step out and come back in.
 

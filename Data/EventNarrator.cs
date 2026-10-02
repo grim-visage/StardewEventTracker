@@ -102,7 +102,7 @@ namespace NpcEventTracker.Data
                 EventStatus.LaterToday => I18n.Get("status.later-today", new { start = StartTime(evt, eval), duration = PreconditionFormatter.FormatDuration(eval.MinutesUntilStart ?? 0) }),
                 EventStatus.WrongDay => I18n.Get("status.wait-for", new { day = WaitFor(evt, eval) }) + tomorrow,
                 EventStatus.GreenRain => I18n.Get("status.green-rain") + tomorrow,
-                EventStatus.FestivalHere => I18n.Get("status.festival") + tomorrow,
+                EventStatus.FestivalHere => FestivalTag(eval) + tomorrow,
                 EventStatus.MissedToday => I18n.Get("status.missed") + tomorrow,
                 EventStatus.NotYet => I18n.Get("status.not-yet", new { count = eval.UnmetCount }),
                 EventStatus.Special => I18n.Get("status.special"),
@@ -151,7 +151,7 @@ namespace NpcEventTracker.Data
                 case EventStatus.GreenRain:
                     return (I18n.Get("hud.green-rain") + tomorrow, HudTone.Normal);
                 case EventStatus.FestivalHere:
-                    return (I18n.Get("status.festival") + tomorrow, HudTone.Normal);
+                    return (FestivalTag(eval) + tomorrow, HudTone.Normal);
                 case EventStatus.MissedToday:
                     return (I18n.Get("hud.missed") + tomorrow, HudTone.Normal);
                 case EventStatus.NotYet:
@@ -216,6 +216,10 @@ namespace NpcEventTracker.Data
             eval.StartTime is { } start ? PreconditionFormatter.Time(start)
             : evt.Window is { } w ? PreconditionFormatter.Time(w.Start)
             : I18n.Get("time.later");
+
+        /// <summary>A festival at the location itself, or one that locks every shop and house door in the valley.</summary>
+        private static string FestivalTag(EventEvaluation eval) =>
+            I18n.Get(eval.Festival == null && eval.Door is { FestivalClosed: true } ? "status.door-festival" : "status.festival");
 
         /// <summary>" (tomorrow works!)" or " (not tomorrow either)", from the forecast.</summary>
         private static string TomorrowHint(EventEvaluation eval, bool includeNo) => eval.WorksTomorrow switch

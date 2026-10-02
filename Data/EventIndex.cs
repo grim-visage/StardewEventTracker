@@ -67,6 +67,7 @@ namespace NpcEventTracker.Data
         {
             NpcNameCache.Clear();
             CalendarInfo.Clear();
+            DoorAccess.Rebuild(this.monitor);
             var locationNames = new HashSet<string>(Game1.locationData.Keys);
             Utility.ForEachLocation(location =>
             {
