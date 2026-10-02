@@ -40,39 +40,84 @@ HOW TO USE IT
 
 Tracker menu (F8)
 ~~~~~~~~~~~~~~~~~
-  * Pinned     Every pending event for the NPCs you've pinned.
-  * All NPCs   Everyone who has events. Click a name to expand it, and click
-               "Pin" to track that NPC.
-  * Completed  Events you've already seen, grouped by NPC.
+  * Pinned     Pending heart events for the NPCs you've pinned.
+  * Hearts     Every NPC with heart events. Click a name to expand it, and
+               click "Pin" to track that NPC.
+  * Story      Story events (no friendship needed), grouped by location,
+               with the characters who appear in each one.
+  * Completed  Events you've already seen. Switch between Hearts and Story
+               at the top.
 
-Each event lists its requirements, with a mark showing whether each one is
-met right now:
+
+Search and filters
+~~~~~~~~~~~~~~~~~~
+Type in the search box to find an NPC, a location, an event ID, or anything
+in an event's requirements. While it's selected, keys go to the search box,
+so typing doesn't close the menu. Press Enter or Escape when you're done.
+
+Filter buttons next to the search box (combine as many as you like):
+
+  Button          Shows
+  -------------   ---------------------------------------------------------
+  Available now   Every requirement is met and the time window is open
+  Today           Available now, or everything is met and the time window
+                  opens later today
+  Right day       Only the weather, day of the week, or season is wrong
+                  today
+  Show locked     Also list events that need more hearts
+
+While a search or filter is on, matching groups expand automatically.
+
+
+Event status
+~~~~~~~~~~~~
+Each event shows where it stands right now:
+
+  Status                Meaning
+  --------------------  ------------------------------------------------
+  Available now         Walk into the location and it plays
+  Later today           Everything is met; come back when it opens
+  Wait for ...          Needs a different day, e.g. "a sunny day"
+  Missed today          Today's time window has passed; try tomorrow
+  Not yet               Something still needs doing first
+  Special trigger       Started by the game or a mod some other way, not
+                        by visiting the location
+  Locked                Needs more hearts
+
+Each requirement has a mark showing whether it's met right now:
 
   Mark          Meaning
   ------------  ---------------------------------------------------------
   +  (green)    Met
   x  (red)      Not met yet
+  ~             The time window: green while it's open, orange before it
+                opens, grey once it has closed for the day
   -  (grey)     Can't be predicted ahead of time (random chance, standing
                 on a specific tile)
   ?  (grey)     The game couldn't check it
-
-An event marked READY will play the next time you enter its location.
-
-Events that only need friendship with an NPC are listed as that NPC's events.
-Scenes the NPC just appears in are in a collapsed "Other scenes featuring..."
-section under their name.
 
 
 HUD tracker (F9)
 ~~~~~~~~~~~~~~~~
 A small box in the top-left corner, with one line per pinned NPC showing their
-next event, where it happens, its time and weather, and whether it's ready.
+next event, where it happens, its time and weather, and how soon it opens.
 
 
-Alerts
-~~~~~~
-When a pinned NPC's event becomes ready, a message pops up telling you where
-to go. Each event alerts once per day.
+Reminders
+~~~~~~~~~
+For NPCs you've pinned, the mod sends gentle reminders so you have time to get
+there:
+
+  * Morning heads-up   At the start of the day, which events can happen
+                       today ("Today looks like a good day to see Abigail at
+                       the Mountain...").
+  * Before it opens    By default 2 hours and 1 hour before an event's time
+                       window opens (in-game time). Choose from 3 hours,
+                       2 hours, 1 hour, 30 minutes, and 15 minutes.
+  * When it's ready    When the event can happen right now ("It's time to
+                       visit Robin at her home, the Carpenter's Shop.").
+
+Each reminder is sent once per day.
 
 
 SETTINGS
@@ -80,14 +125,18 @@ SETTINGS
 Change these in Generic Mod Config Menu, or in config.json after the first
 launch:
 
-  Setting        Default    Description
-  -------------  ---------  ------------------------------------------------
-  OpenMenuKey    F8         Opens the tracker menu
-  ToggleHudKey   F9         Shows or hides the HUD tracker
-  ShowHud        true       Whether the HUD tracker is visible
-  ShowAlerts     true       Pop-up message when a pinned NPC's event is ready
-  HudX / HudY    16 / 120   HUD position on screen, in pixels
-  HudMaxNpcs     5          Most pinned NPCs shown on the HUD
+  Setting                Default     Description
+  ---------------------  ----------  ----------------------------------------
+  OpenMenuKey            F8          Opens the tracker menu
+  ToggleHudKey           F9          Shows or hides the HUD tracker
+  ShowHud                true        Whether the HUD tracker is visible
+  MorningHeadsUp         true        Day-start message about today's events
+  ReminderMinutesBefore  [120, 60]   When to remind you before an event's
+                                     time window opens, in in-game minutes
+                                     (allowed: 180, 120, 60, 30, 15)
+  AlertWhenAvailable     true        Message when an event can happen now
+  HudX / HudY            16 / 120    HUD position on screen, in pixels
+  HudMaxNpcs             5           Most pinned NPCs shown on the HUD
 
 Pinned NPCs are saved separately for each save file.
 
@@ -96,8 +145,8 @@ CONSOLE COMMANDS
 ----------------
 Type these in the SMAPI console window:
 
-  net_dump <npc>   Print every event for an NPC, with each requirement's
-                   status and raw code
+  net_dump <name>  Print every heart event for an NPC (or story event for a
+                   location), with each requirement's status and raw code
   net_export       Write every event and its status to exports/events.json
                    in the mod folder
   net_reindex      Re-read event data
@@ -112,6 +161,7 @@ KNOWN LIMITATIONS
     tracker can't predict when they'll happen.
   * Requirement types the mod doesn't recognize are shown as their raw code.
     Whether they're met is still checked correctly.
+  * Reminders are only sent for pinned NPCs, not for story events.
   * Split-screen co-op isn't supported. The menu and HUD show the main
     player's events only.
 

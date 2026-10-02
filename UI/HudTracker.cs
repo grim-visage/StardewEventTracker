@@ -14,6 +14,7 @@ namespace NpcEventTracker.UI
     {
         private static readonly Color ReadyColor = new(20, 130, 40);
         private static readonly Color MutedColor = new(110, 100, 90);
+        private static readonly Color SoonColor = new(185, 105, 0);
 
         private readonly ModEntry mod;
         private List<(string Text, Color Color)> lines = new();
@@ -60,17 +61,15 @@ namespace NpcEventTracker.UI
                 if (pending.Pending.Count > 0)
                 {
                     (EventInfo evt, EventEvaluation eval) = pending.Pending[0];
-                    bool ready = eval.Status == EventStatus.Ready;
-                    string more = pending.Pending.Count > 1 ? $" (+{pending.Pending.Count - 1} more)" : "";
-                    lines.Add(($"{name}: {evt.Title} at {evt.LocationDisplayName}{more}", ready ? ReadyColor : Game1.textColor));
-
-                    string status = eval.Status switch
+                    Color color = eval.Status switch
                     {
-                        EventStatus.Ready => "READY",
-                        EventStatus.Special => "special trigger",
-                        _ => $"{eval.UnmetCount} not met"
+                        EventStatus.AvailableNow => ReadyColor,
+                        EventStatus.LaterToday => SoonColor,
+                        _ => Game1.textColor
                     };
-                    lines.Add(($"   {PreconditionFormatter.Summarize(evt, index)} | {status}", ready ? ReadyColor : MutedColor));
+                    string more = pending.Pending.Count > 1 ? $" (+{pending.Pending.Count - 1} more)" : "";
+                    lines.Add(($"{name}: {evt.Title} at {evt.LocationDisplayName}{more}", color));
+                    lines.Add(($"   {EventNarrator.HudLine(evt, eval, index)}", eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? color : MutedColor));
                 }
                 else if (pending.NextLocked is { } next)
                 {

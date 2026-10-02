@@ -6,6 +6,28 @@ using StardewValley;
 
 namespace NpcEventTracker.Data
 {
+    internal enum ConditionCategory
+    {
+        /// <summary>Hearts, earlier events, mail flags, items: something the player has to do.</summary>
+        Progress,
+
+        /// <summary>Weather, day of week/month, season: may be fine on another day.</summary>
+        Calendar,
+
+        /// <summary>The time-of-day window: the player only has to show up at the right time.</summary>
+        Time
+    }
+
+    /// <summary>An event's time-of-day window, in the game's HHMM format (e.g. 600 to 1200).</summary>
+    internal readonly record struct TimeWindow(int Start, int End)
+    {
+        /// <summary>Converts HHMM to minutes since midnight (e.g. 930 -> 570).</summary>
+        public static int ToMinutes(int time) => time / 100 * 60 + time % 100;
+
+        public int MinutesUntilStart(int now) => ToMinutes(this.Start) - ToMinutes(now);
+        public int MinutesUntilEnd(int now) => ToMinutes(this.End) - ToMinutes(now);
+    }
+
     /// <summary>One precondition from an event key, e.g. <c>f Abigail 1000</c>.</summary>
     internal sealed class Precondition
     {
@@ -29,6 +51,11 @@ namespace NpcEventTracker.Data
         }
 
         public bool Is(string name) => this.Name.Equals(name, StringComparison.OrdinalIgnoreCase);
+
+        public ConditionCategory Category =>
+            this.Is("Time") ? ConditionCategory.Time
+            : this.Is("Weather") || this.Is("DayOfWeek") || this.Is("DayOfMonth") || this.Is("Season") ? ConditionCategory.Calendar
+            : ConditionCategory.Progress;
 
         /// <summary>
         /// A condition mods use to stop the game from ever starting the event on location entry, because their own
@@ -116,8 +143,14 @@ namespace NpcEventTracker.Data
         public string LocationName { get; }
         public string LocationDisplayName { get; }
 
-        /// <summary>Internal name of the NPC this event belongs to, or <see cref="EventIndex.OtherKey"/>.</summary>
+        /// <summary>Internal name of the NPC whose heart event this is, or <see cref="EventIndex.OtherKey"/> for story events.</summary>
         public string Owner { get; }
+
+        /// <summary>Internal names of the NPCs who appear in the scene, in script order.</summary>
+        public IReadOnlyList<string> Actors { get; }
+
+        /// <summary>The event's time-of-day window, if it has one.</summary>
+        public TimeWindow? Window { get; }
 
         public IReadOnlyList<Precondition> Conditions { get; }
 
@@ -127,8 +160,11 @@ namespace NpcEventTracker.Data
         /// <summary>The event can't fire on a normal location entry (it only sends mail, or a mod's code starts it).</summary>
         public bool IsSpecial { get; }
 
-        /// <summary>The owner comes from a friendship/dating/spouse requirement, not just from appearing in the scene.</summary>
+        /// <summary>The event requires friendship, dating or marriage with <see cref="Owner"/>.</summary>
         public bool IsHeartEvent { get; }
+
+        /// <summary>An event with no relationship requirement; grouped by location rather than NPC.</summary>
+        public bool IsStory => !this.IsHeartEvent;
 
         /// <summary>Unique across locations, since mods can reuse an ID in different locations.</summary>
         public string Key => $"{this.LocationName}|{this.Id}";
@@ -149,14 +185,19 @@ namespace NpcEventTracker.Data
             }
         }
 
-        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<Precondition> conditions)
+        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions)
         {
             this.Id = id;
             this.LocationName = locationName;
             this.LocationDisplayName = locationDisplayName;
             this.Owner = owner;
             this.IsHeartEvent = isHeartEvent;
+            this.Actors = actors;
             this.Conditions = conditions;
+
+            Precondition? time = conditions.FirstOrDefault(c => c.Is("Time") && !c.Negated && c.Args.Length >= 2);
+            if (time != null && int.TryParse(time.Args[0], out int start) && int.TryParse(time.Args[1], out int end))
+                this.Window = new TimeWindow(start, end);
             this.IsSpecial = conditions.Any(c => c.Is("SendMail") || c.IsNeverTrue);
             this.RequiredPoints = conditions
                 .Where(c => c.Is("Friendship") && !c.Negated)

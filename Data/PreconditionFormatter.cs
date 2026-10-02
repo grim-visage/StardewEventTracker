@@ -82,6 +82,30 @@ namespace NpcEventTracker.Data
             return parts.Count > 0 ? string.Join(" | ", parts) : "any time";
         }
 
+        /// <summary>The time window as a schedule, e.g. "9:00 am-12:00 pm, opens in 1h 20m".</summary>
+        public static string DescribeTimeWindow(EventInfo evt, EventEvaluation eval)
+        {
+            if (evt.Window is not { } window)
+                return "Only at certain times";
+
+            string range = $"{Time(window.Start)}-{Time(window.End)}";
+            if (eval.TimeOpen)
+                return $"{range}, open until {Time(window.End)}";
+            if (eval.MinutesUntilStart > 0)
+                return $"{range}, opens in {FormatDuration(eval.MinutesUntilStart.Value)}";
+            return $"{range}, closed for today";
+        }
+
+        /// <summary>Formats in-game minutes as "1h 20m", "2h" or "40m".</summary>
+        public static string FormatDuration(int minutes)
+        {
+            minutes = Math.Max(0, minutes);
+            int hours = minutes / 60, rest = minutes % 60;
+            if (hours == 0)
+                return $"{rest}m";
+            return rest == 0 ? $"{hours}h" : $"{hours}h {rest}m";
+        }
+
         public static string DescribeFriendship(string npc, int points)
         {
             string name = EventIndex.GetNpcDisplayName(npc);
@@ -92,8 +116,10 @@ namespace NpcEventTracker.Data
                 : $"{points} friendship points with {name} (you: {current})";
         }
 
+        public static string Time(int time) => Game1.getTimeOfDayString(time);
+
         private static string Time(string raw) =>
-            int.TryParse(raw, out int time) ? Game1.getTimeOfDayString(time) : raw;
+            int.TryParse(raw, out int time) ? Time(time) : raw;
 
         private static string Npc(string[] args) =>
             args.Length > 0 ? EventIndex.GetNpcDisplayName(args[0]) : "someone";

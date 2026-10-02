@@ -8,34 +8,41 @@ using StardewValley.TokenizableStrings;
 
 namespace NpcEventTracker.Data
 {
-    /// <summary>An NPC's unseen events, split into what's actionable now and what's still locked.</summary>
+    /// <summary>A group's unseen events, split into what can still happen and what's locked.</summary>
     internal sealed class PendingEvents
     {
-        /// <summary>Unseen heart events (or, for the "Other" group, any unseen event) that are unlocked.</summary>
+        /// <summary>Unseen, unlocked events that can still happen, sorted by status then hearts.</summary>
         public List<(EventInfo Event, EventEvaluation Eval)> Pending { get; } = new();
 
-        /// <summary>Unlocked events the NPC only appears in, without a friendship requirement for them.</summary>
-        public List<(EventInfo Event, EventEvaluation Eval)> OtherScenes { get; } = new();
-        public (EventInfo Event, EventEvaluation Eval)? NextLocked { get; set; }
+        /// <summary>Events that need more friendship, lowest requirement first.</summary>
+        public List<(EventInfo Event, EventEvaluation Eval)> LockedEvents { get; } = new();
+
+        public (EventInfo Event, EventEvaluation Eval)? NextLocked => this.LockedEvents.Count > 0 ? this.LockedEvents[0] : null;
         public int Unreachable { get; set; }
-        public int Locked { get; set; }
+
+        public int Count(EventStatus status) => this.Pending.Count(p => p.Eval.Status == status);
     }
 
-    /// <summary>Every event in the game's current data, grouped by the NPC it belongs to.</summary>
+    /// <summary>Every event in the game's current data: heart events by NPC, story events by location.</summary>
     internal sealed class EventIndex
     {
-        /// <summary>Owner key for events not tied to any NPC.</summary>
+        /// <summary>Owner of story events, which aren't tied to one NPC.</summary>
         public const string OtherKey = "";
 
         private readonly IMonitor monitor;
         private readonly Dictionary<string, EventEvaluation> evaluations = new();
         private Dictionary<string, List<EventInfo>> byOwner = new();
+        private Dictionary<string, List<EventInfo>> storyByLocation = new();
         private Dictionary<string, EventInfo> byId = new();
 
         /// <summary>Increments whenever data or evaluations change, so UI can rebuild.</summary>
         public int Version { get; private set; }
 
+        /// <summary>Heart events by the NPC's internal name.</summary>
         public IReadOnlyDictionary<string, List<EventInfo>> ByOwner => this.byOwner;
+
+        /// <summary>Story events by internal location name.</summary>
+        public IReadOnlyDictionary<string, List<EventInfo>> StoryByLocation => this.storyByLocation;
 
         public EventIndex(IMonitor monitor)
         {
@@ -44,7 +51,9 @@ namespace NpcEventTracker.Data
 
         public void Clear()
         {
+            NpcNameCache.Clear();
             this.byOwner = new();
+            this.storyByLocation = new();
             this.byId = new();
             this.Invalidate();
         }
@@ -52,6 +61,7 @@ namespace NpcEventTracker.Data
         /// <summary>Re-reads event data for every known location.</summary>
         public void Rebuild()
         {
+            NpcNameCache.Clear();
             var locationNames = new HashSet<string>(Game1.locationData.Keys);
             Utility.ForEachLocation(location =>
             {
@@ -110,14 +120,19 @@ namespace NpcEventTracker.Data
             }
 
             this.byOwner = all
+                .Where(e => e.IsHeartEvent)
                 .GroupBy(e => e.Owner)
                 .ToDictionary(g => g.Key, g => g.OrderBy(e => e.RequiredPoints).ThenBy(e => e.LocationDisplayName).ToList());
+            this.storyByLocation = all
+                .Where(e => e.IsStory)
+                .GroupBy(e => e.LocationName)
+                .ToDictionary(g => g.Key, g => g.OrderBy(e => e.Id).ToList());
             this.byId = new();
             foreach (EventInfo info in all)
                 this.byId.TryAdd(info.Id, info);
 
             this.Invalidate();
-            this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} groups).", LogLevel.Debug);
+            this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} NPCs with heart events, {this.storyByLocation.Count} locations with story events).", LogLevel.Debug);
         }
 
         /// <summary>Drops cached evaluations; call when time, location, weather or friendship may have changed.</summary>
@@ -136,53 +151,68 @@ namespace NpcEventTracker.Data
 
         public EventInfo? FindById(string id) => this.byId.TryGetValue(id, out EventInfo? info) ? info : null;
 
+        /// <summary>An NPC's heart events.</summary>
         public IReadOnlyList<EventInfo> GetEvents(string owner) =>
             this.byOwner.TryGetValue(owner, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
 
-        /// <summary>Finds an owner key by internal or display name, ignoring case.</summary>
+        /// <summary>A location's story events.</summary>
+        public IReadOnlyList<EventInfo> GetStoryEvents(string location) =>
+            this.storyByLocation.TryGetValue(location, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
+
+        /// <summary>Finds an NPC with heart events by internal or display name, ignoring case.</summary>
         public string? FindOwner(string name)
         {
             return this.byOwner.Keys.FirstOrDefault(k => k.Equals(name, StringComparison.OrdinalIgnoreCase))
                 ?? this.byOwner.Keys.FirstOrDefault(k => GetNpcDisplayName(k).Equals(name, StringComparison.OrdinalIgnoreCase));
         }
 
-        public PendingEvents GetPending(string owner)
+        /// <summary>Finds a location with story events by internal or display name, ignoring case.</summary>
+        public string? FindStoryLocation(string name)
+        {
+            return this.storyByLocation.Keys.FirstOrDefault(k => k.Equals(name, StringComparison.OrdinalIgnoreCase))
+                ?? this.storyByLocation.Keys.FirstOrDefault(k => this.GetLocationName(k).Equals(name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>The display name of a location that has story events.</summary>
+        public string GetLocationName(string location) =>
+            this.GetStoryEvents(location).FirstOrDefault()?.LocationDisplayName ?? location;
+
+        public PendingEvents GetPending(string owner) => this.Collect(this.GetEvents(owner));
+
+        public PendingEvents GetStoryPending(string location) => this.Collect(this.GetStoryEvents(location));
+
+        private PendingEvents Collect(IEnumerable<EventInfo> events)
         {
             var result = new PendingEvents();
-            foreach (EventInfo evt in this.GetEvents(owner))
+            foreach (EventInfo evt in events)
             {
                 EventEvaluation eval = this.Evaluate(evt);
                 switch (eval.Status)
                 {
-                    case EventStatus.Ready:
-                    case EventStatus.Pending:
-                    case EventStatus.Special:
-                        if (evt.IsHeartEvent || owner == OtherKey)
-                            result.Pending.Add((evt, eval));
-                        else
-                            result.OtherScenes.Add((evt, eval));
+                    case EventStatus.Seen:
                         break;
 
                     case EventStatus.Locked:
-                        result.Locked++;
-                        if (result.NextLocked == null || evt.RequiredPoints < result.NextLocked.Value.Event.RequiredPoints)
-                            result.NextLocked = (evt, eval);
+                        result.LockedEvents.Add((evt, eval));
                         break;
 
                     case EventStatus.Unreachable:
                         result.Unreachable++;
                         break;
+
+                    default:
+                        result.Pending.Add((evt, eval));
+                        break;
                 }
             }
 
-            // ready first, then by heart requirement
-            static int Compare((EventInfo Event, EventEvaluation Eval) a, (EventInfo Event, EventEvaluation Eval) b)
+            // most actionable first, then by heart requirement
+            result.Pending.Sort((a, b) =>
             {
                 int byStatus = a.Eval.Status.CompareTo(b.Eval.Status);
                 return byStatus != 0 ? byStatus : a.Event.RequiredPoints.CompareTo(b.Event.RequiredPoints);
-            }
-            result.Pending.Sort(Compare);
-            result.OtherScenes.Sort(Compare);
+            });
+            result.LockedEvents.Sort((a, b) => a.Event.RequiredPoints.CompareTo(b.Event.RequiredPoints));
             return result;
         }
 
@@ -193,30 +223,34 @@ namespace NpcEventTracker.Data
             if (info == null)
                 return $"event #{id}";
 
-            string label = info.Owner == OtherKey
+            string label = info.IsStory
                 ? $"{info.Title.ToLowerInvariant()} at {info.LocationDisplayName} (#{id})"
                 : $"{GetNpcDisplayName(info.Owner)}'s {info.Title.ToLowerInvariant()} at {info.LocationDisplayName} (#{id})";
             return info.IsSpecial ? label + ", which the mod's code starts" : label;
         }
 
+        /// <summary>Display names by internal name; looking up an NPC searches every location, so this is cached.</summary>
+        private static readonly Dictionary<string, string> NpcNameCache = new();
+
         public static string GetNpcDisplayName(string name)
         {
-            if (name == OtherKey)
-                return "Other events";
+            if (NpcNameCache.TryGetValue(name, out string? cached))
+                return cached;
 
+            string result = name;
             try
             {
                 NPC? npc = Game1.getCharacterFromName(name);
                 if (!string.IsNullOrWhiteSpace(npc?.displayName))
-                    return npc.displayName;
-                if (Game1.characterData.TryGetValue(name, out var data) && !string.IsNullOrWhiteSpace(data.DisplayName))
-                    return TokenParser.ParseText(data.DisplayName);
+                    result = npc.displayName;
+                else if (Game1.characterData.TryGetValue(name, out var data) && !string.IsNullOrWhiteSpace(data.DisplayName))
+                    result = TokenParser.ParseText(data.DisplayName);
             }
             catch (Exception)
             {
                 // fall back to the internal name
             }
-            return name;
+            return NpcNameCache[name] = result;
         }
 
         private static EventInfo? Parse(string locationName, string locationDisplayName, string key, string script)
@@ -237,38 +271,43 @@ namespace NpcEventTracker.Data
                 .Select(Precondition.Parse)
                 .ToArray();
 
-            (string owner, bool isHeartEvent) = FindOwner(conditions, script);
-            return new EventInfo(id, locationName, locationDisplayName, owner, isHeartEvent, conditions);
+            string? owner = FindRelationshipOwner(conditions);
+            return new EventInfo(id, locationName, locationDisplayName, owner ?? OtherKey, owner != null, ParseActors(script), conditions);
         }
 
-        /// <summary>Picks the NPC an event belongs to: friendship requirement, then dating/spouse, then first actor in the script.</summary>
-        private static (string Owner, bool FromConditions) FindOwner(Precondition[] conditions, string script)
+        /// <summary>The NPC an event needs friendship, dating or marriage with, if any.</summary>
+        private static string? FindRelationshipOwner(Precondition[] conditions)
         {
             foreach (Precondition condition in conditions.Where(c => !c.Negated))
             {
                 if (condition.Is("Friendship"))
                 {
                     foreach ((string npc, _) in EventInfo.FriendshipPairs(condition))
-                        return (npc, true);
+                        return npc;
                 }
                 else if ((condition.Is("Dating") || condition.Is("Spouse") || condition.Is("Roommate")) && condition.Args.Length > 0)
-                    return (condition.Args[0], true);
+                    return condition.Args[0];
             }
+            return null;
+        }
 
+        /// <summary>The NPCs in an event's script, in order.</summary>
+        private static string[] ParseActors(string script)
+        {
             // script format: music/viewport/actors/...; actors are 'name x y direction' groups
             string[] fields = script.Split('/');
-            if (fields.Length > 2)
-            {
-                string[] actorTokens = fields[2].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 0; i < actorTokens.Length; i += 4)
-                {
-                    string actor = actorTokens[i];
-                    if (!actor.StartsWith("farmer", StringComparison.OrdinalIgnoreCase) && Game1.characterData.ContainsKey(actor))
-                        return (actor, false);
-                }
-            }
+            if (fields.Length <= 2)
+                return Array.Empty<string>();
 
-            return (OtherKey, false);
+            string[] tokens = fields[2].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var actors = new List<string>();
+            for (int i = 0; i < tokens.Length; i += 4)
+            {
+                string actor = tokens[i];
+                if (!actor.StartsWith("farmer", StringComparison.OrdinalIgnoreCase) && Game1.characterData.ContainsKey(actor) && !actors.Contains(actor))
+                    actors.Add(actor);
+            }
+            return actors.ToArray();
         }
 
         private static string GetLocationDisplayName(string name)

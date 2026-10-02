@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>NpcEventTracker</AssemblyName>
     <RootNamespace>NpcEventTracker</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -12,6 +12,11 @@
 
   <ItemGroup>
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- provided by SMAPI at runtime, so don't bundle it -->
+    <Reference Include="Newtonsoft.Json" HintPath="$(GamePath)/smapi-internal/Newtonsoft.Json.dll" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

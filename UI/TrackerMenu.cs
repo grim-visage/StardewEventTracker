@@ -10,10 +10,10 @@ using StardewValley.Menus;
 
 namespace NpcEventTracker.UI
 {
-    /// <summary>The hotkey menu: pending events for pinned NPCs, every NPC, and completed events.</summary>
+    /// <summary>The hotkey menu: pinned NPCs, heart events by NPC, story events by location, and completed events.</summary>
     internal sealed class TrackerMenu : IClickableMenu
     {
-        private enum Tab { Pinned, AllNpcs, Completed }
+        private enum Tab { Pinned, Hearts, Story, Completed }
 
         private sealed class Row
         {
@@ -27,15 +27,29 @@ namespace NpcEventTracker.UI
             public Action? OnButton;
         }
 
+        /// <summary>A toggle button in the toolbar next to the search box.</summary>
+        private sealed class Chip
+        {
+            public Rectangle Area;
+            public string Label = "";
+            public string Tooltip = "";
+            public Func<bool> IsOn = () => false;
+            public Action Toggle = () => { };
+        }
+
         private static readonly Color MetColor = new(30, 110, 30);
         private static readonly Color UnmetColor = new(170, 30, 30);
         private static readonly Color MutedColor = new(110, 100, 90);
         private static readonly Color ReadyColor = new(20, 130, 40);
+        private static readonly Color SoonColor = new(185, 105, 0);
 
         private const int Padding = 32;
         private const int TabHeight = 56;
+        private const int ChipHeight = 48;
         private const int ButtonWidth = 110;
         private const int ScrollStep = 64;
+
+        private static readonly string[] TabLabels = { "Pinned", "Hearts", "Story", "Completed" };
 
         // remembered between openings for the rest of the session
         private static Tab lastTab = Tab.Pinned;
@@ -44,36 +58,95 @@ namespace NpcEventTracker.UI
         private readonly ModEntry mod;
         private readonly List<Row> rows = new();
         private readonly List<(Rectangle Area, Action Action)> hitAreas = new();
+        private readonly List<Chip> chips = new();
+        private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
         private Tab tab = lastTab;
         private int builtVersion = -1;
         private int scrollY;
         private int contentHeight;
+        private int contentTop;
+        private string hoverText = "";
 
         private EventIndex Index => this.mod.Index;
 
         private Rectangle ContentArea => new(
             this.xPositionOnScreen + Padding,
-            this.yPositionOnScreen + Padding + TabHeight + 16,
+            this.contentTop,
             this.width - Padding * 2 - 24,
-            this.height - Padding * 2 - TabHeight - 16);
+            this.yPositionOnScreen + this.height - Padding - this.contentTop);
 
         public TrackerMenu(ModEntry mod)
         {
             this.mod = mod;
+            this.searchBox = new TextBox(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor)
+            {
+                Text = EventFilter.SearchText,
+                textLimit = 40
+            };
             this.Layout();
         }
 
+        /****
+        ** Layout
+        ****/
         private void Layout()
         {
             int w = Math.Min(1100, Game1.uiViewport.Width - 64);
             int h = Math.Min(820, Game1.uiViewport.Height - 64);
             this.initialize((Game1.uiViewport.Width - w) / 2, (Game1.uiViewport.Height - h) / 2, w, h, showUpperRightCloseButton: true);
 
-            int tabWidth = 220;
-            this.tabAreas = Enumerable.Range(0, 3)
-                .Select(i => new Rectangle(this.xPositionOnScreen + Padding + i * (tabWidth + 12), this.yPositionOnScreen + Padding, tabWidth, TabHeight))
+            const int gap = 12;
+            int inner = this.width - Padding * 2;
+            int tabWidth = (inner - gap * (TabLabels.Length - 1)) / TabLabels.Length;
+            this.tabAreas = Enumerable.Range(0, TabLabels.Length)
+                .Select(i => new Rectangle(this.xPositionOnScreen + Padding + i * (tabWidth + gap), this.yPositionOnScreen + Padding, tabWidth, TabHeight))
                 .ToArray();
+
+            this.LayoutToolbar();
+        }
+
+        /// <summary>Places the search box and this tab's chips, wrapping chips onto another line if needed.</summary>
+        private void LayoutToolbar()
+        {
+            this.chips.Clear();
+            if (this.tab == Tab.Completed)
+            {
+                this.chips.Add(new Chip { Label = "Hearts", Tooltip = "Show heart events you've seen.", IsOn = () => !EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = false });
+                this.chips.Add(new Chip { Label = "Story", Tooltip = "Show story events you've seen.", IsOn = () => EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = true });
+            }
+            else
+            {
+                this.chips.Add(new Chip { Label = "Available now", Tooltip = "Every requirement is met and the time window is open.", IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
+                this.chips.Add(new Chip { Label = "Today", Tooltip = "Available now, or everything is met\nand the time window opens later today.", IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
+                this.chips.Add(new Chip { Label = "Right day", Tooltip = "Waiting on the right day: only the weather,\nday of the week or season is wrong today.", IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
+                this.chips.Add(new Chip { Label = "Show locked", Tooltip = "Also list events that need more hearts.", IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
+            }
+
+            int left = this.xPositionOnScreen + Padding;
+            int right = this.xPositionOnScreen + this.width - Padding;
+            int top = this.yPositionOnScreen + Padding + TabHeight + 12;
+            int lineHeight = Math.Max(this.searchBox.Height, ChipHeight);
+
+            this.searchBox.X = left;
+            this.searchBox.Y = top;
+            this.searchBox.Width = Math.Min(320, (right - left) / 3);
+
+            int chipLeft = left + this.searchBox.Width + 16;
+            int x = chipLeft, y = top;
+            foreach (Chip chip in this.chips)
+            {
+                int chipWidth = (int)Game1.smallFont.MeasureString(chip.Label).X + 40;
+                if (x + chipWidth > right && x > chipLeft)
+                {
+                    x = chipLeft;
+                    y += lineHeight + 8;
+                }
+                chip.Area = new Rectangle(x, y + (lineHeight - ChipHeight) / 2, chipWidth, ChipHeight);
+                x += chipWidth + 10;
+            }
+
+            this.contentTop = y + lineHeight + 16;
             this.builtVersion = -1;
         }
 
@@ -94,8 +167,11 @@ namespace NpcEventTracker.UI
                 case Tab.Pinned:
                     this.BuildPinnedTab();
                     break;
-                case Tab.AllNpcs:
-                    this.BuildAllNpcsTab();
+                case Tab.Hearts:
+                    this.BuildHeartsTab();
+                    break;
+                case Tab.Story:
+                    this.BuildStoryTab();
                     break;
                 case Tab.Completed:
                     this.BuildCompletedTab();
@@ -115,163 +191,268 @@ namespace NpcEventTracker.UI
             if (pinned.Count == 0)
             {
                 this.AddRow("No NPCs pinned yet.", MutedColor);
-                this.AddRow("Open the 'All NPCs' tab and click Pin next to anyone you want to track.", MutedColor);
+                this.AddRow("Open the Hearts tab and click Pin next to anyone you want to track.", MutedColor);
                 return;
             }
 
+            bool any = false;
             foreach (string npc in pinned)
             {
-                this.AddNpcHeader(npc, expandable: false);
-                this.AddPendingDetail(npc, indent: 16);
+                PendingEvents pending = this.Index.GetPending(npc);
+                bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(EventIndex.GetNpcDisplayName(npc));
+                var visible = this.Visible(pending, nameMatch);
+                if (!ShowGroup(visible, nameMatch))
+                    continue;
+
+                any = true;
+                this.AddNpcHeader(npc, pending, expandable: false);
+                this.AddEventList(pending, visible, indent: 16, showLocation: true);
                 this.AddSpacer(16);
             }
+
+            if (!any)
+                this.AddRow("None of your pinned NPCs have events matching your search or filters.", MutedColor);
         }
 
-        private void BuildAllNpcsTab()
+        private void BuildHeartsTab()
         {
             var owners = this.Index.ByOwner.Keys
-                .OrderBy(k => k == EventIndex.OtherKey)
-                .ThenBy(k => !this.mod.PinnedNpcs.Contains(k))
+                .OrderBy(k => !this.mod.PinnedNpcs.Contains(k))
                 .ThenBy(EventIndex.GetNpcDisplayName)
                 .ToList();
 
+            bool any = false;
             foreach (string owner in owners)
             {
-                this.AddNpcHeader(owner, expandable: true);
-                if (Expanded.Contains("all:" + owner))
+                PendingEvents pending = this.Index.GetPending(owner);
+                bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(EventIndex.GetNpcDisplayName(owner));
+                var visible = this.Visible(pending, nameMatch);
+                if (!ShowGroup(visible, nameMatch))
+                    continue;
+
+                any = true;
+                string key = "hearts:" + owner;
+                bool expanded = EventFilter.IsActive || Expanded.Contains(key);
+                this.AddNpcHeader(owner, pending, expandable: true, expanded, key);
+                if (expanded)
                 {
-                    this.AddPendingDetail(owner, indent: 16);
+                    this.AddEventList(pending, visible, indent: 16, showLocation: true);
                     this.AddSpacer(12);
                 }
             }
+
+            if (!any)
+                this.AddRow("No heart events match your search or filters.", MutedColor);
+        }
+
+        private void BuildStoryTab()
+        {
+            var locations = this.Index.StoryByLocation.Keys
+                .Select(loc => (Location: loc, Name: this.Index.GetLocationName(loc), Pending: this.Index.GetStoryPending(loc)))
+                .Where(g => g.Pending.Pending.Count > 0)
+                .OrderBy(g => g.Pending.Pending[0].Eval.Status)
+                .ThenBy(g => g.Name)
+                .ToList();
+
+            bool any = false;
+            foreach ((string location, string name, PendingEvents pending) in locations)
+            {
+                bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(name);
+                var visible = this.Visible(pending, nameMatch);
+                if (!ShowGroup(visible, nameMatch))
+                    continue;
+
+                any = true;
+                string key = "story:" + location;
+                bool expanded = EventFilter.IsActive || Expanded.Contains(key);
+                int now = pending.Count(EventStatus.AvailableNow);
+                int later = pending.Count(EventStatus.LaterToday);
+
+                this.AddRow(
+                    $"{(expanded ? "v" : ">")} {name}",
+                    now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
+                    font: Game1.dialogueFont,
+                    onClick: EventFilter.IsActive ? null : () => ToggleExpanded(key));
+                this.AddRow(
+                    $"{pending.Pending.Count} unseen{(now > 0 ? $", {now} available now" : "")}{(later > 0 ? $", {later} later today" : "")}",
+                    MutedColor,
+                    indent: 28);
+
+                if (expanded)
+                {
+                    this.AddEventList(pending, visible, indent: 16, showLocation: false);
+                    this.AddSpacer(12);
+                }
+            }
+
+            if (!any)
+                this.AddRow(EventFilter.IsActive ? "No story events match your search or filters." : "No unseen story events right now.", MutedColor);
         }
 
         private void BuildCompletedTab()
         {
-            var groups = this.Index.ByOwner
-                .Select(p => (Owner: p.Key, Seen: p.Value.Where(e => e.Seen).ToList()))
+            bool story = EventFilter.CompletedShowsStory;
+            var groups = (story
+                    ? this.Index.StoryByLocation.Select(p => (Key: p.Key, Name: this.Index.GetLocationName(p.Key), Events: p.Value))
+                    : this.Index.ByOwner.Select(p => (Key: p.Key, Name: EventIndex.GetNpcDisplayName(p.Key), Events: p.Value)))
+                .Select(g => (g.Key, g.Name, Seen: g.Events.Where(e => e.Seen).ToList(), Total: g.Events.Count))
                 .Where(g => g.Seen.Count > 0)
-                .OrderBy(g => g.Owner == EventIndex.OtherKey)
-                .ThenBy(g => EventIndex.GetNpcDisplayName(g.Owner))
+                .OrderBy(g => g.Name)
                 .ToList();
 
-            if (groups.Count == 0)
+            bool any = false;
+            foreach ((string groupKey, string name, List<EventInfo> seen, int total) in groups)
             {
-                this.AddRow("You haven't seen any tracked events yet.", MutedColor);
-                return;
-            }
+                bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(name);
+                var visible = nameMatch ? seen : seen.Where(e => EventFilter.MatchesSearch(e, this.Index)).ToList();
+                if (visible.Count == 0)
+                    continue;
 
-            foreach ((string owner, List<EventInfo> seen) in groups)
-            {
-                string key = "done:" + owner;
-                bool expanded = Expanded.Contains(key);
-                int total = this.Index.GetEvents(owner).Count;
+                any = true;
+                string key = (story ? "done-story:" : "done:") + groupKey;
+                bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
                 this.AddRow(
-                    $"{(expanded ? "v" : ">")} {EventIndex.GetNpcDisplayName(owner)}   ({seen.Count}/{total} seen)",
+                    $"{(expanded ? "v" : ">")} {name}   ({seen.Count}/{total} seen)",
                     Game1.textColor,
                     font: Game1.dialogueFont,
-                    onClick: () => ToggleExpanded(key));
+                    onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
 
                 if (!expanded)
                     continue;
-                foreach (EventInfo evt in seen)
-                    this.AddRow($"+ {evt.Title} at {evt.LocationDisplayName}  (#{evt.Id})", MetColor, indent: 32);
+                foreach (EventInfo evt in visible)
+                {
+                    string text = story
+                        ? $"+ {evt.Title}{(evt.Actors.Count > 0 ? $" with {ActorList(evt)}" : "")}  (#{evt.Id})"
+                        : $"+ {evt.Title} at {evt.LocationDisplayName}  (#{evt.Id})";
+                    this.AddRow(text, MetColor, indent: 32);
+                }
                 this.AddSpacer(12);
+            }
+
+            if (!any)
+            {
+                this.AddRow(EventFilter.HasSearch
+                    ? "No completed events match your search."
+                    : $"You haven't seen any tracked {(story ? "story" : "heart")} events yet.", MutedColor);
             }
         }
 
-        private void AddNpcHeader(string owner, bool expandable)
+        /// <summary>The events in a group that pass the current filters and search.</summary>
+        private List<(EventInfo Event, EventEvaluation Eval)> Visible(PendingEvents pending, bool groupNameMatches)
+        {
+            return pending.Pending
+                .Concat(EventFilter.ShowLocked ? pending.LockedEvents : Enumerable.Empty<(EventInfo Event, EventEvaluation Eval)>())
+                .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && (groupNameMatches || EventFilter.MatchesSearch(p.Event, this.Index)))
+                .ToList();
+        }
+
+        /// <summary>Groups always show unfiltered; when filtering, only if something matches (or the search names the group).</summary>
+        private static bool ShowGroup(List<(EventInfo Event, EventEvaluation Eval)> visible, bool groupNameMatches) =>
+            !EventFilter.IsActive || visible.Count > 0 || (groupNameMatches && !EventFilter.HasStatusFilter);
+
+        private void AddNpcHeader(string owner, PendingEvents pending, bool expandable, bool expanded = false, string? key = null)
         {
             string name = EventIndex.GetNpcDisplayName(owner);
-            string key = "all:" + owner;
-            PendingEvents pending = this.Index.GetPending(owner);
-            int ready = pending.Pending.Count(p => p.Eval.Status == EventStatus.Ready);
+            int now = pending.Count(EventStatus.AvailableNow);
+            int later = pending.Count(EventStatus.LaterToday);
             int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
 
-            string hearts = owner != EventIndex.OtherKey && Game1.player.friendshipData.ContainsKey(owner)
+            string hearts = Game1.player.friendshipData.ContainsKey(owner)
                 ? $"  {Game1.player.getFriendshipHeartLevelForNPC(owner)} hearts"
                 : "";
-            string scenes = pending.OtherScenes.Count > 0 ? $", {pending.OtherScenes.Count} other scenes" : "";
-            string locked = pending.Locked > 0 ? $", {pending.Locked} locked" : "";
-            string counts = $"   {pending.Pending.Count} pending{(ready > 0 ? $", {ready} READY" : "")}{locked}, {seen} seen{scenes}";
-            string prefix = expandable ? (Expanded.Contains(key) ? "v " : "> ") : "";
+            string counts = $"{pending.Pending.Count} pending"
+                + (now > 0 ? $", {now} available now" : "")
+                + (later > 0 ? $", {later} later today" : "")
+                + (pending.LockedEvents.Count > 0 ? $", {pending.LockedEvents.Count} locked" : "")
+                + $", {seen} seen";
+            string prefix = expandable ? (expanded ? "v " : "> ") : "";
 
             bool isPinned = this.mod.PinnedNpcs.Contains(owner);
             this.AddRow(
                 prefix + name + hearts,
-                ready > 0 ? ReadyColor : Game1.textColor,
+                now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                 font: Game1.dialogueFont,
-                onClick: expandable ? () => ToggleExpanded(key) : null,
-                button: owner == EventIndex.OtherKey ? null : (isPinned ? "Unpin" : "Pin"),
+                onClick: expandable && key != null && !EventFilter.IsActive ? () => ToggleExpanded(key) : null,
+                button: isPinned ? "Unpin" : "Pin",
                 onButton: () => this.mod.TogglePin(owner));
-            this.AddRow(counts.Trim(), MutedColor, indent: expandable ? 28 : 0);
+            this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
         }
 
-        private void AddPendingDetail(string owner, int indent)
+        private void AddEventList(PendingEvents pending, List<(EventInfo Event, EventEvaluation Eval)> visible, int indent, bool showLocation)
         {
-            PendingEvents pending = this.Index.GetPending(owner);
+            if (visible.Count == 0 && !EventFilter.IsActive)
+                this.AddRow(pending.NextLocked == null ? "Nothing pending. You're all caught up!" : "Nothing unlocked yet.", MutedColor, indent);
 
-            if (pending.Pending.Count == 0 && pending.NextLocked == null)
-                this.AddRow("No pending heart events. You're all caught up!", MutedColor, indent);
+            foreach ((EventInfo evt, EventEvaluation eval) in visible)
+                this.AddEventDetail(evt, eval, indent, showLocation);
 
-            foreach ((EventInfo evt, EventEvaluation eval) in pending.Pending)
-                this.AddEventDetail(evt, eval, indent);
+            if (EventFilter.IsActive)
+                return;
 
             if (pending.NextLocked is { } next)
             {
+                int current = Game1.player.getFriendshipHeartLevelForNPC(next.Event.Owner);
                 string need = next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
-                    ? $"needs {next.Event.RequiredHearts} hearts"
+                    ? $"needs {next.Event.RequiredHearts} hearts, you have {current}"
                     : $"needs {next.Event.RequiredPoints} points";
                 this.AddRow($"Next up: {next.Event.Title} at {next.Event.LocationDisplayName} ({need})", MutedColor, indent);
             }
 
             if (pending.Unreachable > 0)
                 this.AddRow($"{pending.Unreachable} event(s) can no longer happen (an alternate version was seen).", MutedColor, indent);
-
-            if (pending.OtherScenes.Count > 0)
-            {
-                string key = "scenes:" + owner;
-                bool expanded = Expanded.Contains(key);
-                this.AddSpacer(4);
-                this.AddRow(
-                    $"{(expanded ? "v" : ">")} Other scenes featuring {EventIndex.GetNpcDisplayName(owner)} ({pending.OtherScenes.Count})",
-                    MutedColor,
-                    indent,
-                    onClick: () => ToggleExpanded(key));
-                if (expanded)
-                {
-                    foreach ((EventInfo evt, EventEvaluation eval) in pending.OtherScenes)
-                        this.AddEventDetail(evt, eval, indent + 16);
-                }
-            }
         }
 
-        private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent)
+        private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation)
         {
-            (string tag, Color color) = eval.Status switch
-            {
-                EventStatus.Ready => ("READY: go there now", ReadyColor),
-                EventStatus.Special => ("special trigger: can't be started by visiting", MutedColor),
-                _ => ($"{eval.UnmetCount} requirement(s) not met yet", Game1.textColor)
-            };
-            this.AddRow($"{evt.Title} at {evt.LocationDisplayName}  [{tag}]", color, indent);
+            string title = showLocation ? $"{evt.Title} at {evt.LocationDisplayName}" : evt.Title;
+            this.AddRow($"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]", StatusColor(eval.Status), indent);
+
+            int inner = indent + 28;
+            if (evt.IsStory && evt.Actors.Count > 0)
+                this.AddRow($"With {ActorList(evt)}", MutedColor, inner);
+
+            if (eval.Status == EventStatus.AvailableNow)
+                this.AddRow(EventNarrator.AvailableNow(evt), ReadyColor, inner);
+            else if (eval.Status == EventStatus.LaterToday && eval.MinutesUntilStart is { } minutes)
+                this.AddRow(EventNarrator.Reminder(evt, minutes), SoonColor, inner);
 
             if (evt.Conditions.Count == 0)
-                this.AddRow("No requirements, just walk in.", MetColor, indent + 28);
+                this.AddRow("No requirements, just walk in.", MetColor, inner);
             for (int i = 0; i < evt.Conditions.Count; i++)
             {
+                if (eval.States[i] == ConditionState.Soft)
+                {
+                    Color timeColor = eval.TimeOpen ? MetColor : eval.MinutesUntilStart > 0 ? SoonColor : MutedColor;
+                    this.AddRow($"~ {PreconditionFormatter.DescribeTimeWindow(evt, eval)}", timeColor, inner);
+                    continue;
+                }
+
                 string text = PreconditionFormatter.Describe(evt.Conditions[i], this.Index);
-                (string mark, Color condColor) = eval.States[i] switch
+                (string mark, Color color) = eval.States[i] switch
                 {
                     ConditionState.Met => ("+", MetColor),
                     ConditionState.Unmet => ("x", UnmetColor),
                     ConditionState.Unknown => ("?", MutedColor),
                     _ => ("-", MutedColor)
                 };
-                this.AddRow($"{mark} {text}", condColor, indent + 28);
+                this.AddRow($"{mark} {text}", color, inner);
             }
-            this.AddRow($"#{evt.Id}", MutedColor * 0.7f, indent + 28);
+            this.AddRow($"#{evt.Id}", MutedColor * 0.7f, inner);
             this.AddSpacer(8);
+        }
+
+        private static Color StatusColor(EventStatus status) => status switch
+        {
+            EventStatus.AvailableNow => ReadyColor,
+            EventStatus.LaterToday => SoonColor,
+            EventStatus.Special or EventStatus.Locked or EventStatus.Unreachable => MutedColor,
+            _ => Game1.textColor
+        };
+
+        private static string ActorList(EventInfo evt)
+        {
+            var names = evt.Actors.Take(3).Select(EventIndex.GetNpcDisplayName).ToList();
+            return string.Join(", ", names) + (evt.Actors.Count > 3 ? $" +{evt.Actors.Count - 3}" : "");
         }
 
         private void AddRow(string text, Color color, int indent = 0, SpriteFont? font = null, Action? onClick = null, string? button = null, Action? onButton = null)
@@ -307,15 +488,44 @@ namespace NpcEventTracker.UI
         /****
         ** Input
         ****/
+        public override void update(GameTime time)
+        {
+            base.update(time);
+
+            if (this.searchBox.Text != EventFilter.SearchText)
+            {
+                EventFilter.SearchText = this.searchBox.Text;
+                this.scrollY = 0;
+                this.builtVersion = -1;
+            }
+        }
+
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
             base.receiveLeftClick(x, y, playSound);
+
+            bool inSearch = new Rectangle(this.searchBox.X, this.searchBox.Y, this.searchBox.Width, this.searchBox.Height).Contains(x, y);
+            this.searchBox.Selected = inSearch;
+            if (inSearch)
+            {
+                Game1.keyboardDispatcher.Subscriber = this.searchBox;
+                return;
+            }
 
             for (int i = 0; i < this.tabAreas.Length; i++)
             {
                 if (this.tabAreas[i].Contains(x, y) && this.tab != (Tab)i)
                 {
-                    this.tab = lastTab = (Tab)i;
+                    this.SetTab((Tab)i);
+                    return;
+                }
+            }
+
+            foreach (Chip chip in this.chips)
+            {
+                if (chip.Area.Contains(x, y))
+                {
+                    chip.Toggle();
                     this.scrollY = 0;
                     this.builtVersion = -1;
                     Game1.playSound("smallSelect");
@@ -336,6 +546,12 @@ namespace NpcEventTracker.UI
             }
         }
 
+        public override void performHoverAction(int x, int y)
+        {
+            base.performHoverAction(x, y);
+            this.hoverText = this.chips.FirstOrDefault(c => c.Area.Contains(x, y))?.Tooltip ?? "";
+        }
+
         public override void receiveScrollWheelAction(int direction)
         {
             this.Scroll(direction > 0 ? -ScrollStep : ScrollStep);
@@ -343,6 +559,14 @@ namespace NpcEventTracker.UI
 
         public override void receiveKeyPress(Keys key)
         {
+            // while typing, keys belong to the search box (so 'E' doesn't close the menu)
+            if (this.searchBox.Selected)
+            {
+                if (key is Keys.Escape or Keys.Enter)
+                    this.searchBox.Selected = false;
+                return;
+            }
+
             switch (key)
             {
                 case Keys.Up:
@@ -372,20 +596,26 @@ namespace NpcEventTracker.UI
                     this.Scroll(ScrollStep);
                     return;
                 case Buttons.LeftShoulder:
-                    this.SwitchTab(-1);
+                    this.SetTab((Tab)(((int)this.tab + TabLabels.Length - 1) % TabLabels.Length));
                     return;
                 case Buttons.RightShoulder:
-                    this.SwitchTab(1);
+                    this.SetTab((Tab)(((int)this.tab + 1) % TabLabels.Length));
                     return;
             }
             base.receiveGamePadButton(b);
         }
 
-        private void SwitchTab(int delta)
+        protected override void cleanupBeforeExit()
         {
-            this.tab = lastTab = (Tab)(((int)this.tab + delta + 3) % 3);
+            this.searchBox.Selected = false;
+            base.cleanupBeforeExit();
+        }
+
+        private void SetTab(Tab newTab)
+        {
+            this.tab = lastTab = newTab;
             this.scrollY = 0;
-            this.builtVersion = -1;
+            this.LayoutToolbar();
             Game1.playSound("smallSelect");
         }
 
@@ -405,19 +635,29 @@ namespace NpcEventTracker.UI
             if (this.builtVersion != this.Index.Version)
                 this.RebuildRows();
 
+            int mouseX = Game1.getMouseX(), mouseY = Game1.getMouseY();
+
             b.Draw(Game1.fadeToBlackRect, new Rectangle(0, 0, Game1.uiViewport.Width, Game1.uiViewport.Height), Color.Black * 0.5f);
             drawTextureBox(b, this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height, Color.White);
 
             // tabs
-            string[] tabLabels = { "Pinned", "All NPCs", "Completed" };
             for (int i = 0; i < this.tabAreas.Length; i++)
             {
                 Rectangle area = this.tabAreas[i];
                 bool selected = (int)this.tab == i;
-                bool hovered = area.Contains(Game1.getMouseX(), Game1.getMouseY());
-                DrawBox(b, area, selected ? Color.White : hovered ? Color.Wheat : Color.White * 0.55f);
-                Vector2 size = Game1.smallFont.MeasureString(tabLabels[i]);
-                Utility.drawTextWithShadow(b, tabLabels[i], Game1.smallFont, new Vector2(area.Center.X - size.X / 2, area.Center.Y - size.Y / 2), Game1.textColor);
+                DrawBox(b, area, selected ? Color.White : area.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
+                DrawCentered(b, TabLabels[i], area, Game1.textColor);
+            }
+
+            // toolbar
+            this.searchBox.Draw(b);
+            if (this.searchBox.Text.Length == 0 && !this.searchBox.Selected)
+                Utility.drawTextWithShadow(b, "Search...", Game1.smallFont, new Vector2(this.searchBox.X + 16, this.searchBox.Y + 10), MutedColor, shadowIntensity: 0f);
+            foreach (Chip chip in this.chips)
+            {
+                bool on = chip.IsOn();
+                DrawBox(b, chip.Area, on ? Color.White : chip.Area.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
+                DrawCentered(b, chip.Label, chip.Area, on ? ReadyColor : MutedColor);
             }
 
             // rows
@@ -431,7 +671,7 @@ namespace NpcEventTracker.UI
                     var rowArea = new Rectangle(content.X + row.Indent, y, content.Width - row.Indent, row.Height);
                     if (row.OnClick != null)
                     {
-                        if (rowArea.Contains(Game1.getMouseX(), Game1.getMouseY()))
+                        if (rowArea.Contains(mouseX, mouseY))
                             b.Draw(Game1.staminaRect, rowArea, Color.Wheat * 0.35f);
                         this.hitAreas.Add((rowArea, row.OnClick));
                     }
@@ -442,10 +682,8 @@ namespace NpcEventTracker.UI
                     if (row.Button != null && row.OnButton != null)
                     {
                         var buttonArea = new Rectangle(content.Right - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48);
-                        bool hovered = buttonArea.Contains(Game1.getMouseX(), Game1.getMouseY());
-                        DrawBox(b, buttonArea, hovered ? Color.Wheat : Color.White);
-                        Vector2 size = Game1.smallFont.MeasureString(row.Button);
-                        Utility.drawTextWithShadow(b, row.Button, Game1.smallFont, new Vector2(buttonArea.Center.X - size.X / 2, buttonArea.Center.Y - size.Y / 2), Game1.textColor);
+                        DrawBox(b, buttonArea, buttonArea.Contains(mouseX, mouseY) ? Color.Wheat : Color.White);
+                        DrawCentered(b, row.Button, buttonArea, Game1.textColor);
                         this.hitAreas.Add((buttonArea, row.OnButton));
                     }
                 }
@@ -463,12 +701,20 @@ namespace NpcEventTracker.UI
             }
 
             base.draw(b);
+            if (this.hoverText.Length > 0)
+                drawHoverText(b, this.hoverText, Game1.smallFont);
             this.drawMouse(b);
         }
 
         private static void DrawBox(SpriteBatch b, Rectangle area, Color color)
         {
             drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), area.X, area.Y, area.Width, area.Height, color, 4f, drawShadow: false);
+        }
+
+        private static void DrawCentered(SpriteBatch b, string text, Rectangle area, Color color)
+        {
+            Vector2 size = Game1.smallFont.MeasureString(text);
+            Utility.drawTextWithShadow(b, text, Game1.smallFont, new Vector2(area.Center.X - size.X / 2, area.Center.Y - size.Y / 2), color);
         }
     }
 }
