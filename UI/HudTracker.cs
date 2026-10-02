@@ -35,10 +35,10 @@ namespace NpcEventTracker.UI
         public void Draw(SpriteBatch b)
         {
             this.Bounds = Rectangle.Empty;
-            if (!this.mod.Config.ShowHud || this.mod.PinnedNpcs.Count == 0 || Game1.eventUp || Game1.activeClickableMenu != null || !Game1.displayHUD)
+            if (!this.mod.Config.ShowHud || !this.mod.State.HasPins || Game1.eventUp || Game1.activeClickableMenu != null || !Game1.displayHUD)
                 return;
 
-            if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.mod.PinnedNpcs.Count)
+            if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.PinCount)
                 this.Rebuild();
 
             SpriteFont font = Game1.smallFont;
@@ -60,7 +60,8 @@ namespace NpcEventTracker.UI
             EventIndex index = this.mod.Index;
             var lines = new List<(string, Color)> { (I18n.Get("hud.title"), Game1.textColor) };
 
-            var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).Take(Math.Max(1, this.mod.Config.HudMaxNpcs));
+            int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
+            var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).Take(maxEntries).ToList();
             foreach (string npc in pinned)
             {
                 string name = EventIndex.GetNpcDisplayName(npc);
@@ -73,14 +74,7 @@ namespace NpcEventTracker.UI
                 else if (awake.Count > 0)
                 {
                     (EventInfo evt, EventEvaluation eval) = awake[0];
-                    int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
-                    (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes);
-                    Color color = tone switch
-                    {
-                        EventNarrator.HudTone.Go => ReadyColor,
-                        EventNarrator.HudTone.Soon => SoonColor,
-                        _ => Game1.textColor
-                    };
+                    (string stage, Color color, EventNarrator.HudTone tone) = this.Status(evt, eval);
                     string more = awake.Count > 1 ? I18n.Get("hud.more", new { count = awake.Count - 1 }) : "";
                     string line = this.mod.HidesDetails(eval)
                         ? I18n.Get("hud.event-hidden", new { name, title = evt.Title })
@@ -97,9 +91,41 @@ namespace NpcEventTracker.UI
                     lines.Add((I18n.Get("hud.caught-up", new { name }), MutedColor));
             }
 
+            // pinned story events share the remaining space
+            var story = this.mod.GetPinnedStoryEvents().Take(Math.Max(0, maxEntries - pinned.Count));
+            foreach ((EventInfo evt, EventEvaluation eval) in story)
+            {
+                string place = EventNarrator.WithArticle(evt.LocationDisplayName);
+                if (this.mod.IsSnoozed(evt))
+                {
+                    lines.Add((I18n.Get("hud.story-snoozed", new { location = place }), MutedColor));
+                    continue;
+                }
+
+                (string stage, Color color, EventNarrator.HudTone tone) = this.Status(evt, eval);
+                lines.Add((I18n.Get("hud.story", new { location = place, title = evt.Title }), color));
+                lines.Add(($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color));
+            }
+
             this.lines = lines;
             this.builtVersion = index.Version;
-            this.pinCount = this.mod.PinnedNpcs.Count;
+            this.pinCount = this.PinCount;
+        }
+
+        private int PinCount => this.mod.PinnedNpcs.Count + this.mod.State.PinnedStoryEvents.Count;
+
+        /// <summary>The coloured status line for an event, from <see cref="EventNarrator.HudLine"/>.</summary>
+        private (string Stage, Color Color, EventNarrator.HudTone Tone) Status(EventInfo evt, EventEvaluation eval)
+        {
+            int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
+            (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes);
+            Color color = tone switch
+            {
+                EventNarrator.HudTone.Go => ReadyColor,
+                EventNarrator.HudTone.Soon => SoonColor,
+                _ => Game1.textColor
+            };
+            return (stage, color, tone);
         }
     }
 }

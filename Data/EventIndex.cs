@@ -34,6 +34,7 @@ namespace NpcEventTracker.Data
         private Dictionary<string, List<EventInfo>> byOwner = new();
         private Dictionary<string, List<EventInfo>> storyByLocation = new();
         private Dictionary<string, EventInfo> byId = new();
+        private Dictionary<string, EventInfo> byKey = new();
 
         /// <summary>Events that require having seen a given event ID.</summary>
         private Dictionary<string, List<EventInfo>> unlockedBy = new();
@@ -132,8 +133,12 @@ namespace NpcEventTracker.Data
                 .GroupBy(e => e.LocationName)
                 .ToDictionary(g => g.Key, g => g.OrderBy(e => e.Id).ToList());
             this.byId = new();
+            this.byKey = new();
             foreach (EventInfo info in all)
+            {
                 this.byId.TryAdd(info.Id, info);
+                this.byKey.TryAdd(info.Key, info);
+            }
 
             this.unlockedBy = new();
             foreach (EventInfo info in all)
@@ -170,6 +175,8 @@ namespace NpcEventTracker.Data
         /// <summary>Events that need this event to have been seen first, i.e. what seeing it leads to.</summary>
         public IReadOnlyList<EventInfo> GetUnlocks(string id) =>
             this.unlockedBy.TryGetValue(id, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
+
+        public EventInfo? FindByKey(string key) => this.byKey.TryGetValue(key, out EventInfo? info) ? info : null;
 
         public EventInfo? FindById(string id) => this.byId.TryGetValue(id, out EventInfo? info) ? info : null;
 

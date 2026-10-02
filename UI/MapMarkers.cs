@@ -79,6 +79,15 @@ namespace NpcEventTracker.UI
         /// <summary>Pinned NPCs' events that can happen today, with their tooltip text.</summary>
         private IEnumerable<(EventInfo Event, EventEvaluation Eval, string Label)> GetMarkers()
         {
+            foreach ((EventInfo evt, EventEvaluation eval) in this.mod.GetPinnedStoryEvents())
+            {
+                if (eval.Status is not (EventStatus.AvailableNow or EventStatus.LaterToday) || this.mod.IsSnoozed(evt))
+                    continue;
+
+                (string status, _) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore);
+                yield return (evt, eval, I18n.Get("map.tooltip.story", new { title = evt.Title, location = EventNarrator.WithArticle(evt.LocationDisplayName), status }));
+            }
+
             foreach (string npc in this.mod.PinnedNpcs)
             {
                 string name = EventIndex.GetNpcDisplayName(npc);

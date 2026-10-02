@@ -189,8 +189,8 @@
   "menu.chip.not-today.tip": "Everything's done; it just can't happen today.\nWaiting on the weather, day, season, Green Rain\nor a festival, or today's time has passed.",
   "menu.chip.locked": "Show locked",
   "menu.chip.locked.tip": "Also list events that need more hearts.",
-  "menu.pinned.none": "No NPCs pinned yet.",
-  "menu.pinned.how": "Open the Hearts tab and click Pin next to anyone you want to track, or point at an NPC and press {{key}}.",
+  "menu.pinned.none": "Nothing pinned yet.",
+  "menu.pinned.how": "Pin NPCs from the Hearts tab (or point at one and press {{key}}), and story events from the Story tab.",
   "menu.pinned.no-match": "None of your pinned NPCs have events matching your search or filters.",
   "menu.messages": "Today's messages ({{count}})",
   "menu.hearts.no-match": "No heart events match your search or filters.",
@@ -271,7 +271,7 @@
   "config.drag-key.tip": "Hold this and drag the HUD tracker with the left mouse button to move it.",
   "config.hud-x": "HUD X position",
   "config.hud-y": "HUD Y position",
-  "config.hud-max": "Max NPCs on HUD",
+  "config.hud-max": "Max entries on HUD",
   "sound.none": "None",
   "sound.newArtifact": "Sparkle",
   "sound.jingle1": "Jingle",
@@ -286,5 +286,12 @@
   "sound.reward": "Reward",
   "sound.questcomplete": "Quest complete",
   "sound.achievement": "Achievement",
-  "map.tooltip": "{{name}}: {{title}} at {{location}}\n   {{status}}"
+  "map.tooltip": "{{name}}: {{title}} at {{location}}\n   {{status}}",
+  "hud.story": "{{title}} at {{location}}",
+  "hud.story-snoozed": "Story event at {{location}}: snoozed until tomorrow",
+  "map.tooltip.story": "{{title}} at {{location}}\n   {{status}}",
+  "menu.pinned.story": "Story events",
+  "msg.morning.story": "Something might happen at {{place}} today{{window}}.",
+  "config.story-reminders": "Story event reminders",
+  "config.story-reminders.tip": "Send reminders for story events you've pinned (pin them from the Story tab), the same way as for pinned NPCs."
 }

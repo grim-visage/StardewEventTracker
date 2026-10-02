@@ -26,6 +26,10 @@ namespace NpcEventTracker.UI
             public Action? OnClick;
             public string? Button;
             public Action? OnButton;
+
+            /// <summary>A second button, drawn to the left of <see cref="Button"/>.</summary>
+            public string? Button2;
+            public Action? OnButton2;
         }
 
         /// <summary>A toggle button in the toolbar next to the search box.</summary>
@@ -192,7 +196,8 @@ namespace NpcEventTracker.UI
             this.AddTodaysMessages();
 
             var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).ToList();
-            if (pinned.Count == 0)
+            var pinnedStory = this.mod.GetPinnedStoryEvents();
+            if (pinned.Count == 0 && pinnedStory.Count == 0)
             {
                 this.AddRow(I18n.Get("menu.pinned.none"), MutedColor);
                 this.AddRow(I18n.Get("menu.pinned.how", new { key = this.mod.Config.PinKey }), MutedColor);
@@ -212,6 +217,17 @@ namespace NpcEventTracker.UI
                 this.AddNpcHeader(npc, pending, expandable: false);
                 this.AddEventList(pending, visible, indent: 16, showLocation: true);
                 this.AddSpacer(16);
+            }
+
+            var storyVisible = pinnedStory
+                .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && EventFilter.MatchesSearch(p.Event, this.Index, this.mod.HidesDetails(p.Eval)))
+                .ToList();
+            if (storyVisible.Count > 0)
+            {
+                any = true;
+                this.AddRow(I18n.Get("menu.pinned.story"), Game1.textColor, font: Game1.dialogueFont);
+                foreach ((EventInfo evt, EventEvaluation eval) in storyVisible)
+                    this.AddEventDetail(evt, eval, indent: 16, showLocation: true);
             }
 
             if (!any)
@@ -443,13 +459,20 @@ namespace NpcEventTracker.UI
             bool hidden = this.mod.HidesDetails(eval);
             string title = showLocation && !hidden ? I18n.Get("menu.event-at", new { title = evt.Title, location = evt.LocationDisplayName }) : evt.Title;
             bool snoozed = this.mod.IsSnoozed(evt);
-            bool canSnooze = snoozed || (evt.IsHeartEvent && this.mod.PinnedNpcs.Contains(evt.Owner) && eval.Status is not (EventStatus.Locked or EventStatus.Special));
+            bool tracked = evt.IsHeartEvent ? this.mod.PinnedNpcs.Contains(evt.Owner) : this.mod.IsStoryPinned(evt);
+            bool canSnooze = snoozed || (tracked && eval.Status is not (EventStatus.Locked or EventStatus.Special));
+
+            // story events are pinned one at a time (heart events are pinned through their NPC)
+            string? pinLabel = evt.IsStory && !hidden ? I18n.Get(tracked ? "menu.button.unpin" : "menu.button.pin") : null;
+            string? snoozeLabel = canSnooze ? I18n.Get(snoozed ? "menu.button.wake" : "menu.button.snooze") : null;
             this.AddRow(
                 $"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
                 snoozed ? MutedColor : StatusColor(eval.Status),
                 indent,
-                button: canSnooze ? I18n.Get(snoozed ? "menu.button.wake" : "menu.button.snooze") : null,
-                onButton: () => this.mod.ToggleSnooze(evt));
+                button: pinLabel ?? snoozeLabel,
+                onButton: pinLabel != null ? () => this.mod.ToggleStoryPin(evt) : () => this.mod.ToggleSnooze(evt),
+                button2: pinLabel != null ? snoozeLabel : null,
+                onButton2: () => this.mod.ToggleSnooze(evt));
 
             int inner = indent + 28;
             if (hidden)
@@ -527,13 +550,14 @@ namespace NpcEventTracker.UI
             return string.Join(", ", names) + (evt.Actors.Count > 3 ? $" +{evt.Actors.Count - 3}" : "");
         }
 
-        private void AddRow(string text, Color color, int indent = 0, SpriteFont? font = null, Action? onClick = null, string? button = null, Action? onButton = null)
+        private void AddRow(string text, Color color, int indent = 0, SpriteFont? font = null, Action? onClick = null, string? button = null, Action? onButton = null, string? button2 = null, Action? onButton2 = null)
         {
             font ??= Game1.smallFont;
-            int maxWidth = this.ContentArea.Width - indent - (button != null ? ButtonWidth + 16 : 0);
+            int buttons = (button != null ? 1 : 0) + (button2 != null ? 1 : 0);
+            int maxWidth = this.ContentArea.Width - indent - buttons * (ButtonWidth + 16);
             string wrapped = Game1.parseText(text, font, Math.Max(100, maxWidth));
             int height = (int)Math.Ceiling(font.MeasureString(wrapped).Y) + 4;
-            if (button != null)
+            if (buttons > 0)
                 height = Math.Max(height, 52);
 
             this.rows.Add(new Row
@@ -545,7 +569,9 @@ namespace NpcEventTracker.UI
                 Height = height,
                 OnClick = onClick,
                 Button = button,
-                OnButton = onButton
+                OnButton = onButton,
+                Button2 = button2,
+                OnButton2 = onButton2
             });
         }
 
@@ -748,15 +774,19 @@ namespace NpcEventTracker.UI
                         this.hitAreas.Add((rowArea, row.OnClick));
                     }
 
-                    int textY = y + (row.Button != null ? (row.Height - (int)row.Font.MeasureString(row.Text).Y) / 2 : 0);
+                    int textY = y + (row.Button != null || row.Button2 != null ? (row.Height - (int)row.Font.MeasureString(row.Text).Y) / 2 : 0);
                     Utility.drawTextWithShadow(b, row.Text, row.Font, new Vector2(content.X + row.Indent, textY), row.Color, shadowIntensity: 0.25f);
 
-                    if (row.Button != null && row.OnButton != null)
+                    int buttonRight = content.Right;
+                    foreach ((string? label, Action? action) in new[] { (row.Button, row.OnButton), (row.Button2, row.OnButton2) })
                     {
-                        var buttonArea = new Rectangle(content.Right - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48);
+                        if (label == null || action == null)
+                            continue;
+                        var buttonArea = new Rectangle(buttonRight - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48);
                         DrawBox(b, buttonArea, buttonArea.Contains(mouseX, mouseY) ? Color.Wheat : Color.White);
-                        DrawCentered(b, row.Button, buttonArea, Game1.textColor);
-                        this.hitAreas.Add((buttonArea, row.OnButton));
+                        DrawCentered(b, label, buttonArea, Game1.textColor);
+                        this.hitAreas.Add((buttonArea, action));
+                        buttonRight -= ButtonWidth + 12;
                     }
                 }
                 y += row.Height;

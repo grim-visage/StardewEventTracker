@@ -44,8 +44,8 @@ HOW TO USE IT
 
 Pinning NPCs
 ~~~~~~~~~~~~
-Pin the NPCs you want to follow. Reminders, the HUD tracker and map markers
-cover pinned NPCs only. You can pin someone by:
+Pin the NPCs and story events you want to follow. Reminders, the HUD tracker
+and map markers cover what you've pinned. You can pin someone by:
 
   * clicking "Pin" next to their name on the Hearts tab
   * pointing at them in the world and pressing Ctrl + F2
@@ -54,11 +54,17 @@ cover pinned NPCs only. You can pin someone by:
 Your spouse, roommate and anyone you're dating are pinned automatically. If
 you unpin one of them, they stay unpinned.
 
+Story events aren't tied to one NPC, so you pin them one at a time: click
+"Pin" next to the event on the Story tab. Pinned story events show in the
+Pinned tab, on the HUD and on the map, and get reminders too (turn that off
+with the StoryReminders setting). They're unpinned once you've seen them.
+
 
 Tracker menu (F2)
 ~~~~~~~~~~~~~~~~~
-  * Pinned     Pending heart events for the NPCs you've pinned, plus a
-               "Today's messages" list of every reminder from today.
+  * Pinned     Pending heart events for the NPCs you've pinned, your pinned
+               story events, and a "Today's messages" list of every
+               reminder from today.
   * Hearts     Every NPC with heart events. Click a name to expand it.
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
@@ -68,8 +74,8 @@ Tracker menu (F2)
 Each event also shows:
   * how far away it is on foot, when it can happen today
   * what seeing it leads to ("Leads to: ..."), for event chains
-  * a Snooze button, for pinned NPCs' events: no reminders for that event
-    until tomorrow, and the HUD moves on to the NPC's next event
+  * a Snooze button, for pinned events: no reminders for that event until
+    tomorrow, and the HUD moves on to the next one
 
 
 Search and filters
@@ -133,8 +139,8 @@ when one becomes available, step out and come back in.
 
 HUD tracker (Shift + F2)
 ~~~~~~~~~~~~~~~~~~~~~~~~
-A small box showing each pinned NPC's next event and where it happens, with
-a short status:
+A small box showing each pinned NPC's next event and each pinned story event,
+where it happens, and a short status:
 
   Status              Meaning
   ------------------  -----------------------------------------------------
@@ -154,15 +160,15 @@ Hold Shift and drag the box to move it.
 
 Map markers
 ~~~~~~~~~~~
-Open the map to see a heart where a pinned NPC's event can happen today. It
+Open the map to see a heart where a pinned event can happen today. It
 bobs when the event can happen right now and is faded when it's later today.
 Hover a heart for details. Works with NPC Map Locations and World Maps.
 
 
 Reminders
 ~~~~~~~~~
-For NPCs you've pinned, the mod sends gentle reminders so you have time to get
-there:
+For NPCs and story events you've pinned, the mod sends gentle reminders so you
+have time to get there:
 
   * Morning heads-up   At the start of the day, which events can happen
                        today ("Today looks like a good day to see Abigail at
@@ -217,6 +223,7 @@ launch:
   HudDragKey             LeftShift        Hold to drag the HUD tracker
   ShowMapMarkers         true             Hearts on the map for pinned
                                           NPCs' events
+  StoryReminders         true             Reminders for pinned story events
   MorningHeadsUp         true             Day-start message about today's
                                           events
   ReminderMinutesBefore  [120, 60]        When to remind you before an
@@ -235,9 +242,10 @@ launch:
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
   HudX / HudY            16 / 120         HUD position on screen, in pixels
-  HudMaxNpcs             5                Most pinned NPCs shown on the HUD
+  HudMaxNpcs             5                Most entries (NPCs and story
+                                          events) shown on the HUD
 
-Pinned NPCs are saved separately for each save file and each player.
+Pins are saved separately for each save file and each player.
 
 
 TRANSLATIONS
@@ -269,7 +277,7 @@ KNOWN LIMITATIONS
     tracker can't predict when they'll happen.
   * Requirement types the mod doesn't recognize are shown as their raw code.
     Whether they're met is still checked correctly.
-  * Reminders, the HUD and map markers cover pinned NPCs, not story events.
+  * Reminders, the HUD and map markers only cover what you've pinned.
   * Walking estimates count walking and riding only, not minecarts, the bus,
     boats or totems.
 

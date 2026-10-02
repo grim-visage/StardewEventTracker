@@ -115,6 +115,30 @@ namespace NpcEventTracker
         internal bool HidesDetails(EventEvaluation eval) =>
             this.Config.SpoilerFree && eval.Status is EventStatus.Locked or EventStatus.NotYet or EventStatus.Special or EventStatus.Unreachable;
 
+        internal bool IsStoryPinned(EventInfo evt) => this.State.PinnedStoryEvents.Contains(evt.Key);
+
+        /// <summary>Pins or unpins one story event.</summary>
+        internal void ToggleStoryPin(EventInfo evt)
+        {
+            if (!this.State.PinnedStoryEvents.Remove(evt.Key))
+                this.State.PinnedStoryEvents.Add(evt.Key);
+            this.SavePins();
+            this.Index.Invalidate();
+            this.RunReminders();
+        }
+
+        /// <summary>The pinned story events that haven't been seen yet, ordered by status and location.</summary>
+        internal List<(EventInfo Event, EventEvaluation Eval)> GetPinnedStoryEvents()
+        {
+            return this.State.PinnedStoryEvents
+                .Select(this.Index.FindByKey)
+                .Where(evt => evt != null && !evt.Seen)
+                .Select(evt => (Event: evt!, Eval: this.Index.Evaluate(evt!)))
+                .OrderBy(p => p.Eval.Status)
+                .ThenBy(p => p.Event.LocationDisplayName)
+                .ToList();
+        }
+
         internal bool IsSnoozed(EventInfo evt) => this.State.SnoozedToday.Contains(evt.Key);
 
         /// <summary>Silences (or un-silences) an event's reminders until tomorrow.</summary>
@@ -130,6 +154,7 @@ namespace NpcEventTracker
             this.Helper.Data.WriteJsonFile(this.PinDataPath, new PinData
             {
                 PinnedNpcs = this.PinnedNpcs.OrderBy(p => p).ToList(),
+                PinnedStoryEvents = this.State.PinnedStoryEvents.OrderBy(p => p).ToList(),
                 AutoPinDismissed = this.State.AutoPinDismissed.OrderBy(p => p).ToList()
             });
         }
@@ -154,6 +179,7 @@ namespace NpcEventTracker
             gmcm.AddBoolOption(m, () => this.Config.SpoilerFree, v => this.Config.SpoilerFree = v, () => I18n.Get("config.spoiler-free"), () => I18n.Get("config.spoiler-free.tip"));
 
             gmcm.AddSectionTitle(m, () => I18n.Get("config.section.reminders"), () => I18n.Get("config.section.reminders.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.StoryReminders, v => this.Config.StoryReminders = v, () => I18n.Get("config.story-reminders"), () => I18n.Get("config.story-reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => I18n.Get("config.morning"), () => I18n.Get("config.morning.tip"));
             foreach (int minutes in ModConfig.AllowedReminderMinutes)
             {
@@ -202,6 +228,7 @@ namespace NpcEventTracker
             if (data != null)
             {
                 this.PinnedNpcs.UnionWith(data.PinnedNpcs);
+                this.State.PinnedStoryEvents.UnionWith(data.PinnedStoryEvents);
                 this.State.AutoPinDismissed.UnionWith(data.AutoPinDismissed);
             }
 
@@ -214,6 +241,7 @@ namespace NpcEventTracker
             this.Index.Rebuild();
             this.State.StartDay();
             this.AutoPinPartners();
+            this.DropSeenStoryPins();
             this.RunReminders(morning: true);
         }
 
@@ -383,6 +411,14 @@ namespace NpcEventTracker
             Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship)
             && (friendship.IsDating() || friendship.IsEngaged() || friendship.IsMarried() || friendship.IsRoommate());
 
+        /// <summary>Unpins story events the player has seen. Missing ones are kept, since content packs can add events only on some days.</summary>
+        private void DropSeenStoryPins()
+        {
+            int removed = this.State.PinnedStoryEvents.RemoveWhere(key => this.Index.FindByKey(key) is { Seen: true });
+            if (removed > 0)
+                this.SavePins();
+        }
+
         /// <summary>Pins the player's spouse, roommate and partners, unless they unpinned them before.</summary>
         private void AutoPinPartners()
         {
@@ -409,61 +445,64 @@ namespace NpcEventTracker
             var intervals = this.Config.ReminderMinutesBefore.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
             int headsUps = 0;
 
-            foreach (string npc in this.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName))
+            // pinned NPCs' heart events, then pinned story events if their reminders are on
+            var tracked = this.PinnedNpcs
+                .OrderBy(EventIndex.GetNpcDisplayName)
+                .SelectMany(npc => this.Index.GetPending(npc).Pending)
+                .Concat(this.Config.StoryReminders ? this.GetPinnedStoryEvents() : Enumerable.Empty<(EventInfo Event, EventEvaluation Eval)>());
+
+            foreach ((EventInfo evt, EventEvaluation eval) in tracked)
             {
-                foreach ((EventInfo evt, EventEvaluation eval) in this.Index.GetPending(npc).Pending)
+                if (this.IsSnoozed(evt) || this.HidesDetails(eval))
+                    continue;
+
+                if (eval.Status == EventStatus.AvailableNow)
                 {
-                    if (this.IsSnoozed(evt))
-                        continue;
+                    if (this.Config.AlertWhenAvailable && this.alertedToday.Add($"now:{evt.Key}"))
+                        this.Notify(EventNarrator.AvailableNow(evt), this.Config.AvailableSound);
+                    continue;
+                }
 
-                    if (eval.Status == EventStatus.AvailableNow)
+                // in the evening, look ahead to tomorrow's forecast
+                if (eval.WorksTomorrow == true && Game1.timeOfDay >= 1800 && this.Config.TomorrowHeadsUp && this.alertedToday.Add($"tomorrow:{evt.Key}"))
+                {
+                    GameLocation location = Game1.getLocationFromName(evt.LocationName) ?? Game1.currentLocation;
+                    this.Notify(EventNarrator.TomorrowHeadsUp(evt, CalendarInfo.WeatherTomorrow(location)), this.Config.ReminderSound);
+                    continue;
+                }
+
+                if (eval.Status != EventStatus.LaterToday || eval.MinutesUntilStart is not { } minutesLeft)
+                    continue;
+
+                // time to leave, based on the walk there
+                if (this.Config.TravelReminders
+                    && this.State.Travel.MinutesTo(evt.LocationName) is > 0 and int travel
+                    && minutesLeft <= travel + this.Config.TravelBufferMinutes)
+                {
+                    if (this.alertedToday.Add($"leave:{evt.Key}"))
                     {
-                        if (this.Config.AlertWhenAvailable && this.alertedToday.Add($"now:{evt.Key}"))
-                            this.Notify(EventNarrator.AvailableNow(evt), this.Config.AvailableSound);
-                        continue;
-                    }
-
-                    // in the evening, look ahead to tomorrow's forecast
-                    if (eval.WorksTomorrow == true && Game1.timeOfDay >= 1800 && this.Config.TomorrowHeadsUp && this.alertedToday.Add($"tomorrow:{evt.Key}"))
-                    {
-                        GameLocation location = Game1.getLocationFromName(evt.LocationName) ?? Game1.currentLocation;
-                        this.Notify(EventNarrator.TomorrowHeadsUp(evt, CalendarInfo.WeatherTomorrow(location)), this.Config.ReminderSound);
-                        continue;
-                    }
-
-                    if (eval.Status != EventStatus.LaterToday || eval.MinutesUntilStart is not { } minutesLeft)
-                        continue;
-
-                    // time to leave, based on the walk there
-                    if (this.Config.TravelReminders
-                        && this.State.Travel.MinutesTo(evt.LocationName) is > 0 and int travel
-                        && minutesLeft <= travel + this.Config.TravelBufferMinutes)
-                    {
-                        if (this.alertedToday.Add($"leave:{evt.Key}"))
-                        {
-                            // it covers any fixed reminder crossed at the same time
-                            foreach (int crossed in intervals.Where(m => minutesLeft <= m))
-                                this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
-                            this.Notify(EventNarrator.LeaveNow(evt, eval, travel), this.Config.ReminderSound);
-                        }
-                        continue;
-                    }
-
-                    int due = intervals.FirstOrDefault(m => minutesLeft <= m);
-                    if (due > 0)
-                    {
-                        // mark every interval already crossed, so loading in late doesn't send a stack of reminders
-                        bool sent = this.alertedToday.Contains($"remind:{due}:{evt.Key}");
-                        foreach (int crossed in intervals.Where(m => m >= due))
+                        // it covers any fixed reminder crossed at the same time
+                        foreach (int crossed in intervals.Where(m => minutesLeft <= m))
                             this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
-                        if (!sent)
-                            this.Notify(EventNarrator.Reminder(evt, eval, minutesLeft), this.Config.ReminderSound);
+                        this.Notify(EventNarrator.LeaveNow(evt, eval, travel), this.Config.ReminderSound);
                     }
-                    else if (morning && this.Config.MorningHeadsUp && headsUps < 3 && this.alertedToday.Add($"morning:{evt.Key}"))
-                    {
-                        headsUps++;
-                        this.Notify(EventNarrator.MorningHeadsUp(evt), this.Config.ReminderSound);
-                    }
+                    continue;
+                }
+
+                int due = intervals.FirstOrDefault(m => minutesLeft <= m);
+                if (due > 0)
+                {
+                    // mark every interval already crossed, so loading in late doesn't send a stack of reminders
+                    bool sent = this.alertedToday.Contains($"remind:{due}:{evt.Key}");
+                    foreach (int crossed in intervals.Where(m => m >= due))
+                        this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
+                    if (!sent)
+                        this.Notify(EventNarrator.Reminder(evt, eval, minutesLeft), this.Config.ReminderSound);
+                }
+                else if (morning && this.Config.MorningHeadsUp && headsUps < 3 && this.alertedToday.Add($"morning:{evt.Key}"))
+                {
+                    headsUps++;
+                    this.Notify(EventNarrator.MorningHeadsUp(evt), this.Config.ReminderSound);
                 }
             }
         }

@@ -52,6 +52,9 @@ namespace NpcEventTracker
         /// <summary>How long before a pinned NPC's event window opens to remind the player, in in-game minutes.</summary>
         public List<int> ReminderMinutesBefore { get; set; } = new() { 120, 60 };
 
+        /// <summary>Whether pinned story events get reminders like pinned NPCs do.</summary>
+        public bool StoryReminders { get; set; } = true;
+
         /// <summary>Whether to send a "leave now" reminder based on how long the walk there takes.</summary>
         public bool TravelReminders { get; set; } = true;
 

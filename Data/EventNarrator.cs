@@ -64,10 +64,13 @@ namespace NpcEventTracker.Data
         /// <summary>"Today looks like a good day to see Abigail at the Mountain (9:00 am-12:00 pm)."</summary>
         public static string MorningHeadsUp(EventInfo evt)
         {
-            var w = new Words(evt);
             string window = evt.Window is { } tw
                 ? I18n.Get("msg.morning.window", new { start = PreconditionFormatter.Time(tw.Start), end = PreconditionFormatter.Time(tw.End) })
                 : "";
+            if (evt.IsStory)
+                return I18n.Get("msg.morning.story", new { place = Place(evt), window });
+
+            var w = new Words(evt);
             return I18n.Get(w.Rainy ? "msg.morning.rainy" : "msg.morning", w.Tokens(window: window));
         }
 

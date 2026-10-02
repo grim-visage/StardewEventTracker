@@ -9,6 +9,9 @@ namespace NpcEventTracker
     {
         public List<string> PinnedNpcs { get; set; } = new();
 
+        /// <summary>Story events the player is tracking, by <see cref="Data.EventInfo.Key"/>.</summary>
+        public List<string> PinnedStoryEvents { get; set; } = new();
+
         /// <summary>Spouses/partners the player unpinned, so auto-pinning doesn't pin them again.</summary>
         public List<string> AutoPinDismissed { get; set; } = new();
     }
@@ -20,6 +23,12 @@ namespace NpcEventTracker
         public EventIndex Index { get; }
 
         public HashSet<string> PinnedNpcs { get; } = new();
+
+        /// <summary>Pinned story events, by <see cref="EventInfo.Key"/> (story events aren't tied to one NPC).</summary>
+        public HashSet<string> PinnedStoryEvents { get; } = new();
+
+        /// <summary>Whether anything at all is pinned.</summary>
+        public bool HasPins => this.PinnedNpcs.Count > 0 || this.PinnedStoryEvents.Count > 0;
 
         /// <summary>Partners the player unpinned, so auto-pinning leaves them alone.</summary>
         public HashSet<string> AutoPinDismissed { get; } = new();
@@ -55,6 +64,7 @@ namespace NpcEventTracker
         {
             this.StartDay();
             this.PinnedNpcs.Clear();
+            this.PinnedStoryEvents.Clear();
             this.AutoPinDismissed.Clear();
             this.Index.Clear();
         }
