@@ -98,20 +98,42 @@ namespace NpcEventTracker.Data
             };
         }
 
-        /// <summary>The second HUD line, e.g. "9:00 am-12:00 pm | Sunny | opens in 1h 20m".</summary>
-        public static string HudLine(EventInfo evt, EventEvaluation eval, EventIndex index)
+        /// <summary>How urgent the HUD should make an event look.</summary>
+        public enum HudTone { Go, Soon, Normal }
+
+        /// <summary>The short second HUD line, e.g. "Head out soon - opens 9:00 am (45m)".</summary>
+        /// <param name="reminderMinutes">The player's reminder intervals, which set the "Get ready" and "Head out soon" stages.</param>
+        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes)
         {
-            string status = eval.Status switch
+            switch (eval.Status)
             {
-                EventStatus.AvailableNow => "available now",
-                EventStatus.LaterToday => $"opens in {PreconditionFormatter.FormatDuration(eval.MinutesUntilStart ?? 0)}",
-                EventStatus.WrongDay => $"wait for {WaitFor(evt, eval)}",
-                EventStatus.MissedToday => "missed today",
-                EventStatus.NotYet => $"{eval.UnmetCount} to go",
-                EventStatus.Special => "special trigger",
-                _ => eval.Status.ToString().ToLowerInvariant()
-            };
-            return $"{PreconditionFormatter.Summarize(evt, index)} | {status}";
+                case EventStatus.AvailableNow:
+                    string go = evt.IsStory ? "Something's happening!" : "Time to visit!";
+                    return (evt.Window is { } w ? $"{go} Open until {PreconditionFormatter.Time(w.End)}" : go, HudTone.Go);
+
+                case EventStatus.LaterToday:
+                    int minutes = eval.MinutesUntilStart ?? 0;
+                    string when = $"opens {StartTime(evt)} ({PreconditionFormatter.FormatDuration(minutes)})";
+                    var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
+                    if (stages.Count == 0)
+                        stages = new List<int> { 60, 120 };
+                    if (minutes <= stages[0])
+                        return ($"Head out soon - {when}", HudTone.Soon);
+                    if (minutes <= stages[^1])
+                        return ($"Get ready - {when}", HudTone.Soon);
+                    return ($"Later today - {when}", HudTone.Normal);
+
+                case EventStatus.WrongDay:
+                    return ($"Wait for {WaitFor(evt, eval)}", HudTone.Normal);
+                case EventStatus.MissedToday:
+                    return ("Missed today - try tomorrow", HudTone.Normal);
+                case EventStatus.NotYet:
+                    return ($"Not yet - {eval.UnmetCount} to go", HudTone.Normal);
+                case EventStatus.Special:
+                    return ("Special trigger", HudTone.Normal);
+                default:
+                    return (eval.Status.ToString(), HudTone.Normal);
+            }
         }
 
         /// <summary>What day an event is waiting for, e.g. "a sunny day" or "a day other than Tue".</summary>

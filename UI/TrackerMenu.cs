@@ -187,6 +187,8 @@ namespace NpcEventTracker.UI
 
         private void BuildPinnedTab()
         {
+            this.AddTodaysMessages();
+
             var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).ToList();
             if (pinned.Count == 0)
             {
@@ -212,6 +214,33 @@ namespace NpcEventTracker.UI
 
             if (!any)
                 this.AddRow("None of your pinned NPCs have events matching your search or filters.", MutedColor);
+        }
+
+        /// <summary>A collapsible list of today's reminder pop-ups, newest first.</summary>
+        private void AddTodaysMessages()
+        {
+            if (EventFilter.HasStatusFilter)
+                return;
+
+            var messages = this.mod.MessagesToday
+                .Where(m => EventFilter.MatchesText(m.Text))
+                .Reverse()
+                .ToList();
+            if (messages.Count == 0)
+                return;
+
+            const string key = "messages";
+            bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
+            this.AddRow(
+                $"{(expanded ? "v" : ">")} Today's messages ({messages.Count})",
+                Game1.textColor,
+                onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
+            if (expanded)
+            {
+                foreach ((int time, string text) in messages)
+                    this.AddRow($"{PreconditionFormatter.Time(time)}  {text}", MutedColor, indent: 28);
+            }
+            this.AddSpacer(16);
         }
 
         private void BuildHeartsTab()

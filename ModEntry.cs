@@ -28,6 +28,11 @@ namespace NpcEventTracker
         /// <summary>Event keys already announced today, so each alert fires once per day.</summary>
         private readonly HashSet<string> alertedToday = new();
 
+        private readonly List<(int Time, string Text)> messagesToday = new();
+
+        /// <summary>Today's reminder pop-ups, oldest first, so missed ones can be re-read in the menu.</summary>
+        internal IReadOnlyList<(int Time, string Text)> MessagesToday => this.messagesToday;
+
         private string PinDataPath => $"data/{Constants.SaveFolderName}.json";
 
         public override void Entry(IModHelper helper)
@@ -124,6 +129,7 @@ namespace NpcEventTracker
             // content packs can add or change events from day to day
             this.Index.Rebuild();
             this.alertedToday.Clear();
+            this.messagesToday.Clear();
             this.RunReminders(morning: true);
         }
 
@@ -152,6 +158,7 @@ namespace NpcEventTracker
         {
             this.PinnedNpcs.Clear();
             this.alertedToday.Clear();
+            this.messagesToday.Clear();
             this.Index.Clear();
         }
 
@@ -231,6 +238,7 @@ namespace NpcEventTracker
 
         private void Notify(string text)
         {
+            this.messagesToday.Add((Game1.timeOfDay, text));
             Game1.addHUDMessage(new HUDMessage(text, HUDMessage.newQuest_type) { timeLeft = Math.Clamp(this.Config.PopupSeconds, 3, 30) * 1000 });
         }
 

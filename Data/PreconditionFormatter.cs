@@ -9,12 +9,6 @@ namespace NpcEventTracker.Data
     /// <summary>Turns event preconditions into readable text.</summary>
     internal static class PreconditionFormatter
     {
-        /// <summary>Conditions worth showing in the compact HUD summary.</summary>
-        private static readonly HashSet<string> SummaryNames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "Time", "Weather", "DayOfWeek", "DayOfMonth", "Season"
-        };
-
         public static string Describe(Precondition c, EventIndex index)
         {
             if (c.IsNeverTrue)
@@ -70,16 +64,6 @@ namespace NpcEventTracker.Data
             bool handlesNegation = c.Name.ToLowerInvariant() is "dayofweek" or "dayofmonth" or "season" or "sawevent"
                 or "spouse" or "roommate" or "hostmail" or "hostorlocalmail" or "festivalday" or "upcomingfestival";
             return c.Negated && !handlesNegation ? $"Not: {text}" : text;
-        }
-
-        /// <summary>A one-line summary like "6:00am-12:00pm | Sunny | Not on Tue".</summary>
-        public static string Summarize(EventInfo evt, EventIndex index)
-        {
-            var parts = evt.Conditions
-                .Where(c => SummaryNames.Contains(c.Name))
-                .Select(c => c.Is("Time") && c.Args.Length >= 2 ? $"{Time(c.Args[0])}-{Time(c.Args[1])}" : Describe(c, index).Replace("Weather: ", ""))
-                .ToList();
-            return parts.Count > 0 ? string.Join(" | ", parts) : "any time";
         }
 
         /// <summary>The time window as a schedule, e.g. "9:00 am-12:00 pm, opens in 1h 20m".</summary>

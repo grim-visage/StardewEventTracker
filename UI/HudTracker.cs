@@ -61,15 +61,16 @@ namespace NpcEventTracker.UI
                 if (pending.Pending.Count > 0)
                 {
                     (EventInfo evt, EventEvaluation eval) = pending.Pending[0];
-                    Color color = eval.Status switch
+                    (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore);
+                    Color color = tone switch
                     {
-                        EventStatus.AvailableNow => ReadyColor,
-                        EventStatus.LaterToday => SoonColor,
+                        EventNarrator.HudTone.Go => ReadyColor,
+                        EventNarrator.HudTone.Soon => SoonColor,
                         _ => Game1.textColor
                     };
                     string more = pending.Pending.Count > 1 ? $" (+{pending.Pending.Count - 1} more)" : "";
-                    lines.Add(($"{name}: {evt.Title} at {evt.LocationDisplayName}{more}", color));
-                    lines.Add(($"   {EventNarrator.HudLine(evt, eval, index)}", eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? color : MutedColor));
+                    lines.Add(($"{name}: {evt.Title} at {EventNarrator.WithArticle(evt.LocationDisplayName)}{more}", color));
+                    lines.Add(($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color));
                 }
                 else if (pending.NextLocked is { } next)
                 {

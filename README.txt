@@ -99,8 +99,20 @@ Each requirement has a mark showing whether it's met right now:
 
 HUD tracker (Shift + F2)
 ~~~~~~~~~~~~~~~~
-A small box in the top-left corner, with one line per pinned NPC showing their
-next event, where it happens, its time and weather, and how soon it opens.
+A small box in the top-left corner showing each pinned NPC's next event and
+where it happens, with a short status that follows your reminder settings:
+
+  Status              Meaning
+  ------------------  -----------------------------------------------------
+  Time to visit!      The event can happen right now
+  Head out soon       It opens within your shortest reminder (1 hour by
+                      default)
+  Get ready           It opens within your longest reminder (2 hours by
+                      default)
+  Later today         It opens later today
+  Wait for ...        Needs a different day, e.g. "a sunny day"
+  Missed today        Today's time window has passed; try tomorrow
+  Not yet             Something still needs doing first
 
 
 Reminders
@@ -118,7 +130,8 @@ there:
                        visit Robin at her home, the Carpenter's Shop.").
 
 Each reminder is sent once per day and stays on screen for 10 seconds (change
-this with the PopupSeconds setting).
+this with the PopupSeconds setting). Missed one? The Pinned tab has a "Today's
+messages" list at the top with every reminder from today.
 
 
 SETTINGS
