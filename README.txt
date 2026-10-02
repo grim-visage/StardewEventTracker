@@ -32,10 +32,10 @@ There's nothing to enable: SMAPI loads every mod in the Mods folder.
 
 HOW TO USE IT
 -------------
-  Key   Action
-  ----  ------------------------------
-  F2    Open or close the tracker menu
-  F4    Show or hide the HUD tracker
+  Key            Action
+  -------------  ------------------------------
+  F2             Open or close the tracker menu
+  Shift + F2     Show or hide the HUD tracker
 
 
 Tracker menu (F2)
@@ -97,7 +97,7 @@ Each requirement has a mark showing whether it's met right now:
   ?  (grey)     The game couldn't check it
 
 
-HUD tracker (F4)
+HUD tracker (Shift + F2)
 ~~~~~~~~~~~~~~~~
 A small box in the top-left corner, with one line per pinned NPC showing their
 next event, where it happens, its time and weather, and how soon it opens.
@@ -117,7 +117,8 @@ there:
   * When it's ready    When the event can happen right now ("It's time to
                        visit Robin at her home, the Carpenter's Shop.").
 
-Each reminder is sent once per day.
+Each reminder is sent once per day and stays on screen for 10 seconds (change
+this with the PopupSeconds setting).
 
 
 SETTINGS
@@ -125,18 +126,23 @@ SETTINGS
 Change these in Generic Mod Config Menu, or in config.json after the first
 launch:
 
-  Setting                Default     Description
-  ---------------------  ----------  ----------------------------------------
-  OpenMenuKey            F2          Opens the tracker menu
-  ToggleHudKey           F4          Shows or hides the HUD tracker
-  ShowHud                true        Whether the HUD tracker is visible
-  MorningHeadsUp         true        Day-start message about today's events
-  ReminderMinutesBefore  [120, 60]   When to remind you before an event's
-                                     time window opens, in in-game minutes
-                                     (allowed: 180, 120, 60, 30, 15)
-  AlertWhenAvailable     true        Message when an event can happen now
-  HudX / HudY            16 / 120    HUD position on screen, in pixels
-  HudMaxNpcs             5           Most pinned NPCs shown on the HUD
+  Setting                Default          Description
+  ---------------------  ---------------  -----------------------------------
+  OpenMenuKey            F2               Opens the tracker menu
+  ToggleHudKey           LeftShift + F2   Shows or hides the HUD tracker
+  ShowHud                true             Whether the HUD tracker is visible
+  MorningHeadsUp         true             Day-start message about today's
+                                          events
+  ReminderMinutesBefore  [120, 60]        When to remind you before an
+                                          event's time window opens, in
+                                          in-game minutes (allowed: 180,
+                                          120, 60, 30, 15)
+  AlertWhenAvailable     true             Message when an event can happen
+                                          now
+  PopupSeconds           10               How long reminder messages stay
+                                          on screen, in seconds (3 to 30)
+  HudX / HudY            16 / 120         HUD position on screen, in pixels
+  HudMaxNpcs             5                Most pinned NPCs shown on the HUD
 
 Pinned NPCs are saved separately for each save file.
 

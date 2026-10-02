@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NpcEventTracker.Data;
@@ -98,6 +99,8 @@ namespace NpcEventTracker
             }
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
                 () => "Show a message when a pinned NPC's event can happen right now.");
+            gmcm.AddNumberOption(this.ModManifest, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => "Pop-up duration",
+                () => "How many seconds reminder messages stay on screen.", min: 3, max: 30, formatValue: v => $"{v}s");
 
             gmcm.AddSectionTitle(this.ModManifest, () => "HUD tracker");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => "Show HUD tracker");
@@ -157,6 +160,17 @@ namespace NpcEventTracker
             if (!Context.IsWorldReady)
                 return;
 
+            // checked first: the default Shift + F2 also counts as pressing the menu's F2
+            if (this.Config.ToggleHudKey.JustPressed())
+            {
+                if (Context.IsPlayerFree)
+                {
+                    this.Config.ShowHud = !this.Config.ShowHud;
+                    this.Helper.WriteConfig(this.Config);
+                }
+                return;
+            }
+
             if (this.Config.OpenMenuKey.JustPressed())
             {
                 if (Game1.activeClickableMenu is TrackerMenu menu)
@@ -166,11 +180,6 @@ namespace NpcEventTracker
                     this.Index.Invalidate();
                     Game1.activeClickableMenu = new TrackerMenu(this);
                 }
-            }
-            else if (this.Config.ToggleHudKey.JustPressed() && Context.IsPlayerFree)
-            {
-                this.Config.ShowHud = !this.Config.ShowHud;
-                this.Helper.WriteConfig(this.Config);
             }
         }
 
@@ -220,9 +229,9 @@ namespace NpcEventTracker
             }
         }
 
-        private static void Notify(string text)
+        private void Notify(string text)
         {
-            Game1.addHUDMessage(new HUDMessage(text, HUDMessage.newQuest_type) { timeLeft = 6000 });
+            Game1.addHUDMessage(new HUDMessage(text, HUDMessage.newQuest_type) { timeLeft = Math.Clamp(this.Config.PopupSeconds, 3, 30) * 1000 });
         }
 
         private static string FormatInterval(int minutes) =>
@@ -245,9 +254,10 @@ namespace NpcEventTracker
                 this.Config.OpenMenuKey = KeybindList.Parse("F2");
                 changed = true;
             }
-            if (this.Config.ToggleHudKey.ToString() == "F9")
+            // F9 was the 1.0 default; F4 (an early 1.1 default) opens the game's screenshot mode
+            if (this.Config.ToggleHudKey.ToString() is "F9" or "F4")
             {
-                this.Config.ToggleHudKey = KeybindList.Parse("F4");
+                this.Config.ToggleHudKey = KeybindList.Parse("LeftShift + F2");
                 changed = true;
             }
 
