@@ -59,9 +59,9 @@ Filter buttons next to the search box (combine as many as you like):
 
   Button          Shows
   -------------   ---------------------------------------------------------
-  Available now   Every requirement is met and the time window is open
-  Today           Available now, or everything is met and the time window
-                  opens later today
+  Available now   Every requirement is met and it's the right time of day
+  Today           Available now, or everything is met and it can start
+                  later today
   Right day       Only the weather, day of the week, or season is wrong
                   today
   Show locked     Also list events that need more hearts
@@ -76,7 +76,7 @@ Each event shows where it stands right now:
   Status                Meaning
   --------------------  ------------------------------------------------
   Available now         Walk into the location and it plays
-  Later today           Everything is met; come back when it opens
+  Later today           Everything is met; it can start later today
   Wait for ...          Needs a different day, e.g. "a sunny day"
   Missed today          Today's time window has passed; try tomorrow
   Not yet               Something still needs doing first
@@ -90,8 +90,8 @@ Each requirement has a mark showing whether it's met right now:
   ------------  ---------------------------------------------------------
   +  (green)    Met
   x  (red)      Not met yet
-  ~             The time window: green while it's open, orange before it
-                opens, grey once it has closed for the day
+  ~             The time of day it can happen: green while it can happen,
+                orange before it starts, grey once it's over for the day
   -  (grey)     Can't be predicted ahead of time (random chance, standing
                 on a specific tile)
   ?  (grey)     The game couldn't check it
@@ -105,11 +105,11 @@ where it happens, with a short status that follows your reminder settings:
   Status              Meaning
   ------------------  -----------------------------------------------------
   Time to visit!      The event can happen right now
-  Head out soon       It opens within your shortest reminder (1 hour by
+  Head out soon       It starts within your shortest reminder (1 hour by
                       default)
-  Get ready           It opens within your longest reminder (2 hours by
+  Get ready           It starts within your longest reminder (2 hours by
                       default)
-  Later today         It opens later today
+  Later today         It starts later today
   Wait for ...        Needs a different day, e.g. "a sunny day"
   Missed today        Today's time window has passed; try tomorrow
   Not yet             Something still needs doing first
@@ -123,8 +123,8 @@ there:
   * Morning heads-up   At the start of the day, which events can happen
                        today ("Today looks like a good day to see Abigail at
                        the Mountain...").
-  * Before it opens    By default 2 hours and 1 hour before an event's time
-                       window opens (in-game time). Choose from 3 hours,
+  * Before it starts   By default 2 hours and 1 hour before an event can
+                       start (in-game time). Choose from 3 hours,
                        2 hours, 1 hour, 30 minutes, and 15 minutes.
   * When it's ready    When the event can happen right now ("It's time to
                        visit Robin at her home, the Carpenter's Shop.").
@@ -147,9 +147,9 @@ launch:
   MorningHeadsUp         true             Day-start message about today's
                                           events
   ReminderMinutesBefore  [120, 60]        When to remind you before an
-                                          event's time window opens, in
-                                          in-game minutes (allowed: 180,
-                                          120, 60, 30, 15)
+                                          event can start, in in-game
+                                          minutes (allowed: 180, 120, 60,
+                                          30, 15)
   AlertWhenAvailable     true             Message when an event can happen
                                           now
   PopupSeconds           10               How long reminder messages stay

@@ -101,7 +101,7 @@ namespace NpcEventTracker.Data
         /// <summary>How urgent the HUD should make an event look.</summary>
         public enum HudTone { Go, Soon, Normal }
 
-        /// <summary>The short second HUD line, e.g. "Head out soon - opens 9:00 am (45m)".</summary>
+        /// <summary>The short second HUD line, e.g. "Head out soon - starts 9:00 am (in 45m)".</summary>
         /// <param name="reminderMinutes">The player's reminder intervals, which set the "Get ready" and "Head out soon" stages.</param>
         public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes)
         {
@@ -109,11 +109,11 @@ namespace NpcEventTracker.Data
             {
                 case EventStatus.AvailableNow:
                     string go = evt.IsStory ? "Something's happening!" : "Time to visit!";
-                    return (evt.Window is { } w ? $"{go} Open until {PreconditionFormatter.Time(w.End)}" : go, HudTone.Go);
+                    return (evt.Window is { } w ? $"{go} Until {PreconditionFormatter.Time(w.End)}" : go, HudTone.Go);
 
                 case EventStatus.LaterToday:
                     int minutes = eval.MinutesUntilStart ?? 0;
-                    string when = $"opens {StartTime(evt)} ({PreconditionFormatter.FormatDuration(minutes)})";
+                    string when = $"starts {StartTime(evt)} (in {PreconditionFormatter.FormatDuration(minutes)})";
                     var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
                     if (stages.Count == 0)
                         stages = new List<int> { 60, 120 };

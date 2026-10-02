@@ -100,7 +100,7 @@ namespace NpcEventTracker
                             this.Config.ReminderMinutesBefore.Add(minutes);
                     },
                     () => $"Remind {FormatInterval(minutes)} before",
-                    () => $"Remind you {FormatInterval(minutes)} before a pinned NPC's event time window opens, so you have time to get there.");
+                    () => $"Remind you {FormatInterval(minutes)} before a pinned NPC's event can start, so you have time to get there.");
             }
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
                 () => "Show a message when a pinned NPC's event can happen right now.");

@@ -66,7 +66,7 @@ namespace NpcEventTracker.Data
             return c.Negated && !handlesNegation ? $"Not: {text}" : text;
         }
 
-        /// <summary>The time window as a schedule, e.g. "9:00 am-12:00 pm, opens in 1h 20m".</summary>
+        /// <summary>The time window as a schedule, e.g. "9:00 am-12:00 pm, starts in 1h 20m".</summary>
         public static string DescribeTimeWindow(EventInfo evt, EventEvaluation eval)
         {
             if (evt.Window is not { } window)
@@ -74,10 +74,10 @@ namespace NpcEventTracker.Data
 
             string range = $"{Time(window.Start)}-{Time(window.End)}";
             if (eval.TimeOpen)
-                return $"{range}, open until {Time(window.End)}";
+                return $"{range}, can happen now until {Time(window.End)}";
             if (eval.MinutesUntilStart > 0)
-                return $"{range}, opens in {FormatDuration(eval.MinutesUntilStart.Value)}";
-            return $"{range}, closed for today";
+                return $"{range}, starts in {FormatDuration(eval.MinutesUntilStart.Value)}";
+            return $"{range}, over for today";
         }
 
         /// <summary>Formats in-game minutes as "1h 20m", "2h" or "40m".</summary>

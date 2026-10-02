@@ -117,8 +117,8 @@ namespace NpcEventTracker.UI
             }
             else
             {
-                this.chips.Add(new Chip { Label = "Available now", Tooltip = "Every requirement is met and the time window is open.", IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
-                this.chips.Add(new Chip { Label = "Today", Tooltip = "Available now, or everything is met\nand the time window opens later today.", IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
+                this.chips.Add(new Chip { Label = "Available now", Tooltip = "Every requirement is met and it's the right time of day.", IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
+                this.chips.Add(new Chip { Label = "Today", Tooltip = "Available now, or everything is met\nand it can start later today.", IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
                 this.chips.Add(new Chip { Label = "Right day", Tooltip = "Waiting on the right day: only the weather,\nday of the week or season is wrong today.", IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
                 this.chips.Add(new Chip { Label = "Show locked", Tooltip = "Also list events that need more hearts.", IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
             }
