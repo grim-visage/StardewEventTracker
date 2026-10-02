@@ -76,6 +76,9 @@ namespace NpcEventTracker
         /// <summary>Whether to mention, in the evening, pinned NPC events that can't happen today but can tomorrow.</summary>
         public bool TomorrowHeadsUp { get; set; } = true;
 
+        /// <summary>Whether to mark pinned NPCs' events that can happen today on the map page.</summary>
+        public bool ShowMapMarkers { get; set; } = true;
+
         /// <summary>Hold this and drag the HUD tracker with the left mouse button to move it.</summary>
         public KeybindList HudDragKey { get; set; } = KeybindList.Parse("LeftShift");
 

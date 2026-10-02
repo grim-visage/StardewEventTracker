@@ -63,6 +63,12 @@ namespace NpcEventTracker
             helper.Events.Player.Warped += this.OnWarped;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
             helper.Events.Display.RenderedHud += (_, e) => this.hud.Value.Draw(e.SpriteBatch);
+            var mapMarkers = new MapMarkers(this);
+            helper.Events.Display.RenderedActiveMenu += (_, e) =>
+            {
+                if (Context.IsWorldReady && this.Config.ShowMapMarkers)
+                    mapMarkers.Draw(e.SpriteBatch);
+            };
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
             helper.ConsoleCommands.Add("net_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: net_dump <npc or location name>", this.OnDumpCommand);
@@ -187,7 +193,9 @@ namespace NpcEventTracker
             gmcm.AddNumberOption(this.ModManifest, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => "Pop-up duration",
                 () => "How many seconds reminder messages stay on screen.", min: 3, max: 30, formatValue: v => $"{v}s");
 
-            gmcm.AddSectionTitle(this.ModManifest, () => "HUD tracker");
+            gmcm.AddSectionTitle(this.ModManifest, () => "HUD tracker and map");
+            gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => "Map markers",
+                () => "Show a heart on the map where pinned NPCs' events can happen today. Hover it for details.");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => "Show HUD tracker");
             gmcm.AddKeybindList(this.ModManifest, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => "Drag HUD while holding",
                 () => "Hold this and drag the HUD tracker with the left mouse button to move it.");
