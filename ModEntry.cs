@@ -5,6 +5,7 @@ using NpcEventTracker.Integrations;
 using NpcEventTracker.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 
 namespace NpcEventTracker
@@ -235,6 +236,18 @@ namespace NpcEventTracker
             {
                 this.Config.AlertWhenAvailable = showAlerts;
                 this.Config.ShowAlerts = null;
+                changed = true;
+            }
+
+            // 1.0 defaulted to F8/F9, which UI Info Suite 2 also uses
+            if (this.Config.OpenMenuKey.ToString() == "F8")
+            {
+                this.Config.OpenMenuKey = KeybindList.Parse("F2");
+                changed = true;
+            }
+            if (this.Config.ToggleHudKey.ToString() == "F9")
+            {
+                this.Config.ToggleHudKey = KeybindList.Parse("F4");
                 changed = true;
             }
 

@@ -10,10 +10,10 @@ namespace NpcEventTracker
         public static readonly int[] AllowedReminderMinutes = { 180, 120, 60, 30, 15 };
 
         /// <summary>Opens or closes the tracker menu.</summary>
-        public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F8");
+        public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
 
         /// <summary>Shows or hides the HUD tracker.</summary>
-        public KeybindList ToggleHudKey { get; set; } = KeybindList.Parse("F9");
+        public KeybindList ToggleHudKey { get; set; } = KeybindList.Parse("F4");
 
         /// <summary>Whether the HUD tracker for pinned NPCs is visible.</summary>
         public bool ShowHud { get; set; } = true;

@@ -34,11 +34,11 @@ HOW TO USE IT
 -------------
   Key   Action
   ----  ------------------------------
-  F8    Open or close the tracker menu
-  F9    Show or hide the HUD tracker
+  F2    Open or close the tracker menu
+  F4    Show or hide the HUD tracker
 
 
-Tracker menu (F8)
+Tracker menu (F2)
 ~~~~~~~~~~~~~~~~~
   * Pinned     Pending heart events for the NPCs you've pinned.
   * Hearts     Every NPC with heart events. Click a name to expand it, and
@@ -97,7 +97,7 @@ Each requirement has a mark showing whether it's met right now:
   ?  (grey)     The game couldn't check it
 
 
-HUD tracker (F9)
+HUD tracker (F4)
 ~~~~~~~~~~~~~~~~
 A small box in the top-left corner, with one line per pinned NPC showing their
 next event, where it happens, its time and weather, and how soon it opens.
@@ -127,8 +127,8 @@ launch:
 
   Setting                Default     Description
   ---------------------  ----------  ----------------------------------------
-  OpenMenuKey            F8          Opens the tracker menu
-  ToggleHudKey           F9          Shows or hides the HUD tracker
+  OpenMenuKey            F2          Opens the tracker menu
+  ToggleHudKey           F4          Shows or hides the HUD tracker
   ShowHud                true        Whether the HUD tracker is visible
   MorningHeadsUp         true        Day-start message about today's events
   ReminderMinutesBefore  [120, 60]   When to remind you before an event's
