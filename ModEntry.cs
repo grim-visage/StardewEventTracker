@@ -21,6 +21,9 @@ namespace NpcEventTracker
         private PerScreen<PlayerState> screen = null!;
         private PerScreen<HudTracker> hud = null!;
 
+        /// <summary>While dragging the HUD, the cursor's offset from its top-left corner.</summary>
+        private readonly PerScreen<Point?> hudDragOffset = new();
+
         internal PlayerState State => this.screen.Value;
         internal EventIndex Index => this.State.Index;
         internal HashSet<string> PinnedNpcs => this.State.PinnedNpcs;
@@ -50,9 +53,12 @@ namespace NpcEventTracker
             helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
             helper.Events.GameLoop.UpdateTicked += (_, _) =>
             {
-                if (Context.IsWorldReady)
-                    this.State.Travel.OnUpdateTicked();
+                if (!Context.IsWorldReady)
+                    return;
+                this.State.Travel.OnUpdateTicked();
+                this.UpdateHudDrag();
             };
+            helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
             helper.Events.Player.Warped += this.OnWarped;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
@@ -183,6 +189,8 @@ namespace NpcEventTracker
 
             gmcm.AddSectionTitle(this.ModManifest, () => "HUD tracker");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => "Show HUD tracker");
+            gmcm.AddKeybindList(this.ModManifest, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => "Drag HUD while holding",
+                () => "Hold this and drag the HUD tracker with the left mouse button to move it.");
             gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudX, v => this.Config.HudX = v, () => "HUD X position", min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudY, v => this.Config.HudY = v, () => "HUD Y position", min: 0, max: 2000, interval: 4);
             gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => "Max NPCs on HUD", min: 1, max: 15);
@@ -239,6 +247,41 @@ namespace NpcEventTracker
             // every screen's state goes when the save closes
             foreach ((_, PlayerState state) in this.screen.GetActiveValues())
                 state.Reset();
+        }
+
+        /// <summary>Starts dragging the HUD when the drag key is held and the box is clicked.</summary>
+        private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
+        {
+            if (e.Button != SButton.MouseLeft || !Context.IsPlayerFree || !this.Config.HudDragKey.IsDown())
+                return;
+
+            Vector2 cursor = e.Cursor.GetScaledScreenPixels();
+            Rectangle bounds = this.hud.Value.Bounds;
+            if (!bounds.Contains((int)cursor.X, (int)cursor.Y))
+                return;
+
+            // don't swing a tool at whatever's under the box
+            this.Helper.Input.Suppress(SButton.MouseLeft);
+            this.hudDragOffset.Value = new Point((int)cursor.X - bounds.X, (int)cursor.Y - bounds.Y);
+            this.hud.Value.Dragging = true;
+        }
+
+        private void UpdateHudDrag()
+        {
+            if (this.hudDragOffset.Value is not { } offset)
+                return;
+
+            Vector2 cursor = this.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
+            this.Config.HudX = Math.Max(0, (int)cursor.X - offset.X);
+            this.Config.HudY = Math.Max(0, (int)cursor.Y - offset.Y);
+
+            bool held = this.Helper.Input.IsDown(SButton.MouseLeft) || this.Helper.Input.IsSuppressed(SButton.MouseLeft);
+            if (!held)
+            {
+                this.hudDragOffset.Value = null;
+                this.hud.Value.Dragging = false;
+                this.Helper.WriteConfig(this.Config);
+            }
         }
 
         private void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)

@@ -21,6 +21,12 @@ namespace NpcEventTracker.UI
         private int builtVersion = -1;
         private int pinCount = -1;
 
+        /// <summary>Where the box was last drawn, in UI pixels; empty if it's hidden.</summary>
+        public Rectangle Bounds { get; private set; }
+
+        /// <summary>Whether the player is dragging the box, which highlights it.</summary>
+        public bool Dragging { get; set; }
+
         public HudTracker(ModEntry mod)
         {
             this.mod = mod;
@@ -28,6 +34,7 @@ namespace NpcEventTracker.UI
 
         public void Draw(SpriteBatch b)
         {
+            this.Bounds = Rectangle.Empty;
             if (!this.mod.Config.ShowHud || this.mod.PinnedNpcs.Count == 0 || Game1.eventUp || Game1.activeClickableMenu != null || !Game1.displayHUD)
                 return;
 
@@ -42,7 +49,8 @@ namespace NpcEventTracker.UI
             int x = Math.Clamp(this.mod.Config.HudX, 0, Math.Max(0, Game1.uiViewport.Width - width));
             int y = Math.Clamp(this.mod.Config.HudY, 0, Math.Max(0, Game1.uiViewport.Height - height));
 
-            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), x, y, width, height, Color.White * 0.9f, 4f, drawShadow: false);
+            this.Bounds = new Rectangle(x, y, width, height);
+            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), x, y, width, height, this.Dragging ? Color.Wheat : Color.White * 0.9f, 4f, drawShadow: false);
             for (int i = 0; i < this.lines.Count; i++)
                 Utility.drawTextWithShadow(b, this.lines[i].Text, font, new Vector2(x + padding, y + padding + i * lineHeight), this.lines[i].Color, shadowIntensity: 0.25f);
         }
