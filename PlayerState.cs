@@ -30,6 +30,9 @@ namespace NpcEventTracker
         /// <summary>Today's reminder pop-ups, oldest first, so missed ones can be re-read in the menu.</summary>
         public List<(int Time, string Text)> MessagesToday { get; } = new();
 
+        /// <summary>Walking-time estimates from this player's position.</summary>
+        public TravelEstimator Travel { get; } = new();
+
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
 
@@ -44,6 +47,7 @@ namespace NpcEventTracker
             this.AlertedToday.Clear();
             this.MessagesToday.Clear();
             this.SnoozedToday.Clear();
+            this.Travel.Invalidate();
         }
 
         /// <summary>Clears everything, e.g. when returning to the title screen.</summary>

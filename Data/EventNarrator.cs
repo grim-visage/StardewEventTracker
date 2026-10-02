@@ -68,6 +68,20 @@ namespace NpcEventTracker.Data
             return $"{w.Name} will be {where} soon, around {time}. Hurry!";
         }
 
+        /// <summary>"Time to head out: Abigail should be at the Mountain around 9:00 am, about 40m away."</summary>
+        public static string LeaveNow(EventInfo evt, EventEvaluation eval, int travelMinutes)
+        {
+            string time = StartTime(evt, eval);
+            string away = PreconditionFormatter.FormatDuration(travelMinutes);
+            if (evt.IsStory)
+                return $"Time to head out to {Place(evt)} (about {away} away). Something might happen there around {time}.";
+
+            var w = new Words(evt);
+            return Pick(evt,
+                $"Time to head out: {w.Name} should be at {w.Place} around {time}, about {away} away.",
+                $"{w.Place} is about {away} away. Leave now to catch {w.Name} around {time}!");
+        }
+
         /// <summary>"Today looks like a good day to see Abigail at the Mountain (9:00 am-12:00 pm)."</summary>
         public static string MorningHeadsUp(EventInfo evt)
         {
@@ -127,17 +141,22 @@ namespace NpcEventTracker.Data
 
         /// <summary>The short second HUD line, e.g. "Head out soon - starts 9:00 am (in 45m)".</summary>
         /// <param name="reminderMinutes">The player's reminder intervals, which set the "Get ready" and "Head out soon" stages.</param>
-        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes)
+        /// <param name="travelMinutes">Walking time to the event's location, if known.</param>
+        /// <param name="travelBuffer">Slack added to the walk before it's time to leave.</param>
+        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0)
         {
+            string away = travelMinutes > 0 ? $", {PreconditionFormatter.FormatDuration(travelMinutes.Value)} away" : "";
             switch (eval.Status)
             {
                 case EventStatus.AvailableNow:
                     string go = evt.IsStory ? "Something's happening!" : "Time to visit!";
-                    return (evt.Window is { } w ? $"{go} Until {PreconditionFormatter.Time(w.End)}" : go, HudTone.Go);
+                    return ((evt.Window is { } w ? $"{go} Until {PreconditionFormatter.Time(w.End)}" : go) + away, HudTone.Go);
 
                 case EventStatus.LaterToday:
                     int minutes = eval.MinutesUntilStart ?? 0;
-                    string when = $"starts {StartTime(evt, eval)} (in {PreconditionFormatter.FormatDuration(minutes)})";
+                    if (travelMinutes > 0 && minutes <= travelMinutes + travelBuffer)
+                        return ($"Leave now - {PreconditionFormatter.FormatDuration(travelMinutes.Value)} walk, starts {StartTime(evt, eval)}", HudTone.Soon);
+                    string when = $"starts {StartTime(evt, eval)} (in {PreconditionFormatter.FormatDuration(minutes)}){away}";
                     var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
                     if (stages.Count == 0)
                         stages = new List<int> { 60, 120 };

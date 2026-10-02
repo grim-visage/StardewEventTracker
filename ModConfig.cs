@@ -52,6 +52,12 @@ namespace NpcEventTracker
         /// <summary>How long before a pinned NPC's event window opens to remind the player, in in-game minutes.</summary>
         public List<int> ReminderMinutesBefore { get; set; } = new() { 120, 60 };
 
+        /// <summary>Whether to send a "leave now" reminder based on how long the walk there takes.</summary>
+        public bool TravelReminders { get; set; } = true;
+
+        /// <summary>Extra in-game minutes of slack added to the walking estimate for "leave now" reminders.</summary>
+        public int TravelBufferMinutes { get; set; } = 10;
+
         /// <summary>Whether to show a message when a pinned NPC's event becomes available.</summary>
         public bool AlertWhenAvailable { get; set; } = true;
 

@@ -460,6 +460,14 @@ namespace NpcEventTracker.UI
             if (evt.IsStory && evt.Actors.Count > 0)
                 this.AddRow($"With {ActorList(evt)}", MutedColor, inner);
 
+            if (eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday && this.mod.State.Travel.MinutesTo(evt.LocationName) is { } travel)
+            {
+                if (travel > 0)
+                    this.AddRow($"About {PreconditionFormatter.FormatDuration(travel)} away on foot.", MutedColor, inner);
+                else if (eval.Status == EventStatus.AvailableNow)
+                    this.AddRow("You're here! Events start when you arrive, so step out and come back in.", ReadyColor, inner);
+            }
+
             if (eval.Status == EventStatus.AvailableNow)
                 this.AddRow(EventNarrator.AvailableNow(evt), ReadyColor, inner);
             else if (eval.Status == EventStatus.LaterToday && eval.MinutesUntilStart is { } minutes)

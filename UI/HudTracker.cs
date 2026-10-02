@@ -65,7 +65,8 @@ namespace NpcEventTracker.UI
                 else if (awake.Count > 0)
                 {
                     (EventInfo evt, EventEvaluation eval) = awake[0];
-                    (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore);
+                    int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
+                    (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes);
                     Color color = tone switch
                     {
                         EventNarrator.HudTone.Go => ReadyColor,

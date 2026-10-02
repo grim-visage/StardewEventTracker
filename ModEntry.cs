@@ -48,6 +48,11 @@ namespace NpcEventTracker
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
+            helper.Events.GameLoop.UpdateTicked += (_, _) =>
+            {
+                if (Context.IsWorldReady)
+                    this.State.Travel.OnUpdateTicked();
+            };
             helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
             helper.Events.Player.Warped += this.OnWarped;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
@@ -56,6 +61,17 @@ namespace NpcEventTracker
 
             helper.ConsoleCommands.Add("net_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: net_dump <npc or location name>", this.OnDumpCommand);
             helper.ConsoleCommands.Add("net_export", "Writes every indexed event and its current status to exports/events.json in the mod folder.\n\nUsage: net_export", this.OnExportCommand);
+            helper.ConsoleCommands.Add("net_travel", "Estimates the walk from you to a location, in in-game minutes.\n\nUsage: net_travel <location name>", (_, args) =>
+            {
+                if (!Context.IsWorldReady || args.Length == 0)
+                    return;
+                this.State.Travel.Invalidate();
+                int? minutes = this.State.Travel.MinutesTo(args[0]);
+                this.Monitor.Log(
+                    $"{Game1.player.currentLocation.NameOrUniqueName} -> {args[0]}: {(minutes == null ? "no route found" : $"about {minutes} in-game minutes")} "
+                    + $"(clock measured at {this.State.Travel.RealMsPerGameMinute:0} real ms per in-game minute).",
+                    LogLevel.Info);
+            });
             helper.ConsoleCommands.Add("net_reindex", "Re-reads all event data.\n\nUsage: net_reindex", (_, _) =>
             {
                 if (Context.IsWorldReady)
@@ -145,6 +161,10 @@ namespace NpcEventTracker
             }
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.TomorrowHeadsUp, v => this.Config.TomorrowHeadsUp = v, () => "Evening look-ahead",
                 () => "From 6:00 pm, mention pinned NPC events that can't happen today but should work tomorrow, based on the weather forecast.");
+            gmcm.AddBoolOption(this.ModManifest, () => this.Config.TravelReminders, v => this.Config.TravelReminders = v, () => "Leave-now reminder",
+                () => "Estimate the walk to the event (from where you are, on foot or horse) and remind you when it's time to set off.");
+            gmcm.AddNumberOption(this.ModManifest, () => this.Config.TravelBufferMinutes, v => this.Config.TravelBufferMinutes = v, () => "Leave-now buffer",
+                () => "Extra in-game minutes added to the walking estimate, in case you stop along the way.", min: 0, max: 60, interval: 10, formatValue: v => $"{v}m");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
                 () => "Show a message when a pinned NPC's event can happen right now.");
             gmcm.AddTextOption(this.ModManifest, () => this.Config.ReminderSound, v => this.Config.ReminderSound = v, () => "Reminder sound",
@@ -192,6 +212,8 @@ namespace NpcEventTracker
 
         private void OnTimeChanged(object? sender, TimeChangedEventArgs e)
         {
+            this.State.Travel.OnTimeChanged(e.OldTime, e.NewTime);
+            this.State.Travel.Invalidate();
             this.Index.Invalidate();
             this.RunReminders();
         }
@@ -200,6 +222,7 @@ namespace NpcEventTracker
         {
             if (!e.IsLocalPlayer)
                 return;
+            this.State.Travel.Invalidate();
             this.Index.Invalidate();
             this.RunReminders();
         }
@@ -368,6 +391,21 @@ namespace NpcEventTracker
 
                     if (eval.Status != EventStatus.LaterToday || eval.MinutesUntilStart is not { } minutesLeft)
                         continue;
+
+                    // time to leave, based on the walk there
+                    if (this.Config.TravelReminders
+                        && this.State.Travel.MinutesTo(evt.LocationName) is > 0 and int travel
+                        && minutesLeft <= travel + this.Config.TravelBufferMinutes)
+                    {
+                        if (this.alertedToday.Add($"leave:{evt.Key}"))
+                        {
+                            // it covers any fixed reminder crossed at the same time
+                            foreach (int crossed in intervals.Where(m => minutesLeft <= m))
+                                this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
+                            this.Notify(EventNarrator.LeaveNow(evt, eval, travel), this.Config.ReminderSound);
+                        }
+                        continue;
+                    }
 
                     int due = intervals.FirstOrDefault(m => minutesLeft <= m);
                     if (due > 0)
