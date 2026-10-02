@@ -159,7 +159,9 @@ where it happens, and a short status:
   Later today         It starts later today
   Wait for ...        Needs a different day, e.g. "a sunny day"
   Missed today        Today's time window has passed
-  Not yet             Something still needs doing first
+  Not yet - ...       The first thing you still need, e.g. "needs 2 hearts
+                      with Leah to get in (you: 1)" or "see Leah's 4-heart
+                      event first", plus how many more
 
 Hold Shift and drag the box to move it.
 

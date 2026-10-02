@@ -258,6 +258,18 @@ namespace NpcEventTracker.Data
             return info.IsSpecial ? I18n.Get("describe.special", new { label }) : label;
         }
 
+        /// <summary>A short label for an event ID, e.g. "Leah's 4-heart event", for compact text like the HUD.</summary>
+        public string DescribeEventShort(string id)
+        {
+            EventInfo? info = this.FindById(id);
+            if (info == null)
+                return I18n.Get("describe.unknown", new { id });
+
+            return info.IsStory
+                ? I18n.Get("describe.story-short", new { title = info.TitleInline, location = EventNarrator.WithArticle(info.LocationDisplayName) })
+                : I18n.Get("describe.heart-short", new { name = GetNpcDisplayName(info.Owner), title = info.TitleInline });
+        }
+
         /// <summary>Display names by internal name; looking up an NPC searches every location, so this is cached.</summary>
         private static readonly Dictionary<string, string> NpcNameCache = new();
 

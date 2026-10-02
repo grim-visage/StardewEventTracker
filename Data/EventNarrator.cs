@@ -91,7 +91,7 @@ namespace NpcEventTracker.Data
         ** Short forms
         ****/
         /// <summary>The bracketed status shown next to an event in the menu.</summary>
-        public static string StatusTag(EventInfo evt, EventEvaluation eval, EventIndex index)
+        public static string StatusTag(EventInfo evt, EventEvaluation eval, EventIndex? index)
         {
             string tomorrow = TomorrowHint(eval, includeNo: true);
             return eval.Status switch
@@ -104,7 +104,7 @@ namespace NpcEventTracker.Data
                 EventStatus.GreenRain => I18n.Get("status.green-rain") + tomorrow,
                 EventStatus.FestivalHere => FestivalTag(eval) + tomorrow,
                 EventStatus.MissedToday => I18n.Get("status.missed") + tomorrow,
-                EventStatus.NotYet => I18n.Get("status.not-yet", new { count = eval.UnmetCount }),
+                EventStatus.NotYet => I18n.Get("status.not-yet", new { step = NextStep(evt, eval, index) }) + MoreSteps(eval),
                 EventStatus.Special => I18n.Get("status.special"),
                 EventStatus.Locked => I18n.Get("status.locked", new { hearts = evt.RequiredHearts }),
                 EventStatus.Unreachable => I18n.Get("status.unreachable"),
@@ -119,7 +119,8 @@ namespace NpcEventTracker.Data
         /// <param name="reminderMinutes">The player's reminder intervals, which set the "Get ready" and "Head out soon" stages.</param>
         /// <param name="travelMinutes">Walking time to the event's location, if known.</param>
         /// <param name="travelBuffer">Slack added to the walk before it's time to leave.</param>
-        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0)
+        /// <param name="index">Used to name events the player needs to see first.</param>
+        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0, EventIndex? index = null)
         {
             string away = travelMinutes > 0 ? I18n.Get("hud.away", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value) }) : "";
             string tomorrow = TomorrowHint(eval, includeNo: false);
@@ -155,11 +156,11 @@ namespace NpcEventTracker.Data
                 case EventStatus.MissedToday:
                     return (I18n.Get("hud.missed") + tomorrow, HudTone.Normal);
                 case EventStatus.NotYet:
-                    return (I18n.Get("hud.not-yet", new { count = eval.UnmetCount }), HudTone.Normal);
+                    return (I18n.Get("hud.not-yet", new { step = NextStep(evt, eval, index) }) + MoreSteps(eval), HudTone.Normal);
                 case EventStatus.Special:
                     return (I18n.Get("hud.special"), HudTone.Normal);
                 default:
-                    return (StatusTag(evt, eval, null!), HudTone.Normal);
+                    return (StatusTag(evt, eval, index), HudTone.Normal);
             }
         }
 
@@ -216,6 +217,55 @@ namespace NpcEventTracker.Data
             eval.StartTime is { } start ? PreconditionFormatter.Time(start)
             : evt.Window is { } w ? PreconditionFormatter.Time(w.Start)
             : I18n.Get("time.later");
+
+        /// <summary>
+        /// The first thing still needed before an event can happen, e.g. "needs 2 hearts with Leah to get in (you: 1)"
+        /// or "see Leah's 4-heart event first". The menu lists every requirement; this is the one-line version.
+        /// </summary>
+        public static string NextStep(EventInfo evt, EventEvaluation eval, EventIndex? index)
+        {
+            // the door comes first: nothing inside matters until you can get in
+            if (eval.Door is { HeartsOk: false } door && door.Door.Npc is { } resident)
+            {
+                return I18n.Get("step.door-hearts", new
+                {
+                    name = EventIndex.GetNpcDisplayName(resident),
+                    hearts = (int)Math.Ceiling(door.Door.MinFriendship / (double)NPC.friendshipPointsPerHeartLevel),
+                    current = Game1.player.getFriendshipHeartLevelForNPC(resident)
+                });
+            }
+
+            for (int i = 0; i < evt.Conditions.Count; i++)
+            {
+                Precondition c = evt.Conditions[i];
+                if (eval.States[i] == ConditionState.Unknown)
+                    return I18n.Get("step.unknown");
+                if (eval.States[i] != ConditionState.Unmet || c.Category != ConditionCategory.Progress)
+                    continue;
+
+                string first = c.Args.FirstOrDefault() ?? "";
+                return c.Name.ToLowerInvariant() switch
+                {
+                    "friendship" => string.Join("; ", EventInfo.FriendshipPairs(c).Select(p => I18n.Get("step.hearts", new
+                    {
+                        name = EventIndex.GetNpcDisplayName(p.Npc),
+                        hearts = p.Points / NPC.friendshipPointsPerHeartLevel,
+                        current = Game1.player.getFriendshipHeartLevelForNPC(p.Npc)
+                    }))),
+                    "sawevent" when !c.Negated => I18n.Get("step.see-event", new { @event = index?.DescribeEventShort(first) ?? I18n.Get("describe.unknown", new { id = first }) }),
+                    "hostmail" or "hostorlocalmail" when !c.Negated => I18n.Get("step.story-progress"),
+                    "dating" => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
+                    "spouse" when !c.Negated => I18n.Get("step.spouse", new { name = EventIndex.GetNpcDisplayName(first) }),
+                    _ => index != null ? PreconditionFormatter.Describe(c, index) : c.Raw
+                };
+            }
+
+            return eval.DoorNeverOpen ? I18n.Get("step.door-closed") : I18n.Get("step.unknown");
+        }
+
+        /// <summary>" (+1 more)" when more than one thing is still needed.</summary>
+        private static string MoreSteps(EventEvaluation eval) =>
+            eval.UnmetCount > 1 ? I18n.Get("hud.more", new { count = eval.UnmetCount - 1 }) : "";
 
         /// <summary>A festival at the location itself, or one that locks every shop and house door in the valley.</summary>
         private static string FestivalTag(EventEvaluation eval) =>

@@ -118,7 +118,11 @@ namespace NpcEventTracker.UI
         private (string Stage, Color Color, EventNarrator.HudTone Tone) Status(EventInfo evt, EventEvaluation eval)
         {
             int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
-            (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes);
+            // spoiler-free mode doesn't say what's still needed
+            if (this.mod.HidesDetails(eval))
+                return (I18n.Get("status.hidden"), MutedColor, EventNarrator.HudTone.Normal);
+
+            (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes, this.mod.Index);
             Color color = tone switch
             {
                 EventNarrator.HudTone.Go => ReadyColor,

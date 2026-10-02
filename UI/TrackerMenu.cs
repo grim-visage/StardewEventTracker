@@ -466,7 +466,7 @@ namespace NpcEventTracker.UI
             string? pinLabel = evt.IsStory && !hidden ? I18n.Get(tracked ? "menu.button.unpin" : "menu.button.pin") : null;
             string? snoozeLabel = canSnooze ? I18n.Get(snoozed ? "menu.button.wake" : "menu.button.snooze") : null;
             this.AddRow(
-                $"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
+                $"{title}  [{(hidden ? I18n.Get("status.hidden") : EventNarrator.StatusTag(evt, eval, this.Index))}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
                 snoozed ? MutedColor : StatusColor(eval.Status),
                 indent,
                 button: pinLabel ?? snoozeLabel,
