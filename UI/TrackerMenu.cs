@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using NpcEventTracker.Data;
 using StardewValley;
+using StardewModdingAPI.Utilities;
 using StardewValley.Menus;
 
 namespace NpcEventTracker.UI
@@ -51,9 +52,10 @@ namespace NpcEventTracker.UI
 
         private static readonly string[] TabLabels = { "Pinned", "Hearts", "Story", "Completed" };
 
-        // remembered between openings for the rest of the session
-        private static Tab lastTab = Tab.Pinned;
-        private static readonly HashSet<string> Expanded = new();
+        // remembered between openings for the rest of the session, separately for each split-screen player
+        private static readonly PerScreen<Tab> LastTab = new(() => Tab.Pinned);
+        private static readonly PerScreen<HashSet<string>> ExpandedPerScreen = new(() => new HashSet<string>());
+        private static HashSet<string> Expanded => ExpandedPerScreen.Value;
 
         private readonly ModEntry mod;
         private readonly List<Row> rows = new();
@@ -61,7 +63,7 @@ namespace NpcEventTracker.UI
         private readonly List<Chip> chips = new();
         private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
-        private Tab tab = lastTab;
+        private Tab tab = LastTab.Value;
         private int builtVersion = -1;
         private int scrollY;
         private int contentHeight;
@@ -645,7 +647,7 @@ namespace NpcEventTracker.UI
 
         private void SetTab(Tab newTab)
         {
-            this.tab = lastTab = newTab;
+            this.tab = LastTab.Value = newTab;
             this.scrollY = 0;
             this.LayoutToolbar();
             Game1.playSound("smallSelect");

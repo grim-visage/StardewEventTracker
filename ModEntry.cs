@@ -11,39 +11,36 @@ using StardewValley;
 
 namespace NpcEventTracker
 {
-    /// <summary>Per-save data: which NPCs the player is tracking.</summary>
-    internal sealed class PinData
-    {
-        public List<string> PinnedNpcs { get; set; } = new();
-    }
-
     public sealed class ModEntry : Mod
     {
         internal ModConfig Config { get; private set; } = new();
-        internal EventIndex Index { get; private set; } = null!;
-        internal HashSet<string> PinnedNpcs { get; } = new();
 
-        private HudTracker hud = null!;
+        /// <summary>Each local player's tracking state; split-screen co-op gets one per screen.</summary>
+        private PerScreen<PlayerState> screen = null!;
+        private PerScreen<HudTracker> hud = null!;
 
-        /// <summary>Event keys already announced today, so each alert fires once per day.</summary>
-        private readonly HashSet<string> alertedToday = new();
+        internal PlayerState State => this.screen.Value;
+        internal EventIndex Index => this.State.Index;
+        internal HashSet<string> PinnedNpcs => this.State.PinnedNpcs;
+        private HashSet<string> alertedToday => this.State.AlertedToday;
 
-        private readonly List<(int Time, string Text)> messagesToday = new();
+        /// <summary>Today's reminder pop-ups, oldest first, so missed ones can be re-read in the menu.</summary>
+        internal IReadOnlyList<(int Time, string Text)> MessagesToday => this.State.MessagesToday;
 
         /// <summary>The game tick a pop-up sound last played on, so several pop-ups at once only play one sound.</summary>
         private int lastSoundTick = -1;
 
-        /// <summary>Today's reminder pop-ups, oldest first, so missed ones can be re-read in the menu.</summary>
-        internal IReadOnlyList<(int Time, string Text)> MessagesToday => this.messagesToday;
-
-        private string PinDataPath => $"data/{Constants.SaveFolderName}.json";
+        /// <summary>Pins are per player: the main player keeps the 1.0 path, other local players get their own file.</summary>
+        private string PinDataPath => Context.IsMainPlayer
+            ? $"data/{Constants.SaveFolderName}.json"
+            : $"data/{Constants.SaveFolderName}-{Game1.player.UniqueMultiplayerID}.json";
 
         public override void Entry(IModHelper helper)
         {
             this.Config = helper.ReadConfig<ModConfig>();
             this.NormalizeConfig();
-            this.Index = new EventIndex(this.Monitor);
-            this.hud = new HudTracker(this);
+            this.screen = new PerScreen<PlayerState>(() => new PlayerState(this.Monitor));
+            this.hud = new PerScreen<HudTracker>(() => new HudTracker(this));
 
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
@@ -52,7 +49,7 @@ namespace NpcEventTracker
             helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
             helper.Events.Player.Warped += this.OnWarped;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
-            helper.Events.Display.RenderedHud += (_, e) => this.hud.Draw(e.SpriteBatch);
+            helper.Events.Display.RenderedHud += (_, e) => this.hud.Value.Draw(e.SpriteBatch);
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
             helper.ConsoleCommands.Add("net_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: net_dump <npc or location name>", this.OnDumpCommand);
@@ -69,9 +66,18 @@ namespace NpcEventTracker
             if (!this.PinnedNpcs.Remove(npc))
                 this.PinnedNpcs.Add(npc);
 
-            this.Helper.Data.WriteJsonFile(this.PinDataPath, new PinData { PinnedNpcs = this.PinnedNpcs.OrderBy(p => p).ToList() });
+            this.SavePins();
             this.Index.Invalidate();
             this.RunReminders();
+        }
+
+        private void SavePins()
+        {
+            this.Helper.Data.WriteJsonFile(this.PinDataPath, new PinData
+            {
+                PinnedNpcs = this.PinnedNpcs.OrderBy(p => p).ToList(),
+                AutoPinDismissed = this.State.AutoPinDismissed.OrderBy(p => p).ToList()
+            });
         }
 
         /****
@@ -132,10 +138,13 @@ namespace NpcEventTracker
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
         {
-            this.PinnedNpcs.Clear();
+            this.State.Reset();
             PinData? data = this.Helper.Data.ReadJsonFile<PinData>(this.PinDataPath);
             if (data != null)
+            {
                 this.PinnedNpcs.UnionWith(data.PinnedNpcs);
+                this.State.AutoPinDismissed.UnionWith(data.AutoPinDismissed);
+            }
 
             this.Index.Rebuild();
         }
@@ -144,8 +153,7 @@ namespace NpcEventTracker
         {
             // content packs can add or change events from day to day
             this.Index.Rebuild();
-            this.alertedToday.Clear();
-            this.messagesToday.Clear();
+            this.State.StartDay();
             this.RunReminders(morning: true);
         }
 
@@ -172,10 +180,9 @@ namespace NpcEventTracker
 
         private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
         {
-            this.PinnedNpcs.Clear();
-            this.alertedToday.Clear();
-            this.messagesToday.Clear();
-            this.Index.Clear();
+            // every screen's state goes when the save closes
+            foreach ((_, PlayerState state) in this.screen.GetActiveValues())
+                state.Reset();
         }
 
         private void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
@@ -262,7 +269,7 @@ namespace NpcEventTracker
 
         private void Notify(string text, string sound)
         {
-            this.messagesToday.Add((Game1.timeOfDay, text));
+            this.State.MessagesToday.Add((Game1.timeOfDay, text));
             if (Game1.ticks != this.lastSoundTick)
             {
                 this.lastSoundTick = Game1.ticks;

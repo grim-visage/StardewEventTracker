@@ -1,21 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using StardewModdingAPI.Utilities;
 
 namespace NpcEventTracker.Data
 {
     /// <summary>The menu's search text and filter toggles, shared by all tabs for the rest of the session.</summary>
     internal static class EventFilter
     {
-        public static string SearchText { get; set; } = "";
+        private sealed class State
+        {
+            public string SearchText = "";
+            public bool AvailableNow, AvailableToday, WaitingOnDay, ShowLocked, CompletedShowsStory;
+        }
 
-        public static bool AvailableNow { get; set; }
-        public static bool AvailableToday { get; set; }
-        public static bool WaitingOnDay { get; set; }
-        public static bool ShowLocked { get; set; }
+        // each split-screen player has their own search and filters
+        private static readonly PerScreen<State> Current = new(() => new State());
+
+        public static string SearchText { get => Current.Value.SearchText; set => Current.Value.SearchText = value; }
+
+        public static bool AvailableNow { get => Current.Value.AvailableNow; set => Current.Value.AvailableNow = value; }
+        public static bool AvailableToday { get => Current.Value.AvailableToday; set => Current.Value.AvailableToday = value; }
+        public static bool WaitingOnDay { get => Current.Value.WaitingOnDay; set => Current.Value.WaitingOnDay = value; }
+        public static bool ShowLocked { get => Current.Value.ShowLocked; set => Current.Value.ShowLocked = value; }
 
         /// <summary>Whether the Completed tab shows story events instead of heart events.</summary>
-        public static bool CompletedShowsStory { get; set; }
+        public static bool CompletedShowsStory { get => Current.Value.CompletedShowsStory; set => Current.Value.CompletedShowsStory = value; }
 
         public static bool HasSearch => SearchText.Trim().Length > 0;
 
