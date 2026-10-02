@@ -88,7 +88,7 @@ namespace NpcEventTracker.UI
                         continue;
 
                     (string status, _) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore);
-                    yield return (evt, eval, $"{name}: {evt.Title} at {EventNarrator.WithArticle(evt.LocationDisplayName)}\n   {status}");
+                    yield return (evt, eval, I18n.Get("map.tooltip", new { name, title = evt.Title, location = EventNarrator.WithArticle(evt.LocationDisplayName), status }));
                 }
             }
         }

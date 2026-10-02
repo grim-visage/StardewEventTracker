@@ -50,7 +50,7 @@ namespace NpcEventTracker.UI
         private const int ButtonWidth = 130;
         private const int ScrollStep = 64;
 
-        private static readonly string[] TabLabels = { "Pinned", "Hearts", "Story", "Completed" };
+        private static string[] TabLabels => new[] { I18n.Get("menu.tab.pinned"), I18n.Get("menu.tab.hearts"), I18n.Get("menu.tab.story"), I18n.Get("menu.tab.completed") };
 
         // remembered between openings for the rest of the session, separately for each split-screen player
         private static readonly PerScreen<Tab> LastTab = new(() => Tab.Pinned);
@@ -114,15 +114,15 @@ namespace NpcEventTracker.UI
             this.chips.Clear();
             if (this.tab == Tab.Completed)
             {
-                this.chips.Add(new Chip { Label = "Hearts", Tooltip = "Show heart events you've seen.", IsOn = () => !EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = false });
-                this.chips.Add(new Chip { Label = "Story", Tooltip = "Show story events you've seen.", IsOn = () => EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = true });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.hearts"), Tooltip = I18n.Get("menu.chip.hearts.tip"), IsOn = () => !EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = false });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.story"), Tooltip = I18n.Get("menu.chip.story.tip"), IsOn = () => EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = true });
             }
             else
             {
-                this.chips.Add(new Chip { Label = "Available now", Tooltip = "Every requirement is met and it's the right time of day.", IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
-                this.chips.Add(new Chip { Label = "Today", Tooltip = "Available now, or everything is met\nand it can start later today.", IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
-                this.chips.Add(new Chip { Label = "Right day", Tooltip = "Waiting on the right day: only the weather, day,\nseason, Green Rain or a festival is in the way today.", IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
-                this.chips.Add(new Chip { Label = "Show locked", Tooltip = "Also list events that need more hearts.", IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.now"), Tooltip = I18n.Get("menu.chip.now.tip"), IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.today"), Tooltip = I18n.Get("menu.chip.today.tip"), IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.right-day"), Tooltip = I18n.Get("menu.chip.right-day.tip"), IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.locked"), Tooltip = I18n.Get("menu.chip.locked.tip"), IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
             }
 
             int left = this.xPositionOnScreen + Padding;
@@ -194,8 +194,8 @@ namespace NpcEventTracker.UI
             var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).ToList();
             if (pinned.Count == 0)
             {
-                this.AddRow("No NPCs pinned yet.", MutedColor);
-                this.AddRow("Open the Hearts tab and click Pin next to anyone you want to track.", MutedColor);
+                this.AddRow(I18n.Get("menu.pinned.none"), MutedColor);
+                this.AddRow(I18n.Get("menu.pinned.how", new { key = this.mod.Config.PinKey }), MutedColor);
                 return;
             }
 
@@ -215,7 +215,7 @@ namespace NpcEventTracker.UI
             }
 
             if (!any)
-                this.AddRow("None of your pinned NPCs have events matching your search or filters.", MutedColor);
+                this.AddRow(I18n.Get("menu.pinned.no-match"), MutedColor);
         }
 
         /// <summary>A collapsible list of today's reminder pop-ups, newest first.</summary>
@@ -234,7 +234,7 @@ namespace NpcEventTracker.UI
             const string key = "messages";
             bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
             this.AddRow(
-                $"{(expanded ? "v" : ">")} Today's messages ({messages.Count})",
+                $"{(expanded ? "v" : ">")} {I18n.Get("menu.messages", new { count = messages.Count })}",
                 Game1.textColor,
                 onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
             if (expanded)
@@ -273,7 +273,7 @@ namespace NpcEventTracker.UI
             }
 
             if (!any)
-                this.AddRow("No heart events match your search or filters.", MutedColor);
+                this.AddRow(I18n.Get("menu.hearts.no-match"), MutedColor);
         }
 
         private void BuildStoryTab()
@@ -305,7 +305,9 @@ namespace NpcEventTracker.UI
                     font: Game1.dialogueFont,
                     onClick: EventFilter.IsActive ? null : () => ToggleExpanded(key));
                 this.AddRow(
-                    $"{pending.Pending.Count} unseen{(now > 0 ? $", {now} available now" : "")}{(later > 0 ? $", {later} later today" : "")}",
+                    I18n.Get("menu.count.unseen", new { count = pending.Pending.Count })
+                        + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
+                        + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : ""),
                     MutedColor,
                     indent: 28);
 
@@ -317,7 +319,7 @@ namespace NpcEventTracker.UI
             }
 
             if (!any)
-                this.AddRow(EventFilter.IsActive ? "No story events match your search or filters." : "No unseen story events right now.", MutedColor);
+                this.AddRow(I18n.Get(EventFilter.IsActive ? "menu.story.no-match" : "menu.story.none"), MutedColor);
         }
 
         private void BuildCompletedTab()
@@ -343,7 +345,7 @@ namespace NpcEventTracker.UI
                 string key = (story ? "done-story:" : "done:") + groupKey;
                 bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
                 this.AddRow(
-                    $"{(expanded ? "v" : ">")} {name}   ({seen.Count}/{total} seen)",
+                    $"{(expanded ? "v" : ">")} {name}   {I18n.Get("menu.completed.count", new { seen = seen.Count, total })}",
                     Game1.textColor,
                     font: Game1.dialogueFont,
                     onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
@@ -353,8 +355,8 @@ namespace NpcEventTracker.UI
                 foreach (EventInfo evt in visible)
                 {
                     string text = story
-                        ? $"+ {evt.Title}{(evt.Actors.Count > 0 ? $" with {ActorList(evt)}" : "")}  (#{evt.Id})"
-                        : $"+ {evt.Title} at {evt.LocationDisplayName}  (#{evt.Id})";
+                        ? "+ " + (evt.Actors.Count > 0 ? I18n.Get("menu.completed.story-with", new { title = evt.Title, actors = ActorList(evt) }) : evt.Title) + $"  (#{evt.Id})"
+                        : "+ " + I18n.Get("menu.event-at", new { title = evt.Title, location = evt.LocationDisplayName }) + $"  (#{evt.Id})";
                     this.AddRow(text, MetColor, indent: 32);
                 }
                 this.AddSpacer(12);
@@ -362,9 +364,7 @@ namespace NpcEventTracker.UI
 
             if (!any)
             {
-                this.AddRow(EventFilter.HasSearch
-                    ? "No completed events match your search."
-                    : $"You haven't seen any tracked {(story ? "story" : "heart")} events yet.", MutedColor);
+                this.AddRow(I18n.Get(EventFilter.HasSearch ? "menu.completed.no-match" : story ? "menu.completed.none-story" : "menu.completed.none-hearts"), MutedColor);
             }
         }
 
@@ -391,13 +391,13 @@ namespace NpcEventTracker.UI
             int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
 
             string hearts = Game1.player.friendshipData.ContainsKey(owner)
-                ? $"  {Game1.player.getFriendshipHeartLevelForNPC(owner)} hearts"
+                ? "  " + I18n.Get("menu.npc.hearts", new { hearts = Game1.player.getFriendshipHeartLevelForNPC(owner) })
                 : "";
-            string counts = $"{pending.Pending.Count} pending"
-                + (now > 0 ? $", {now} available now" : "")
-                + (later > 0 ? $", {later} later today" : "")
-                + (pending.LockedEvents.Count > 0 ? $", {pending.LockedEvents.Count} locked" : "")
-                + $", {seen} seen";
+            string counts = I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
+                + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
+                + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : "")
+                + (pending.LockedEvents.Count > 0 ? I18n.Get("menu.count.locked", new { count = pending.LockedEvents.Count }) : "")
+                + I18n.Get("menu.count.seen", new { count = seen });
             string prefix = expandable ? (expanded ? "v " : "> ") : "";
 
             bool isPinned = this.mod.PinnedNpcs.Contains(owner);
@@ -406,7 +406,7 @@ namespace NpcEventTracker.UI
                 now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                 font: Game1.dialogueFont,
                 onClick: expandable && key != null && !EventFilter.IsActive ? () => ToggleExpanded(key) : null,
-                button: isPinned ? "Unpin" : "Pin",
+                button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
         }
@@ -414,7 +414,7 @@ namespace NpcEventTracker.UI
         private void AddEventList(PendingEvents pending, List<(EventInfo Event, EventEvaluation Eval)> visible, int indent, bool showLocation)
         {
             if (visible.Count == 0 && !EventFilter.IsActive)
-                this.AddRow(pending.NextLocked == null ? "Nothing pending. You're all caught up!" : "Nothing unlocked yet.", MutedColor, indent);
+                this.AddRow(I18n.Get(pending.NextLocked == null ? "menu.caught-up" : "menu.nothing-unlocked"), MutedColor, indent);
 
             foreach ((EventInfo evt, EventEvaluation eval) in visible)
                 this.AddEventDetail(evt, eval, indent, showLocation);
@@ -426,46 +426,48 @@ namespace NpcEventTracker.UI
             {
                 int current = Game1.player.getFriendshipHeartLevelForNPC(next.Event.Owner);
                 string need = next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
-                    ? $"needs {next.Event.RequiredHearts} hearts, you have {current}"
-                    : $"needs {next.Event.RequiredPoints} points";
-                string where = this.mod.Config.SpoilerFree ? "" : $" at {next.Event.LocationDisplayName}";
-                this.AddRow($"Next up: {next.Event.Title}{where} ({need})", MutedColor, indent);
+                    ? I18n.Get("menu.next.hearts", new { hearts = next.Event.RequiredHearts, current })
+                    : I18n.Get("menu.next.points", new { points = next.Event.RequiredPoints });
+                string title = this.mod.Config.SpoilerFree
+                    ? next.Event.Title
+                    : I18n.Get("menu.event-at", new { title = next.Event.Title, location = next.Event.LocationDisplayName });
+                this.AddRow(I18n.Get("menu.next", new { title, need }), MutedColor, indent);
             }
 
             if (pending.Unreachable > 0)
-                this.AddRow($"{pending.Unreachable} event(s) can no longer happen (an alternate version was seen).", MutedColor, indent);
+                this.AddRow(I18n.Get("menu.unreachable", new { count = pending.Unreachable }), MutedColor, indent);
         }
 
         private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation)
         {
             bool hidden = this.mod.HidesDetails(eval);
-            string title = showLocation && !hidden ? $"{evt.Title} at {evt.LocationDisplayName}" : evt.Title;
+            string title = showLocation && !hidden ? I18n.Get("menu.event-at", new { title = evt.Title, location = evt.LocationDisplayName }) : evt.Title;
             bool snoozed = this.mod.IsSnoozed(evt);
             bool canSnooze = snoozed || (evt.IsHeartEvent && this.mod.PinnedNpcs.Contains(evt.Owner) && eval.Status is not (EventStatus.Locked or EventStatus.Special));
             this.AddRow(
-                $"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]{(snoozed ? "  (snoozed until tomorrow)" : "")}",
+                $"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
                 snoozed ? MutedColor : StatusColor(eval.Status),
                 indent,
-                button: canSnooze ? (snoozed ? "Wake" : "Snooze") : null,
+                button: canSnooze ? I18n.Get(snoozed ? "menu.button.wake" : "menu.button.snooze") : null,
                 onButton: () => this.mod.ToggleSnooze(evt));
 
             int inner = indent + 28;
             if (hidden)
             {
-                this.AddRow("Details hidden until it's unlocked (spoiler-free mode).", MutedColor, inner);
+                this.AddRow(I18n.Get("menu.hidden"), MutedColor, inner);
                 this.AddSpacer(8);
                 return;
             }
 
             if (evt.IsStory && evt.Actors.Count > 0)
-                this.AddRow($"With {ActorList(evt)}", MutedColor, inner);
+                this.AddRow(I18n.Get("menu.with", new { actors = ActorList(evt) }), MutedColor, inner);
 
             if (eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday && this.mod.State.Travel.MinutesTo(evt.LocationName) is { } travel)
             {
                 if (travel > 0)
-                    this.AddRow($"About {PreconditionFormatter.FormatDuration(travel)} away on foot.", MutedColor, inner);
+                    this.AddRow(I18n.Get("menu.travel", new { duration = PreconditionFormatter.FormatDuration(travel) }), MutedColor, inner);
                 else if (eval.Status == EventStatus.AvailableNow)
-                    this.AddRow("You're here! Events start when you arrive, so step out and come back in.", ReadyColor, inner);
+                    this.AddRow(I18n.Get("menu.travel.here"), ReadyColor, inner);
             }
 
             if (eval.Status == EventStatus.AvailableNow)
@@ -474,10 +476,10 @@ namespace NpcEventTracker.UI
                 this.AddRow(EventNarrator.Reminder(evt, eval, minutes), SoonColor, inner);
 
             if (eval.Festival is { } festival)
-                this.AddRow($"Festival here today, {PreconditionFormatter.Time(festival.Start)}-{PreconditionFormatter.Time(festival.End)}. Events here can't start during it.", MutedColor, inner);
+                this.AddRow(I18n.Get("menu.festival", new { start = PreconditionFormatter.Time(festival.Start), end = PreconditionFormatter.Time(festival.End) }), MutedColor, inner);
 
             if (evt.Conditions.Count == 0)
-                this.AddRow("No requirements, just walk in.", MetColor, inner);
+                this.AddRow(I18n.Get("menu.no-requirements"), MetColor, inner);
             for (int i = 0; i < evt.Conditions.Count; i++)
             {
                 if (eval.States[i] == ConditionState.Soft)
@@ -504,7 +506,7 @@ namespace NpcEventTracker.UI
             if (unlocks.Count > 0)
             {
                 string next = string.Join("; ", unlocks.Take(2).Select(u => this.Index.DescribeEvent(u.Id)));
-                this.AddRow($"> Leads to: {next}{(unlocks.Count > 2 ? $" (+{unlocks.Count - 2} more)" : "")}", MutedColor, inner);
+                this.AddRow("> " + I18n.Get("menu.leads-to", new { events = next }) + (unlocks.Count > 2 ? I18n.Get("hud.more", new { count = unlocks.Count - 2 }) : ""), MutedColor, inner);
             }
 
             this.AddRow($"#{evt.Id}", MutedColor * 0.7f, inner);
@@ -722,7 +724,7 @@ namespace NpcEventTracker.UI
             // toolbar
             this.searchBox.Draw(b);
             if (this.searchBox.Text.Length == 0 && !this.searchBox.Selected)
-                Utility.drawTextWithShadow(b, "Search...", Game1.smallFont, new Vector2(this.searchBox.X + 16, this.searchBox.Y + 10), MutedColor, shadowIntensity: 0f);
+                Utility.drawTextWithShadow(b, I18n.Get("menu.search"), Game1.smallFont, new Vector2(this.searchBox.X + 16, this.searchBox.Y + 10), MutedColor, shadowIntensity: 0f);
             foreach (Chip chip in this.chips)
             {
                 bool on = chip.IsOn();

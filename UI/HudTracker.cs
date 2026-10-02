@@ -58,7 +58,7 @@ namespace NpcEventTracker.UI
         private void Rebuild()
         {
             EventIndex index = this.mod.Index;
-            var lines = new List<(string, Color)> { ("Event Tracker", Game1.textColor) };
+            var lines = new List<(string, Color)> { (I18n.Get("hud.title"), Game1.textColor) };
 
             var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).Take(Math.Max(1, this.mod.Config.HudMaxNpcs));
             foreach (string npc in pinned)
@@ -69,7 +69,7 @@ namespace NpcEventTracker.UI
                 // snoozed events step aside for the next one
                 var awake = pending.Pending.Where(p => !this.mod.IsSnoozed(p.Event)).ToList();
                 if (pending.Pending.Count > 0 && awake.Count == 0)
-                    lines.Add(($"{name}: snoozed until tomorrow", MutedColor));
+                    lines.Add((I18n.Get("hud.snoozed", new { name }), MutedColor));
                 else if (awake.Count > 0)
                 {
                     (EventInfo evt, EventEvaluation eval) = awake[0];
@@ -81,18 +81,20 @@ namespace NpcEventTracker.UI
                         EventNarrator.HudTone.Soon => SoonColor,
                         _ => Game1.textColor
                     };
-                    string more = awake.Count > 1 ? $" (+{awake.Count - 1} more)" : "";
-                    string where = this.mod.HidesDetails(eval) ? "" : $" at {EventNarrator.WithArticle(evt.LocationDisplayName)}";
-                    lines.Add(($"{name}: {evt.Title}{where}{more}", color));
+                    string more = awake.Count > 1 ? I18n.Get("hud.more", new { count = awake.Count - 1 }) : "";
+                    string line = this.mod.HidesDetails(eval)
+                        ? I18n.Get("hud.event-hidden", new { name, title = evt.Title })
+                        : I18n.Get("hud.event", new { name, title = evt.Title, location = EventNarrator.WithArticle(evt.LocationDisplayName) });
+                    lines.Add((line + more, color));
                     lines.Add(($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color));
                 }
                 else if (pending.NextLocked is { } next)
                 {
                     int current = Game1.player.getFriendshipHeartLevelForNPC(npc);
-                    lines.Add(($"{name}: next at {next.Event.RequiredHearts} hearts (you: {current})", MutedColor));
+                    lines.Add((I18n.Get("hud.next-locked", new { name, hearts = next.Event.RequiredHearts, current }), MutedColor));
                 }
                 else
-                    lines.Add(($"{name}: all caught up", MutedColor));
+                    lines.Add((I18n.Get("hud.caught-up", new { name }), MutedColor));
             }
 
             this.lines = lines;

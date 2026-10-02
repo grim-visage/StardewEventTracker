@@ -42,6 +42,7 @@ namespace NpcEventTracker
 
         public override void Entry(IModHelper helper)
         {
+            I18n.Init(helper.Translation);
             this.Config = helper.ReadConfig<ModConfig>();
             this.NormalizeConfig();
             this.screen = new PerScreen<PlayerState>(() => new PlayerState(this.Monitor));
@@ -142,25 +143,22 @@ namespace NpcEventTracker
             if (gmcm == null)
                 return;
 
-            gmcm.Register(this.ModManifest, () => this.Config = new ModConfig(), () => this.Helper.WriteConfig(this.Config));
-            gmcm.AddSectionTitle(this.ModManifest, () => "Controls");
-            gmcm.AddKeybindList(this.ModManifest, () => this.Config.OpenMenuKey, v => this.Config.OpenMenuKey = v, () => "Open tracker menu");
-            gmcm.AddKeybindList(this.ModManifest, () => this.Config.ToggleHudKey, v => this.Config.ToggleHudKey = v, () => "Toggle HUD tracker");
-            gmcm.AddKeybindList(this.ModManifest, () => this.Config.PinKey, v => this.Config.PinKey = v, () => "Pin NPC under cursor",
-                () => "Pin or unpin the NPC under your cursor, in the world or on the Social tab.");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.AutoPinPartners, v => this.Config.AutoPinPartners = v, () => "Auto-pin partners",
-                () => "Pin your spouse, roommate and anyone you're dating automatically. Unpinning them sticks.");
+            var m = this.ModManifest;
+            gmcm.Register(m, () => this.Config = new ModConfig(), () => this.Helper.WriteConfig(this.Config));
 
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.SpoilerFree, v => this.Config.SpoilerFree = v, () => "Spoiler-free mode",
-                () => "Hide where events happen, their requirements and what they lead to until they're unlocked. Good for a first playthrough.");
+            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.controls"));
+            gmcm.AddKeybindList(m, () => this.Config.OpenMenuKey, v => this.Config.OpenMenuKey = v, () => I18n.Get("config.menu-key"));
+            gmcm.AddKeybindList(m, () => this.Config.ToggleHudKey, v => this.Config.ToggleHudKey = v, () => I18n.Get("config.hud-key"));
+            gmcm.AddKeybindList(m, () => this.Config.PinKey, v => this.Config.PinKey = v, () => I18n.Get("config.pin-key"), () => I18n.Get("config.pin-key.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.AutoPinPartners, v => this.Config.AutoPinPartners = v, () => I18n.Get("config.auto-pin"), () => I18n.Get("config.auto-pin.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.SpoilerFree, v => this.Config.SpoilerFree = v, () => I18n.Get("config.spoiler-free"), () => I18n.Get("config.spoiler-free.tip"));
 
-            gmcm.AddSectionTitle(this.ModManifest, () => "Reminders", () => "Messages for pinned NPCs' events. Times are in-game time.");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => "Morning heads-up",
-                () => "When the day starts, mention pinned NPC events that can happen today.");
+            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.reminders"), () => I18n.Get("config.section.reminders.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => I18n.Get("config.morning"), () => I18n.Get("config.morning.tip"));
             foreach (int minutes in ModConfig.AllowedReminderMinutes)
             {
                 gmcm.AddBoolOption(
-                    this.ModManifest,
+                    m,
                     () => this.Config.ReminderMinutesBefore.Contains(minutes),
                     v =>
                     {
@@ -168,40 +166,33 @@ namespace NpcEventTracker
                         if (v)
                             this.Config.ReminderMinutesBefore.Add(minutes);
                     },
-                    () => $"Remind {FormatInterval(minutes)} before",
-                    () => $"Remind you {FormatInterval(minutes)} before a pinned NPC's event can start, so you have time to get there.");
+                    () => I18n.Get("config.remind-before", new { interval = FormatInterval(minutes) }),
+                    () => I18n.Get("config.remind-before.tip", new { interval = FormatInterval(minutes) }));
             }
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.TomorrowHeadsUp, v => this.Config.TomorrowHeadsUp = v, () => "Evening look-ahead",
-                () => "From 6:00 pm, mention pinned NPC events that can't happen today but should work tomorrow, based on the weather forecast.");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.TravelReminders, v => this.Config.TravelReminders = v, () => "Leave-now reminder",
-                () => "Estimate the walk to the event (from where you are, on foot or horse) and remind you when it's time to set off.");
-            gmcm.AddNumberOption(this.ModManifest, () => this.Config.TravelBufferMinutes, v => this.Config.TravelBufferMinutes = v, () => "Leave-now buffer",
-                () => "Extra in-game minutes added to the walking estimate, in case you stop along the way.", min: 0, max: 60, interval: 10, formatValue: v => $"{v}m");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
-                () => "Show a message when a pinned NPC's event can happen right now.");
-            gmcm.AddTextOption(this.ModManifest, () => this.Config.ReminderSound, v => this.Config.ReminderSound = v, () => "Reminder sound",
-                () => "Played with reminders and the morning heads-up. Changing it plays a preview.",
-                allowedValues: ModConfig.SoundCues, formatAllowedValue: v => ModConfig.AllowedSounds[v], fieldId: "ReminderSound");
-            gmcm.AddTextOption(this.ModManifest, () => this.Config.AvailableSound, v => this.Config.AvailableSound = v, () => "\"Time to visit\" sound",
-                () => "Played when a pinned NPC's event can happen right now. Changing it plays a preview.",
-                allowedValues: ModConfig.SoundCues, formatAllowedValue: v => ModConfig.AllowedSounds[v], fieldId: "AvailableSound");
-            gmcm.OnFieldChanged(this.ModManifest, (fieldId, value) =>
+            gmcm.AddBoolOption(m, () => this.Config.TravelReminders, v => this.Config.TravelReminders = v, () => I18n.Get("config.leave-now"), () => I18n.Get("config.leave-now.tip"));
+            gmcm.AddNumberOption(m, () => this.Config.TravelBufferMinutes, v => this.Config.TravelBufferMinutes = v, () => I18n.Get("config.leave-buffer"), () => I18n.Get("config.leave-buffer.tip"),
+                min: 0, max: 60, interval: 10, formatValue: v => PreconditionFormatter.FormatDuration(v));
+            gmcm.AddBoolOption(m, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => I18n.Get("config.available"), () => I18n.Get("config.available.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.TomorrowHeadsUp, v => this.Config.TomorrowHeadsUp = v, () => I18n.Get("config.tomorrow"), () => I18n.Get("config.tomorrow.tip"));
+            gmcm.AddTextOption(m, () => this.Config.ReminderSound, v => this.Config.ReminderSound = v, () => I18n.Get("config.reminder-sound"), () => I18n.Get("config.reminder-sound.tip"),
+                allowedValues: ModConfig.SoundCues, formatAllowedValue: SoundLabel, fieldId: "ReminderSound");
+            gmcm.AddTextOption(m, () => this.Config.AvailableSound, v => this.Config.AvailableSound = v, () => I18n.Get("config.available-sound"), () => I18n.Get("config.available-sound.tip"),
+                allowedValues: ModConfig.SoundCues, formatAllowedValue: SoundLabel, fieldId: "AvailableSound");
+            gmcm.OnFieldChanged(m, (fieldId, value) =>
             {
                 if (fieldId is "ReminderSound" or "AvailableSound" && value is string cue)
                     PlaySound(cue);
             });
-            gmcm.AddNumberOption(this.ModManifest, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => "Pop-up duration",
-                () => "How many seconds reminder messages stay on screen.", min: 3, max: 30, formatValue: v => $"{v}s");
+            gmcm.AddNumberOption(m, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => I18n.Get("config.popup-seconds"), () => I18n.Get("config.popup-seconds.tip"),
+                min: 3, max: 30, formatValue: v => I18n.Get("config.seconds", new { seconds = v }));
 
-            gmcm.AddSectionTitle(this.ModManifest, () => "HUD tracker and map");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => "Map markers",
-                () => "Show a heart on the map where pinned NPCs' events can happen today. Hover it for details.");
-            gmcm.AddBoolOption(this.ModManifest, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => "Show HUD tracker");
-            gmcm.AddKeybindList(this.ModManifest, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => "Drag HUD while holding",
-                () => "Hold this and drag the HUD tracker with the left mouse button to move it.");
-            gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudX, v => this.Config.HudX = v, () => "HUD X position", min: 0, max: 3000, interval: 4);
-            gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudY, v => this.Config.HudY = v, () => "HUD Y position", min: 0, max: 2000, interval: 4);
-            gmcm.AddNumberOption(this.ModManifest, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => "Max NPCs on HUD", min: 1, max: 15);
+            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.hud"));
+            gmcm.AddBoolOption(m, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => I18n.Get("config.map-markers"), () => I18n.Get("config.map-markers.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => I18n.Get("config.show-hud"));
+            gmcm.AddKeybindList(m, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => I18n.Get("config.drag-key"), () => I18n.Get("config.drag-key.tip"));
+            gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
+            gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
+            gmcm.AddNumberOption(m, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => I18n.Get("config.hud-max"), min: 1, max: 15);
         }
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -346,13 +337,13 @@ namespace NpcEventTracker
             string name = EventIndex.GetNpcDisplayName(npc);
             if (!this.Index.ByOwner.ContainsKey(npc))
             {
-                ShowToast($"{name} has no heart events to track.");
+                ShowToast(I18n.Get("toast.no-events", new { name }));
                 return;
             }
 
             this.TogglePin(npc);
             Game1.playSound("smallSelect");
-            ShowToast(this.PinnedNpcs.Contains(npc) ? $"Pinned {name}." : $"Unpinned {name}.");
+            ShowToast(I18n.Get(this.PinnedNpcs.Contains(npc) ? "toast.pinned" : "toast.unpinned", new { name }));
         }
 
         private static string? GetHoveredSocialEntry(SocialPage page)
@@ -503,7 +494,11 @@ namespace NpcEventTracker
         }
 
         private static string FormatInterval(int minutes) =>
-            minutes % 60 == 0 ? $"{minutes / 60} hour{(minutes == 60 ? "" : "s")}" : $"{minutes} minutes";
+            minutes % 60 == 0
+                ? I18n.Get(minutes == 60 ? "config.interval.hour" : "config.interval.hours", new { hours = minutes / 60 })
+                : I18n.Get("config.interval.minutes", new { minutes });
+
+        private static string SoundLabel(string cue) => I18n.GetOr($"sound.{cue}", ModConfig.AllowedSounds.TryGetValue(cue, out string? label) ? label : cue);
 
         /// <summary>Migrates 1.0 settings and cleans up the reminder list.</summary>
         private void NormalizeConfig()

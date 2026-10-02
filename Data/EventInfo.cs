@@ -174,16 +174,19 @@ namespace NpcEventTracker.Data
 
         public int RequiredHearts => this.RequiredPoints / NPC.friendshipPointsPerHeartLevel;
 
-        public string Title
+        /// <summary>A short name like "4-heart event" or "Story event".</summary>
+        public string Title => this.GetTitle("title");
+
+        /// <summary>The title as it reads mid-sentence, e.g. "Abigail's 4-heart event".</summary>
+        public string TitleInline => this.GetTitle("title-inline");
+
+        private string GetTitle(string prefix)
         {
-            get
-            {
-                if (this.RequiredPoints > 0)
-                    return this.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
-                        ? $"{this.RequiredHearts}-heart event"
-                        : $"{this.RequiredPoints}-point event";
-                return "Story event";
-            }
+            if (this.RequiredPoints > 0)
+                return this.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
+                    ? I18n.Get($"{prefix}.hearts", new { hearts = this.RequiredHearts })
+                    : I18n.Get($"{prefix}.points", new { points = this.RequiredPoints });
+            return I18n.Get($"{prefix}.story");
         }
 
         public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions)

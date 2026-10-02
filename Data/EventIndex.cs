@@ -243,12 +243,11 @@ namespace NpcEventTracker.Data
         {
             EventInfo? info = this.FindById(id);
             if (info == null)
-                return $"event #{id}";
+                return I18n.Get("describe.unknown", new { id });
 
-            string label = info.IsStory
-                ? $"{info.Title.ToLowerInvariant()} at {info.LocationDisplayName} (#{id})"
-                : $"{GetNpcDisplayName(info.Owner)}'s {info.Title.ToLowerInvariant()} at {info.LocationDisplayName} (#{id})";
-            return info.IsSpecial ? label + ", which the mod's code starts" : label;
+            var tokens = new { name = GetNpcDisplayName(info.Owner), title = info.TitleInline, location = info.LocationDisplayName, id };
+            string label = I18n.Get(info.IsStory ? "describe.story" : "describe.heart", tokens);
+            return info.IsSpecial ? I18n.Get("describe.special", new { label }) : label;
         }
 
         /// <summary>Display names by internal name; looking up an NPC searches every location, so this is cached.</summary>
