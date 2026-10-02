@@ -37,6 +37,12 @@ namespace NpcEventTracker
         /// <summary>Shows or hides the HUD tracker.</summary>
         public KeybindList ToggleHudKey { get; set; } = KeybindList.Parse("LeftShift + F2");
 
+        /// <summary>Pins or unpins the NPC under the cursor, in the world or on the Social tab.</summary>
+        public KeybindList PinKey { get; set; } = KeybindList.Parse("LeftControl + F2");
+
+        /// <summary>Whether to pin your spouse, roommate and anyone you're dating automatically.</summary>
+        public bool AutoPinPartners { get; set; } = true;
+
         /// <summary>Whether the HUD tracker for pinned NPCs is visible.</summary>
         public bool ShowHud { get; set; } = true;
 

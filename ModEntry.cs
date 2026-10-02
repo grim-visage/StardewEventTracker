@@ -7,7 +7,9 @@ using NpcEventTracker.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
+using Microsoft.Xna.Framework;
 using StardewValley;
+using StardewValley.Menus;
 
 namespace NpcEventTracker
 {
@@ -63,8 +65,17 @@ namespace NpcEventTracker
 
         internal void TogglePin(string npc)
         {
-            if (!this.PinnedNpcs.Remove(npc))
+            if (this.PinnedNpcs.Remove(npc))
+            {
+                // remember unpinned partners so auto-pin doesn't add them back
+                if (IsPartner(npc))
+                    this.State.AutoPinDismissed.Add(npc);
+            }
+            else
+            {
                 this.PinnedNpcs.Add(npc);
+                this.State.AutoPinDismissed.Remove(npc);
+            }
 
             this.SavePins();
             this.Index.Invalidate();
@@ -103,6 +114,10 @@ namespace NpcEventTracker
             gmcm.AddSectionTitle(this.ModManifest, () => "Controls");
             gmcm.AddKeybindList(this.ModManifest, () => this.Config.OpenMenuKey, v => this.Config.OpenMenuKey = v, () => "Open tracker menu");
             gmcm.AddKeybindList(this.ModManifest, () => this.Config.ToggleHudKey, v => this.Config.ToggleHudKey = v, () => "Toggle HUD tracker");
+            gmcm.AddKeybindList(this.ModManifest, () => this.Config.PinKey, v => this.Config.PinKey = v, () => "Pin NPC under cursor",
+                () => "Pin or unpin the NPC under your cursor, in the world or on the Social tab.");
+            gmcm.AddBoolOption(this.ModManifest, () => this.Config.AutoPinPartners, v => this.Config.AutoPinPartners = v, () => "Auto-pin partners",
+                () => "Pin your spouse, roommate and anyone you're dating automatically. Unpinning them sticks.");
 
             gmcm.AddSectionTitle(this.ModManifest, () => "Reminders", () => "Messages for pinned NPCs' events. Times are in-game time.");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => "Morning heads-up",
@@ -164,6 +179,7 @@ namespace NpcEventTracker
             // content packs can add or change events from day to day
             this.Index.Rebuild();
             this.State.StartDay();
+            this.AutoPinPartners();
             this.RunReminders(morning: true);
         }
 
@@ -200,7 +216,13 @@ namespace NpcEventTracker
             if (!Context.IsWorldReady)
                 return;
 
-            // checked first: the default Shift + F2 also counts as pressing the menu's F2
+            // modifier combos are checked first: Ctrl/Shift + F2 also count as pressing the menu's F2
+            if (this.Config.PinKey.JustPressed())
+            {
+                this.PinUnderCursor();
+                return;
+            }
+
             if (this.Config.ToggleHudKey.JustPressed())
             {
                 if (Context.IsPlayerFree)
@@ -226,6 +248,85 @@ namespace NpcEventTracker
         /****
         ** Helpers
         ****/
+        /// <summary>Pins the NPC hovered on the Social tab, or standing under the cursor in the world.</summary>
+        private void PinUnderCursor()
+        {
+            string? npc = null;
+            if (Game1.activeClickableMenu is GameMenu gameMenu && gameMenu.GetCurrentPage() is SocialPage social)
+                npc = GetHoveredSocialEntry(social);
+            else if (Context.IsPlayerFree)
+                npc = this.GetNpcUnderCursor();
+            else
+                return;
+
+            if (npc == null)
+                return;
+
+            string name = EventIndex.GetNpcDisplayName(npc);
+            if (!this.Index.ByOwner.ContainsKey(npc))
+            {
+                ShowToast($"{name} has no heart events to track.");
+                return;
+            }
+
+            this.TogglePin(npc);
+            Game1.playSound("smallSelect");
+            ShowToast(this.PinnedNpcs.Contains(npc) ? $"Pinned {name}." : $"Unpinned {name}.");
+        }
+
+        private static string? GetHoveredSocialEntry(SocialPage page)
+        {
+            int x = Game1.getMouseX(ui_scale: true), y = Game1.getMouseY(ui_scale: true);
+            int count = Math.Min(page.characterSlots.Count, page.SocialEntries.Count);
+
+            // only the five visible rows can be hovered
+            for (int i = page.slotPosition; i < Math.Min(count, page.slotPosition + 5); i++)
+            {
+                if (page.characterSlots[i].containsPoint(x, y))
+                    return page.SocialEntries[i].InternalName;
+            }
+
+            // with a controller, use the highlighted row
+            int snapped = page.characterSlots.IndexOf(page.currentlySnappedComponent as ClickableTextureComponent);
+            return snapped >= 0 && snapped < count ? page.SocialEntries[snapped].InternalName : null;
+        }
+
+        private string? GetNpcUnderCursor()
+        {
+            Vector2 tile = this.Helper.Input.GetCursorPosition().Tile;
+            Vector2 grabTile = this.Helper.Input.GetCursorPosition().GrabTile;
+
+            // NPCs are two tiles tall, so the cursor may be over their head
+            NPC? npc = Game1.currentLocation?.characters.FirstOrDefault(c =>
+                c.IsVillager && (c.Tile == tile || c.Tile == tile + new Vector2(0, 1) || c.Tile == grabTile));
+            return npc?.Name;
+        }
+
+        private static void ShowToast(string text)
+        {
+            Game1.addHUDMessage(new HUDMessage(text) { noIcon = true, timeLeft = 2500 });
+        }
+
+        private static bool IsPartner(string npc) =>
+            Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship)
+            && (friendship.IsDating() || friendship.IsEngaged() || friendship.IsMarried() || friendship.IsRoommate());
+
+        /// <summary>Pins the player's spouse, roommate and partners, unless they unpinned them before.</summary>
+        private void AutoPinPartners()
+        {
+            if (!this.Config.AutoPinPartners)
+                return;
+
+            var added = Game1.player.friendshipData.Keys
+                .Where(npc => IsPartner(npc) && this.Index.ByOwner.ContainsKey(npc) && !this.PinnedNpcs.Contains(npc) && !this.State.AutoPinDismissed.Contains(npc))
+                .ToList();
+            if (added.Count == 0)
+                return;
+
+            this.PinnedNpcs.UnionWith(added);
+            this.SavePins();
+            this.Index.Invalidate();
+        }
         /// <summary>Sends reminders, available-now alerts and (at day start) heads-ups for pinned NPCs' events.</summary>
         private void RunReminders(bool morning = false)
         {
