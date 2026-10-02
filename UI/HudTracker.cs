@@ -58,9 +58,13 @@ namespace NpcEventTracker.UI
                 string name = EventIndex.GetNpcDisplayName(npc);
                 PendingEvents pending = index.GetPending(npc);
 
-                if (pending.Pending.Count > 0)
+                // snoozed events step aside for the next one
+                var awake = pending.Pending.Where(p => !this.mod.IsSnoozed(p.Event)).ToList();
+                if (pending.Pending.Count > 0 && awake.Count == 0)
+                    lines.Add(($"{name}: snoozed until tomorrow", MutedColor));
+                else if (awake.Count > 0)
                 {
-                    (EventInfo evt, EventEvaluation eval) = pending.Pending[0];
+                    (EventInfo evt, EventEvaluation eval) = awake[0];
                     (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore);
                     Color color = tone switch
                     {
@@ -68,7 +72,7 @@ namespace NpcEventTracker.UI
                         EventNarrator.HudTone.Soon => SoonColor,
                         _ => Game1.textColor
                     };
-                    string more = pending.Pending.Count > 1 ? $" (+{pending.Pending.Count - 1} more)" : "";
+                    string more = awake.Count > 1 ? $" (+{awake.Count - 1} more)" : "";
                     lines.Add(($"{name}: {evt.Title} at {EventNarrator.WithArticle(evt.LocationDisplayName)}{more}", color));
                     lines.Add(($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color));
                 }

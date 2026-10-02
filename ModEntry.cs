@@ -71,6 +71,16 @@ namespace NpcEventTracker
             this.RunReminders();
         }
 
+        internal bool IsSnoozed(EventInfo evt) => this.State.SnoozedToday.Contains(evt.Key);
+
+        /// <summary>Silences (or un-silences) an event's reminders until tomorrow.</summary>
+        internal void ToggleSnooze(EventInfo evt)
+        {
+            if (!this.State.SnoozedToday.Remove(evt.Key))
+                this.State.SnoozedToday.Add(evt.Key);
+            this.Index.Invalidate();
+        }
+
         private void SavePins()
         {
             this.Helper.Data.WriteJsonFile(this.PinDataPath, new PinData
@@ -230,6 +240,9 @@ namespace NpcEventTracker
             {
                 foreach ((EventInfo evt, EventEvaluation eval) in this.Index.GetPending(npc).Pending)
                 {
+                    if (this.IsSnoozed(evt))
+                        continue;
+
                     if (eval.Status == EventStatus.AvailableNow)
                     {
                         if (this.Config.AlertWhenAvailable && this.alertedToday.Add($"now:{evt.Key}"))

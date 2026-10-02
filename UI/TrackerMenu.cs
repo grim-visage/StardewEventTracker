@@ -47,7 +47,7 @@ namespace NpcEventTracker.UI
         private const int Padding = 32;
         private const int TabHeight = 56;
         private const int ChipHeight = 48;
-        private const int ButtonWidth = 110;
+        private const int ButtonWidth = 130;
         private const int ScrollStep = 64;
 
         private static readonly string[] TabLabels = { "Pinned", "Hearts", "Story", "Completed" };
@@ -436,7 +436,14 @@ namespace NpcEventTracker.UI
         private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation)
         {
             string title = showLocation ? $"{evt.Title} at {evt.LocationDisplayName}" : evt.Title;
-            this.AddRow($"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]", StatusColor(eval.Status), indent);
+            bool snoozed = this.mod.IsSnoozed(evt);
+            bool canSnooze = snoozed || (evt.IsHeartEvent && this.mod.PinnedNpcs.Contains(evt.Owner) && eval.Status is not (EventStatus.Locked or EventStatus.Special));
+            this.AddRow(
+                $"{title}  [{EventNarrator.StatusTag(evt, eval, this.Index)}]{(snoozed ? "  (snoozed until tomorrow)" : "")}",
+                snoozed ? MutedColor : StatusColor(eval.Status),
+                indent,
+                button: canSnooze ? (snoozed ? "Wake" : "Snooze") : null,
+                onButton: () => this.mod.ToggleSnooze(evt));
 
             int inner = indent + 28;
             if (evt.IsStory && evt.Actors.Count > 0)
