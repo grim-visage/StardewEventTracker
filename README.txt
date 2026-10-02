@@ -85,8 +85,9 @@ Filter buttons next to the search box (combine as many as you like):
   Available now   Every requirement is met and it's the right time of day
   Today           Available now, or everything is met and it can start
                   later today
-  Right day       Only the weather, day, season, Green Rain or a festival is
-                  in the way today
+  Not today       Everything's done, it just can't happen today: waiting
+                  on the weather, day, season, Green Rain or a festival,
+                  or today's time window has passed
   Show locked     Also list events that need more hearts
 
 While a search or filter is on, matching groups expand automatically.

@@ -121,7 +121,7 @@ namespace NpcEventTracker.UI
             {
                 this.chips.Add(new Chip { Label = I18n.Get("menu.chip.now"), Tooltip = I18n.Get("menu.chip.now.tip"), IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
                 this.chips.Add(new Chip { Label = I18n.Get("menu.chip.today"), Tooltip = I18n.Get("menu.chip.today.tip"), IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.right-day"), Tooltip = I18n.Get("menu.chip.right-day.tip"), IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
+                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.not-today"), Tooltip = I18n.Get("menu.chip.not-today.tip"), IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
                 this.chips.Add(new Chip { Label = I18n.Get("menu.chip.locked"), Tooltip = I18n.Get("menu.chip.locked.tip"), IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
             }
 
