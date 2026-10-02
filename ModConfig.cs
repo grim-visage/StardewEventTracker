@@ -43,6 +43,9 @@ namespace NpcEventTracker
         /// <summary>Whether to pin your spouse, roommate and anyone you're dating automatically.</summary>
         public bool AutoPinPartners { get; set; } = true;
 
+        /// <summary>Hide the details of events that aren't unlocked yet (location, requirements, what they lead to).</summary>
+        public bool SpoilerFree { get; set; }
+
         /// <summary>Whether the HUD tracker for pinned NPCs is visible.</summary>
         public bool ShowHud { get; set; } = true;
 

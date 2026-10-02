@@ -35,6 +35,9 @@ namespace NpcEventTracker.Data
         private Dictionary<string, List<EventInfo>> storyByLocation = new();
         private Dictionary<string, EventInfo> byId = new();
 
+        /// <summary>Events that require having seen a given event ID.</summary>
+        private Dictionary<string, List<EventInfo>> unlockedBy = new();
+
         /// <summary>Increments whenever data or evaluations change, so UI can rebuild.</summary>
         public int Version { get; private set; }
 
@@ -132,6 +135,20 @@ namespace NpcEventTracker.Data
             foreach (EventInfo info in all)
                 this.byId.TryAdd(info.Id, info);
 
+            this.unlockedBy = new();
+            foreach (EventInfo info in all)
+            {
+                foreach (Precondition c in info.Conditions.Where(c => c.Is("SawEvent") && !c.Negated))
+                {
+                    foreach (string id in c.Args.Distinct())
+                    {
+                        if (!this.unlockedBy.TryGetValue(id, out List<EventInfo>? list))
+                            this.unlockedBy[id] = list = new List<EventInfo>();
+                        list.Add(info);
+                    }
+                }
+            }
+
             this.Invalidate();
             this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} NPCs with heart events, {this.storyByLocation.Count} locations with story events).", LogLevel.Debug);
         }
@@ -149,6 +166,10 @@ namespace NpcEventTracker.Data
                 this.evaluations[evt.Key] = eval = EventEvaluator.Evaluate(evt);
             return eval;
         }
+
+        /// <summary>Events that need this event to have been seen first, i.e. what seeing it leads to.</summary>
+        public IReadOnlyList<EventInfo> GetUnlocks(string id) =>
+            this.unlockedBy.TryGetValue(id, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
 
         public EventInfo? FindById(string id) => this.byId.TryGetValue(id, out EventInfo? info) ? info : null;
 

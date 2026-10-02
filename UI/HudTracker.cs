@@ -73,7 +73,8 @@ namespace NpcEventTracker.UI
                         _ => Game1.textColor
                     };
                     string more = awake.Count > 1 ? $" (+{awake.Count - 1} more)" : "";
-                    lines.Add(($"{name}: {evt.Title} at {EventNarrator.WithArticle(evt.LocationDisplayName)}{more}", color));
+                    string where = this.mod.HidesDetails(eval) ? "" : $" at {EventNarrator.WithArticle(evt.LocationDisplayName)}";
+                    lines.Add(($"{name}: {evt.Title}{where}{more}", color));
                     lines.Add(($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color));
                 }
                 else if (pending.NextLocked is { } next)

@@ -373,7 +373,9 @@ namespace NpcEventTracker.UI
         {
             return pending.Pending
                 .Concat(EventFilter.ShowLocked ? pending.LockedEvents : Enumerable.Empty<(EventInfo Event, EventEvaluation Eval)>())
-                .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && (groupNameMatches || EventFilter.MatchesSearch(p.Event, this.Index)))
+                // spoiler-free mode doesn't reveal story events before they're unlocked
+                .Where(p => !(p.Event.IsStory && this.mod.HidesDetails(p.Eval)))
+                .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && (groupNameMatches || EventFilter.MatchesSearch(p.Event, this.Index, this.mod.HidesDetails(p.Eval))))
                 .ToList();
         }
 
@@ -426,7 +428,8 @@ namespace NpcEventTracker.UI
                 string need = next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
                     ? $"needs {next.Event.RequiredHearts} hearts, you have {current}"
                     : $"needs {next.Event.RequiredPoints} points";
-                this.AddRow($"Next up: {next.Event.Title} at {next.Event.LocationDisplayName} ({need})", MutedColor, indent);
+                string where = this.mod.Config.SpoilerFree ? "" : $" at {next.Event.LocationDisplayName}";
+                this.AddRow($"Next up: {next.Event.Title}{where} ({need})", MutedColor, indent);
             }
 
             if (pending.Unreachable > 0)
@@ -435,7 +438,8 @@ namespace NpcEventTracker.UI
 
         private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation)
         {
-            string title = showLocation ? $"{evt.Title} at {evt.LocationDisplayName}" : evt.Title;
+            bool hidden = this.mod.HidesDetails(eval);
+            string title = showLocation && !hidden ? $"{evt.Title} at {evt.LocationDisplayName}" : evt.Title;
             bool snoozed = this.mod.IsSnoozed(evt);
             bool canSnooze = snoozed || (evt.IsHeartEvent && this.mod.PinnedNpcs.Contains(evt.Owner) && eval.Status is not (EventStatus.Locked or EventStatus.Special));
             this.AddRow(
@@ -446,6 +450,13 @@ namespace NpcEventTracker.UI
                 onButton: () => this.mod.ToggleSnooze(evt));
 
             int inner = indent + 28;
+            if (hidden)
+            {
+                this.AddRow("Details hidden until it's unlocked (spoiler-free mode).", MutedColor, inner);
+                this.AddSpacer(8);
+                return;
+            }
+
             if (evt.IsStory && evt.Actors.Count > 0)
                 this.AddRow($"With {ActorList(evt)}", MutedColor, inner);
 
@@ -478,6 +489,16 @@ namespace NpcEventTracker.UI
                 };
                 this.AddRow($"{mark} {text}", color, inner);
             }
+            // what seeing this event leads to
+            var unlocks = this.mod.Config.SpoilerFree
+                ? new List<EventInfo>()
+                : this.Index.GetUnlocks(evt.Id).Where(u => !u.Seen).ToList();
+            if (unlocks.Count > 0)
+            {
+                string next = string.Join("; ", unlocks.Take(2).Select(u => this.Index.DescribeEvent(u.Id)));
+                this.AddRow($"> Leads to: {next}{(unlocks.Count > 2 ? $" (+{unlocks.Count - 2} more)" : "")}", MutedColor, inner);
+            }
+
             this.AddRow($"#{evt.Id}", MutedColor * 0.7f, inner);
             this.AddSpacer(8);
         }

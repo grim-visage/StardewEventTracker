@@ -82,6 +82,10 @@ namespace NpcEventTracker
             this.RunReminders();
         }
 
+        /// <summary>Whether spoiler-free mode hides this event's details: only once it's unlocked are they shown.</summary>
+        internal bool HidesDetails(EventEvaluation eval) =>
+            this.Config.SpoilerFree && eval.Status is EventStatus.Locked or EventStatus.NotYet or EventStatus.Special or EventStatus.Unreachable;
+
         internal bool IsSnoozed(EventInfo evt) => this.State.SnoozedToday.Contains(evt.Key);
 
         /// <summary>Silences (or un-silences) an event's reminders until tomorrow.</summary>
@@ -118,6 +122,9 @@ namespace NpcEventTracker
                 () => "Pin or unpin the NPC under your cursor, in the world or on the Social tab.");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AutoPinPartners, v => this.Config.AutoPinPartners = v, () => "Auto-pin partners",
                 () => "Pin your spouse, roommate and anyone you're dating automatically. Unpinning them sticks.");
+
+            gmcm.AddBoolOption(this.ModManifest, () => this.Config.SpoilerFree, v => this.Config.SpoilerFree = v, () => "Spoiler-free mode",
+                () => "Hide where events happen, their requirements and what they lead to until they're unlocked. Good for a first playthrough.");
 
             gmcm.AddSectionTitle(this.ModManifest, () => "Reminders", () => "Messages for pinned NPCs' events. Times are in-game time.");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => "Morning heads-up",

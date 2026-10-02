@@ -50,10 +50,13 @@ namespace NpcEventTracker.Data
             !HasSearch || (text != null && text.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase));
 
         /// <summary>Whether the search matches anything about the event: NPCs, location, ID, title or requirements.</summary>
-        public static bool MatchesSearch(EventInfo evt, EventIndex index)
+        /// <param name="detailsHidden">Spoiler-free mode hides this event's details, so only its title and NPC can match.</param>
+        public static bool MatchesSearch(EventInfo evt, EventIndex index, bool detailsHidden = false)
         {
             if (!HasSearch)
                 return true;
+            if (detailsHidden)
+                return MatchesText(evt.Title) || (evt.IsHeartEvent && MatchesText(EventIndex.GetNpcDisplayName(evt.Owner)));
 
             IEnumerable<string> haystack = new[] { evt.Id, evt.Title, evt.LocationDisplayName, evt.LocationName }
                 .Concat(evt.Actors.Select(EventIndex.GetNpcDisplayName))
