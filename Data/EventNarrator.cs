@@ -49,9 +49,9 @@ namespace NpcEventTracker.Data
         }
 
         /// <summary>"Abigail should be at the Mountain around 9:00 am. Head out soon to catch her!"</summary>
-        public static string Reminder(EventInfo evt, int minutesLeft)
+        public static string Reminder(EventInfo evt, EventEvaluation eval, int minutesLeft)
         {
-            string time = evt.Window is { } window ? PreconditionFormatter.Time(window.Start) : "soon";
+            string time = StartTime(evt, eval);
             if (evt.IsStory)
                 return $"Something might happen at {Place(evt)} around {time}.";
 
@@ -78,6 +78,28 @@ namespace NpcEventTracker.Data
                 : $"Today looks like a good day to see {w.Name} at {w.Place}{window}.";
         }
 
+        /// <summary>"Tomorrow looks rainy. A good day to find Abigail at the Mountain."</summary>
+        public static string TomorrowHeadsUp(EventInfo evt, string weatherTomorrow)
+        {
+            bool mentionsWeather = evt.Conditions.Any(c => c.Is("Weather"));
+            string sky = weatherTomorrow switch
+            {
+                "Rain" => "rainy",
+                "Storm" => "stormy",
+                "Snow" => "snowy",
+                "Wind" => "windy",
+                _ => "sunny"
+            };
+            string lead = mentionsWeather ? $"Tomorrow looks {sky}." : "Tomorrow should work out.";
+            if (evt.IsStory)
+                return $"{lead} Something might happen at {Place(evt)}.";
+
+            var w = new Words(evt);
+            return Pick(evt,
+                $"{lead} A good day to find {w.Name} at {w.Place}.",
+                $"{lead} {w.Name} might be at {w.Place}.");
+        }
+
         /****
         ** Short forms
         ****/
@@ -87,9 +109,11 @@ namespace NpcEventTracker.Data
             return eval.Status switch
             {
                 EventStatus.AvailableNow => evt.Window is { } w ? $"Available now, until {PreconditionFormatter.Time(w.End)}" : "Available now",
-                EventStatus.LaterToday => $"Later today, from {StartTime(evt)} (in {PreconditionFormatter.FormatDuration(eval.MinutesUntilStart ?? 0)})",
-                EventStatus.WrongDay => $"Wait for {WaitFor(evt, eval)}",
-                EventStatus.MissedToday => "Missed today's window, try tomorrow",
+                EventStatus.LaterToday => $"Later today, from {StartTime(evt, eval)} (in {PreconditionFormatter.FormatDuration(eval.MinutesUntilStart ?? 0)})",
+                EventStatus.WrongDay => $"Wait for {WaitFor(evt, eval)}{TomorrowHint(eval, includeNo: true)}",
+                EventStatus.GreenRain => $"No events during Green Rain{TomorrowHint(eval, includeNo: true)}",
+                EventStatus.FestivalHere => $"Festival here today{TomorrowHint(eval, includeNo: true)}",
+                EventStatus.MissedToday => $"Missed today's window{TomorrowHint(eval, includeNo: true)}",
                 EventStatus.NotYet => $"Not yet: {eval.UnmetCount} requirement(s) to go",
                 EventStatus.Special => "Special trigger: can't be started by visiting",
                 EventStatus.Locked => $"Locked: needs {evt.RequiredHearts} hearts",
@@ -113,7 +137,7 @@ namespace NpcEventTracker.Data
 
                 case EventStatus.LaterToday:
                     int minutes = eval.MinutesUntilStart ?? 0;
-                    string when = $"starts {StartTime(evt)} (in {PreconditionFormatter.FormatDuration(minutes)})";
+                    string when = $"starts {StartTime(evt, eval)} (in {PreconditionFormatter.FormatDuration(minutes)})";
                     var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
                     if (stages.Count == 0)
                         stages = new List<int> { 60, 120 };
@@ -124,9 +148,13 @@ namespace NpcEventTracker.Data
                     return ($"Later today - {when}", HudTone.Normal);
 
                 case EventStatus.WrongDay:
-                    return ($"Wait for {WaitFor(evt, eval)}", HudTone.Normal);
+                    return ($"Wait for {WaitFor(evt, eval)}{TomorrowHint(eval, includeNo: false)}", HudTone.Normal);
+                case EventStatus.GreenRain:
+                    return ($"Green Rain today{TomorrowHint(eval, includeNo: false)}", HudTone.Normal);
+                case EventStatus.FestivalHere:
+                    return ($"Festival here today{TomorrowHint(eval, includeNo: false)}", HudTone.Normal);
                 case EventStatus.MissedToday:
-                    return ("Missed today - try tomorrow", HudTone.Normal);
+                    return ($"Missed today{TomorrowHint(eval, includeNo: false)}", HudTone.Normal);
                 case EventStatus.NotYet:
                     return ($"Not yet - {eval.UnmetCount} to go", HudTone.Normal);
                 case EventStatus.Special:
@@ -153,6 +181,8 @@ namespace NpcEventTracker.Data
                     "dayofweek" => c.Negated ? $"a day other than {args}" : $"a {args}",
                     "dayofmonth" => c.Negated ? $"a day other than the {args}" : $"day {string.Join(" or ", c.Args)}",
                     "season" => c.Negated ? $"a season other than {args}" : args,
+                    "festivalday" => c.Negated ? "a day without a festival" : "a festival day",
+                    "upcomingfestival" => c.Negated ? "a day without a festival coming up" : "a day before a festival",
                     _ => c.Raw
                 });
             }
@@ -182,8 +212,18 @@ namespace NpcEventTracker.Data
         ****/
         private static string Place(EventInfo evt) => WithArticle(evt.LocationDisplayName);
 
-        private static string StartTime(EventInfo evt) =>
-            evt.Window is { } w ? PreconditionFormatter.Time(w.Start) : "later";
+        private static string StartTime(EventInfo evt, EventEvaluation eval) =>
+            eval.StartTime is { } start ? PreconditionFormatter.Time(start)
+            : evt.Window is { } w ? PreconditionFormatter.Time(w.Start)
+            : "later";
+
+        /// <summary>" (tomorrow works!)" or " (not tomorrow either)", from the forecast.</summary>
+        private static string TomorrowHint(EventEvaluation eval, bool includeNo) => eval.WorksTomorrow switch
+        {
+            true => " (tomorrow works!)",
+            false when includeNo => " (not tomorrow either)",
+            _ => ""
+        };
 
         private static string Capitalize(string s) =>
             s.Length > 0 ? char.ToUpperInvariant(s[0]) + s[1..] : s;

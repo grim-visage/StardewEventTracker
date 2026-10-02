@@ -33,7 +33,7 @@ namespace NpcEventTracker.Data
 
             return (AvailableNow && status == EventStatus.AvailableNow)
                 || (AvailableToday && status is EventStatus.AvailableNow or EventStatus.LaterToday)
-                || (WaitingOnDay && status == EventStatus.WrongDay);
+                || (WaitingOnDay && status is EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere);
         }
 
         public static bool MatchesText(string? text) =>

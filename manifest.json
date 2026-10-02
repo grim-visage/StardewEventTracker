@@ -1,7 +1,7 @@
 {
   "Name": "NPC Event Tracker",
   "Author": "grim",
-  "Version": "1.1.0",
+  "Version": "1.2.0",
   "Description": "Tracks pending NPC heart and story events, what each one needs to trigger, and NPCs you pin.",
   "UniqueID": "grim.NpcEventTracker",
   "EntryDll": "NpcEventTracker.dll",

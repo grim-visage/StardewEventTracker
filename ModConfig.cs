@@ -58,6 +58,9 @@ namespace NpcEventTracker
         /// <summary>Whether to list pinned NPC events that can happen today when the day starts.</summary>
         public bool MorningHeadsUp { get; set; } = true;
 
+        /// <summary>Whether to mention, in the evening, pinned NPC events that can't happen today but can tomorrow.</summary>
+        public bool TomorrowHeadsUp { get; set; } = true;
+
         /// <summary>HUD tracker position from the left edge of the screen, in UI pixels.</summary>
         public int HudX { get; set; } = 16;
 

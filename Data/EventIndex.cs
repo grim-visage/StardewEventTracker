@@ -62,6 +62,7 @@ namespace NpcEventTracker.Data
         public void Rebuild()
         {
             NpcNameCache.Clear();
+            CalendarInfo.Clear();
             var locationNames = new HashSet<string>(Game1.locationData.Keys);
             Utility.ForEachLocation(location =>
             {
@@ -255,8 +256,8 @@ namespace NpcEventTracker.Data
 
         private static EventInfo? Parse(string locationName, string locationDisplayName, string key, string script)
         {
-            // keys without preconditions are fork/branch scripts, not triggerable events
-            if (!key.Contains('/'))
+            // the game's own check: fork/branch scripts and other non-event entries fail it
+            if (!GameLocation.IsValidLocationEvent(key, script))
                 return null;
 
             string[] parts = Event.SplitPreconditions(key);

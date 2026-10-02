@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 
 namespace NpcEventTracker.Data
@@ -32,6 +33,12 @@ namespace NpcEventTracker.Data
         /// <summary>Progress requirements are met; only weather, day or season is wrong today.</summary>
         WrongDay,
 
+        /// <summary>Green Rain is falling, which stops every location event for the day.</summary>
+        GreenRain,
+
+        /// <summary>A festival at the event's location covers the time it could start.</summary>
+        FestivalHere,
+
         /// <summary>Everything is met except the time window, which has already closed today.</summary>
         MissedToday,
 
@@ -58,15 +65,27 @@ namespace NpcEventTracker.Data
         /// <summary>Whether the current time is inside the event's time window (true if it has none).</summary>
         public bool TimeOpen { get; }
 
-        /// <summary>In-game minutes until the time window opens, if the event has one.</summary>
+        /// <summary>In-game minutes until the event can start, if it can't yet (its time window, or a festival here ending).</summary>
         public int? MinutesUntilStart { get; }
 
-        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart)
+        /// <summary>The time the event can start today (HHMM), accounting for festivals at its location.</summary>
+        public int? StartTime { get; }
+
+        /// <summary>The festival at the event's location today, if any.</summary>
+        public FestivalInfo? Festival { get; }
+
+        /// <summary>Whether the calendar, weather and festivals allow it tomorrow (null if unpredictable or not relevant).</summary>
+        public bool? WorksTomorrow { get; }
+
+        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null)
         {
             this.Status = status;
             this.States = states;
             this.TimeOpen = timeOpen;
             this.MinutesUntilStart = minutesUntilStart;
+            this.StartTime = startTime;
+            this.Festival = festival;
+            this.WorksTomorrow = worksTomorrow;
         }
 
         /// <summary>Requirements that aren't met, not counting the time window.</summary>
@@ -83,6 +102,8 @@ namespace NpcEventTracker.Data
 
             GameLocation location = Game1.getLocationFromName(evt.LocationName) ?? Game1.currentLocation;
             var states = new ConditionState[evt.Conditions.Count];
+            FestivalInfo? festival = CalendarInfo.GetFestivalAt(evt.LocationName, SDate.Now());
+            int? startTime = evt.Window?.Start;
             bool timeOpen = true, locked = false, unreachable = false, progressUnmet = false, calendarUnmet = false;
 
             for (int i = 0; i < states.Length; i++)
@@ -126,14 +147,71 @@ namespace NpcEventTracker.Data
                 status = EventStatus.NotYet;
             else if (calendarUnmet)
                 status = EventStatus.WrongDay;
-            else if (timeOpen)
-                status = EventStatus.AvailableNow;
-            else if (untilStart > 0)
-                status = EventStatus.LaterToday;
+            else if (SafeIsGreenRaining(location))
+                status = EventStatus.GreenRain;
             else
-                status = EventStatus.MissedToday;
+                (status, untilStart, startTime) = WithFestival(evt, festival, timeOpen, untilStart);
 
-            return new EventEvaluation(status, states, timeOpen, untilStart);
+            // only worth predicting once nothing but the day is in the way
+            bool? worksTomorrow = status is EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere or EventStatus.MissedToday
+                ? SafeWorksTomorrow(evt, location)
+                : null;
+
+            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow);
+        }
+
+        /// <summary>
+        /// Applies the game's festival rule: while a festival runs at a location, entering it loads the festival
+        /// instead of any event, so the event can only start outside festival hours.
+        /// </summary>
+        private static (EventStatus Status, int? UntilStart, int? StartTime) WithFestival(EventInfo evt, FestivalInfo? festival, bool timeOpen, int? untilStart)
+        {
+            int now = Game1.timeOfDay;
+            int start = evt.Window?.Start ?? 600;
+            int end = evt.Window?.End ?? 2600;
+
+            if (festival is { } f && f.Start < end && f.End > start)
+            {
+                if (CalendarInfo.CoversWindow(f, evt.Window) || (now >= f.Start && f.End >= end))
+                    return (EventStatus.FestivalHere, null, null);
+
+                // the usable window starts once the festival is over
+                if (start >= f.Start && start < f.End)
+                    start = f.End;
+                if (now >= f.Start && now < f.End)
+                    return (EventStatus.LaterToday, TimeWindow.ToMinutes(f.End) - TimeWindow.ToMinutes(now), f.End);
+            }
+
+            if (timeOpen && now >= start)
+                return (EventStatus.AvailableNow, null, start);
+            int minutes = TimeWindow.ToMinutes(start) - TimeWindow.ToMinutes(now);
+            if (minutes > 0 && start < end)
+                return (EventStatus.LaterToday, minutes, start);
+            return (timeOpen ? EventStatus.AvailableNow : EventStatus.MissedToday, untilStart, start);
+        }
+
+        private static bool SafeIsGreenRaining(GameLocation location)
+        {
+            try
+            {
+                return location.IsGreenRainingHere();
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        private static bool? SafeWorksTomorrow(EventInfo evt, GameLocation location)
+        {
+            try
+            {
+                return CalendarInfo.WorksTomorrow(evt, location);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private static ConditionState Check(GameLocation location, string eventId, Precondition condition)

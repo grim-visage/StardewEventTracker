@@ -54,7 +54,8 @@ namespace NpcEventTracker.Data
 
         public ConditionCategory Category =>
             this.Is("Time") ? ConditionCategory.Time
-            : this.Is("Weather") || this.Is("DayOfWeek") || this.Is("DayOfMonth") || this.Is("Season") ? ConditionCategory.Calendar
+            : this.Is("Weather") || this.Is("DayOfWeek") || this.Is("DayOfMonth") || this.Is("Season") || this.Is("FestivalDay") || this.Is("UpcomingFestival")
+                ? ConditionCategory.Calendar
             : ConditionCategory.Progress;
 
         /// <summary>

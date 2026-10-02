@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>NpcEventTracker</AssemblyName>
     <RootNamespace>NpcEventTracker</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>

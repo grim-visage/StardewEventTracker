@@ -119,7 +119,7 @@ namespace NpcEventTracker.UI
             {
                 this.chips.Add(new Chip { Label = "Available now", Tooltip = "Every requirement is met and it's the right time of day.", IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
                 this.chips.Add(new Chip { Label = "Today", Tooltip = "Available now, or everything is met\nand it can start later today.", IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
-                this.chips.Add(new Chip { Label = "Right day", Tooltip = "Waiting on the right day: only the weather,\nday of the week or season is wrong today.", IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
+                this.chips.Add(new Chip { Label = "Right day", Tooltip = "Waiting on the right day: only the weather, day,\nseason, Green Rain or a festival is in the way today.", IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
                 this.chips.Add(new Chip { Label = "Show locked", Tooltip = "Also list events that need more hearts.", IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
             }
 
@@ -443,7 +443,10 @@ namespace NpcEventTracker.UI
             if (eval.Status == EventStatus.AvailableNow)
                 this.AddRow(EventNarrator.AvailableNow(evt), ReadyColor, inner);
             else if (eval.Status == EventStatus.LaterToday && eval.MinutesUntilStart is { } minutes)
-                this.AddRow(EventNarrator.Reminder(evt, minutes), SoonColor, inner);
+                this.AddRow(EventNarrator.Reminder(evt, eval, minutes), SoonColor, inner);
+
+            if (eval.Festival is { } festival)
+                this.AddRow($"Festival here today, {PreconditionFormatter.Time(festival.Start)}-{PreconditionFormatter.Time(festival.End)}. Events here can't start during it.", MutedColor, inner);
 
             if (evt.Conditions.Count == 0)
                 this.AddRow("No requirements, just walk in.", MetColor, inner);

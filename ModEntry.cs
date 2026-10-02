@@ -105,6 +105,8 @@ namespace NpcEventTracker
                     () => $"Remind {FormatInterval(minutes)} before",
                     () => $"Remind you {FormatInterval(minutes)} before a pinned NPC's event can start, so you have time to get there.");
             }
+            gmcm.AddBoolOption(this.ModManifest, () => this.Config.TomorrowHeadsUp, v => this.Config.TomorrowHeadsUp = v, () => "Evening look-ahead",
+                () => "From 6:00 pm, mention pinned NPC events that can't happen today but should work tomorrow, based on the weather forecast.");
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
                 () => "Show a message when a pinned NPC's event can happen right now.");
             gmcm.AddTextOption(this.ModManifest, () => this.Config.ReminderSound, v => this.Config.ReminderSound = v, () => "Reminder sound",
@@ -228,6 +230,14 @@ namespace NpcEventTracker
                         continue;
                     }
 
+                    // in the evening, look ahead to tomorrow's forecast
+                    if (eval.WorksTomorrow == true && Game1.timeOfDay >= 1800 && this.Config.TomorrowHeadsUp && this.alertedToday.Add($"tomorrow:{evt.Key}"))
+                    {
+                        GameLocation location = Game1.getLocationFromName(evt.LocationName) ?? Game1.currentLocation;
+                        this.Notify(EventNarrator.TomorrowHeadsUp(evt, CalendarInfo.WeatherTomorrow(location)), this.Config.ReminderSound);
+                        continue;
+                    }
+
                     if (eval.Status != EventStatus.LaterToday || eval.MinutesUntilStart is not { } minutesLeft)
                         continue;
 
@@ -239,7 +249,7 @@ namespace NpcEventTracker
                         foreach (int crossed in intervals.Where(m => m >= due))
                             this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
                         if (!sent)
-                            this.Notify(EventNarrator.Reminder(evt, minutesLeft), this.Config.ReminderSound);
+                            this.Notify(EventNarrator.Reminder(evt, eval, minutesLeft), this.Config.ReminderSound);
                     }
                     else if (morning && this.Config.MorningHeadsUp && headsUps < 3 && this.alertedToday.Add($"morning:{evt.Key}"))
                     {
