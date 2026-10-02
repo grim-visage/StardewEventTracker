@@ -30,6 +30,9 @@ namespace NpcEventTracker
 
         private readonly List<(int Time, string Text)> messagesToday = new();
 
+        /// <summary>The game tick a pop-up sound last played on, so several pop-ups at once only play one sound.</summary>
+        private int lastSoundTick = -1;
+
         /// <summary>Today's reminder pop-ups, oldest first, so missed ones can be re-read in the menu.</summary>
         internal IReadOnlyList<(int Time, string Text)> MessagesToday => this.messagesToday;
 
@@ -104,6 +107,17 @@ namespace NpcEventTracker
             }
             gmcm.AddBoolOption(this.ModManifest, () => this.Config.AlertWhenAvailable, v => this.Config.AlertWhenAvailable = v, () => "When it's available",
                 () => "Show a message when a pinned NPC's event can happen right now.");
+            gmcm.AddTextOption(this.ModManifest, () => this.Config.ReminderSound, v => this.Config.ReminderSound = v, () => "Reminder sound",
+                () => "Played with reminders and the morning heads-up. Changing it plays a preview.",
+                allowedValues: ModConfig.SoundCues, formatAllowedValue: v => ModConfig.AllowedSounds[v], fieldId: "ReminderSound");
+            gmcm.AddTextOption(this.ModManifest, () => this.Config.AvailableSound, v => this.Config.AvailableSound = v, () => "\"Time to visit\" sound",
+                () => "Played when a pinned NPC's event can happen right now. Changing it plays a preview.",
+                allowedValues: ModConfig.SoundCues, formatAllowedValue: v => ModConfig.AllowedSounds[v], fieldId: "AvailableSound");
+            gmcm.OnFieldChanged(this.ModManifest, (fieldId, value) =>
+            {
+                if (fieldId is "ReminderSound" or "AvailableSound" && value is string cue)
+                    PlaySound(cue);
+            });
             gmcm.AddNumberOption(this.ModManifest, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => "Pop-up duration",
                 () => "How many seconds reminder messages stay on screen.", min: 3, max: 30, formatValue: v => $"{v}s");
 
@@ -210,7 +224,7 @@ namespace NpcEventTracker
                     if (eval.Status == EventStatus.AvailableNow)
                     {
                         if (this.Config.AlertWhenAvailable && this.alertedToday.Add($"now:{evt.Key}"))
-                            Notify(EventNarrator.AvailableNow(evt));
+                            this.Notify(EventNarrator.AvailableNow(evt), this.Config.AvailableSound);
                         continue;
                     }
 
@@ -225,21 +239,40 @@ namespace NpcEventTracker
                         foreach (int crossed in intervals.Where(m => m >= due))
                             this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
                         if (!sent)
-                            Notify(EventNarrator.Reminder(evt, minutesLeft));
+                            this.Notify(EventNarrator.Reminder(evt, minutesLeft), this.Config.ReminderSound);
                     }
                     else if (morning && this.Config.MorningHeadsUp && headsUps < 3 && this.alertedToday.Add($"morning:{evt.Key}"))
                     {
                         headsUps++;
-                        Notify(EventNarrator.MorningHeadsUp(evt));
+                        this.Notify(EventNarrator.MorningHeadsUp(evt), this.Config.ReminderSound);
                     }
                 }
             }
         }
 
-        private void Notify(string text)
+        private void Notify(string text, string sound)
         {
             this.messagesToday.Add((Game1.timeOfDay, text));
+            if (Game1.ticks != this.lastSoundTick)
+            {
+                this.lastSoundTick = Game1.ticks;
+                PlaySound(sound);
+            }
             Game1.addHUDMessage(new HUDMessage(text, HUDMessage.newQuest_type) { timeLeft = Math.Clamp(this.Config.PopupSeconds, 3, 30) * 1000 });
+        }
+
+        private static void PlaySound(string cue)
+        {
+            if (cue == "none")
+                return;
+            try
+            {
+                Game1.playSound(cue);
+            }
+            catch (Exception)
+            {
+                // a missing cue shouldn't break the pop-up
+            }
         }
 
         private static string FormatInterval(int minutes) =>
@@ -266,6 +299,17 @@ namespace NpcEventTracker
             if (this.Config.ToggleHudKey.ToString() is "F9" or "F4")
             {
                 this.Config.ToggleHudKey = KeybindList.Parse("LeftShift + F2");
+                changed = true;
+            }
+
+            if (!ModConfig.AllowedSounds.ContainsKey(this.Config.ReminderSound))
+            {
+                this.Config.ReminderSound = new ModConfig().ReminderSound;
+                changed = true;
+            }
+            if (!ModConfig.AllowedSounds.ContainsKey(this.Config.AvailableSound))
+            {
+                this.Config.AvailableSound = new ModConfig().AvailableSound;
                 changed = true;
             }
 

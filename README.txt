@@ -129,9 +129,12 @@ there:
   * When it's ready    When the event can happen right now ("It's time to
                        visit Robin at her home, the Carpenter's Shop.").
 
-Each reminder is sent once per day and stays on screen for 10 seconds (change
-this with the PopupSeconds setting). Missed one? The Pinned tab has a "Today's
-messages" list at the top with every reminder from today.
+Each reminder is sent once per day, plays a sound, and stays on screen for
+10 seconds. You can pick the sounds (or turn them off) and the duration in the
+settings; picking a sound in Generic Mod Config Menu plays a preview.
+
+Missed one? The Pinned tab has a "Today's messages" list at the top with every
+reminder from today.
 
 
 SETTINGS
@@ -152,6 +155,9 @@ launch:
                                           30, 15)
   AlertWhenAvailable     true             Message when an event can happen
                                           now
+  ReminderSound          newArtifact      Sound for reminders and the morning
+                                          heads-up ("none" for silence)
+  AvailableSound         questcomplete    Sound for "time to visit" messages
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
   HudX / HudY            16 / 120         HUD position on screen, in pixels

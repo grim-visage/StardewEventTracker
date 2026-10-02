@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using StardewModdingAPI.Utilities;
 
@@ -8,6 +9,27 @@ namespace NpcEventTracker
     {
         /// <summary>Reminder intervals players can choose from, in in-game minutes before an event's time window opens.</summary>
         public static readonly int[] AllowedReminderMinutes = { 180, 120, 60, 30, 15 };
+
+        /// <summary>Built-in game sounds players can pick for pop-ups, by cue name, with a friendly label.</summary>
+        public static readonly IReadOnlyDictionary<string, string> AllowedSounds = new Dictionary<string, string>
+        {
+            ["none"] = "None",
+            ["newArtifact"] = "Sparkle",
+            ["jingle1"] = "Jingle",
+            ["give_gift"] = "Gift",
+            ["dwop"] = "Soft pop",
+            ["crystal"] = "Crystal chime",
+            ["toyPiano"] = "Toy piano",
+            ["flute"] = "Flute",
+            ["bubbles"] = "Bubbles",
+            ["junimoMeep1"] = "Junimo",
+            ["discoverMineral"] = "Mineral found",
+            ["reward"] = "Reward",
+            ["questcomplete"] = "Quest complete",
+            ["achievement"] = "Achievement"
+        };
+
+        public static string[] SoundCues => AllowedSounds.Keys.ToArray();
 
         /// <summary>Opens or closes the tracker menu.</summary>
         public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
@@ -23,6 +45,12 @@ namespace NpcEventTracker
 
         /// <summary>Whether to show a message when a pinned NPC's event becomes available.</summary>
         public bool AlertWhenAvailable { get; set; } = true;
+
+        /// <summary>Sound for reminders and the morning heads-up (a key of <see cref="AllowedSounds"/>).</summary>
+        public string ReminderSound { get; set; } = "newArtifact";
+
+        /// <summary>Sound for the "time to visit" pop-up (a key of <see cref="AllowedSounds"/>).</summary>
+        public string AvailableSound { get; set; } = "questcomplete";
 
         /// <summary>How many seconds reminder pop-ups stay on screen.</summary>
         public int PopupSeconds { get; set; } = 10;
