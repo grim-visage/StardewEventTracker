@@ -29,11 +29,12 @@ namespace StardewEventTracker.Data
     /// </summary>
     internal sealed class FlagSources
     {
-        private static readonly Regex MailCommand = new(@"(?:^|/)\s*(?:mail|addMailReceived|mailReceived|addWorldState)\s+(\S+)", RegexOptions.IgnoreCase);
-        private static readonly Regex TopicCommand = new(@"(?:^|/)\s*addConversationTopic\s+(\S+)(?:\s+(\d+))?", RegexOptions.IgnoreCase);
+        // event commands are separated by '/', so captured IDs stop there
+        private static readonly Regex MailCommand = new(@"(?:^|/)\s*(?:mail|addMailReceived|mailReceived|addWorldState)\s+([^\s/]+)", RegexOptions.IgnoreCase);
+        private static readonly Regex TopicCommand = new(@"(?:^|/)\s*addConversationTopic\s+([^\s/]+)(?:\s+(\d+))?", RegexOptions.IgnoreCase);
 
         /// <summary>An event branch: "fork &lt;id&gt;" or "fork &lt;requirement&gt; &lt;id&gt;".</summary>
-        private static readonly Regex ForkCommand = new(@"(?:^|/)\s*fork\s+(?:\S+\s+)?([^\s/]+)", RegexOptions.IgnoreCase);
+        private static readonly Regex ForkCommand = new(@"(?:^|/)\s*fork\s+(?:[^\s/]+\s+)?([^\s/]+)", RegexOptions.IgnoreCase);
 
         /// <summary>Special order text that refers to the game's string table: "[key]".</summary>
         private static readonly Regex OrderStringKey = new(@"\[([^\[\]\s]+)\]");
