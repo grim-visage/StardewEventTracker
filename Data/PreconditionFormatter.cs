@@ -90,16 +90,16 @@ namespace StardewEventTracker.Data
             FlagSource? source = index.Flags.GetFlag(flag);
             string prefix = forStep ? "step" : "flag";
 
-            // nothing in the data sets it: fall back to a researched hint, if there is one
-            if (source == null)
+            // a hand-written hint says it best; otherwise work it out from the data
+            if (Hints.ForFlag(flag) is { } hint)
             {
-                if (Hints.ForFlag(flag) is not { } hint)
-                    return null;
                 string text = forStep && hint.Text.Length > 0 ? char.ToLowerInvariant(hint.Text[0]) + hint.Text[1..] : hint.Text;
                 return hint.Source != null && !forStep
                     ? I18n.Get("flag.hint-source", new { hint = text, source = hint.Source })
                     : text;
             }
+            if (source == null)
+                return null;
 
             if (source.SpecialOrderName != null)
             {

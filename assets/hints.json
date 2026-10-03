@@ -1,5 +1,5 @@
 {
-  "$comment": "Hints for story flags that nothing in the game data explains. Keyed by flag ID. Write hints in your own words (don't copy wiki text) and name where the information came from. Contributions welcome.",
+  "$comment": "Hand-written hints for story flags, used instead of what the tracker works out from game data (add one where that is missing or unclear). Keyed by flag ID. Write hints in your own words (don't copy wiki text) and name where the information came from. Contributions welcome.",
   "Flags": {
     "jade_ironbar2": {
       "Text": "Complete Jade's quest \"Iron Bar for Jade\"",
