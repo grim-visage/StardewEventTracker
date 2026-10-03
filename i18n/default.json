@@ -379,5 +379,14 @@
   "relationship.friendly": "friends",
   "spoiler-prompt.on": "Turn on spoiler-free mode",
   "spoiler-prompt.off": "No thanks, show everything",
-  "topic.letter": "the letter '{{title}}'"
+  "topic.letter": "the letter '{{title}}'",
+  "gsq.more": "more",
+  "topic.topic-wait.0": "Wait until the day after {{event}}",
+  "topic.topic-wait.1": "Wait 1 day after {{event}}",
+  "topic.topic-within.0": "On the same day as {{event}}",
+  "topic.topic-within.1": "Within 1 day after {{event}}",
+  "step.topic-wait.0": "wait until the day after {{event}}",
+  "step.topic-wait.1": "wait 1 day after {{event}}",
+  "step.topic-within.0": "on the same day as {{event}}",
+  "step.topic-within.1": "within 1 day after {{event}}"
 }

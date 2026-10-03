@@ -158,6 +158,13 @@ namespace StardewEventTracker.Data
                     if (global && !isFarmHouseAsset)
                         continue;
 
+                    // branches of other events can set flags, so they're scanned too
+                    if (!key.Contains('/') && !GameLocation.IsValidLocationEvent(key, script))
+                    {
+                        this.Flags.AddFork(name, key, script);
+                        continue;
+                    }
+
                     try
                     {
                         EventInfo? info = global
@@ -195,6 +202,7 @@ namespace StardewEventTracker.Data
                 this.byKey.TryAdd(info.Key, info);
             }
 
+            this.Flags.ResolveForks();
             this.ComputeProgressRanks(all);
 
             this.unlockedBy = new();

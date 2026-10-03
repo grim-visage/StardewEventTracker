@@ -125,8 +125,11 @@ namespace StardewEventTracker.Data
             if (after == null)
                 return null;
 
+            // 0 days lasts for the rest of that day; 1 day reads "1 day"
             string prefix = forStep ? "step" : "topic";
-            return I18n.Get(negated ? $"{prefix}.topic-wait" : $"{prefix}.topic-within", new { days = source.Days, @event = after });
+            string kind = negated ? "topic-wait" : "topic-within";
+            string count = source.Days switch { <= 0 => ".0", 1 => ".1", _ => "" };
+            return I18n.Get($"{prefix}.{kind}{count}", new { days = source.Days, @event = after });
         }
 
         /// <summary>
@@ -146,6 +149,10 @@ namespace StardewEventTracker.Data
                 string neg = negated ? ".not" : "";
                 string? clause = t[0].ToUpperInvariant() switch
                 {
+                    // ANY "query" "query": any one of them
+                    "ANY" when !negated => t.Skip(1).Select(q => DescribeCondition(q, index)).OfType<string>().Distinct().ToList() is { Count: > 0 } any
+                        ? string.Join(I18n.Get("join.or"), any)
+                        : null,
                     "PLAYER_HAS_ITEM" when t.Length >= 3 => I18n.Get("gsq.has-item" + neg, new { item = ItemName(t[2]) }),
                     "PLAYER_FRIENDSHIP_POINTS" when !negated && t.Length >= 4 && int.TryParse(t[3], out int points) =>
                         points % NPC.friendshipPointsPerHeartLevel == 0
@@ -164,9 +171,13 @@ namespace StardewEventTracker.Data
                     "SEASON" when t.Length >= 2 => I18n.Get("gsq.season" + neg, new { seasons = string.Join(I18n.Get("join.or"), t.Skip(1).Select(SeasonName)) }),
                     _ => null
                 };
-                if (clause != null)
+                if (clause != null && !clauses.Contains(clause))
                     clauses.Add(clause);
             }
+
+            // keep it readable: the first few conditions say enough
+            if (clauses.Count > 3)
+                clauses = clauses.Take(3).Append(I18n.Get("gsq.more")).ToList();
             return clauses.Count > 0 ? string.Join(I18n.Get("join.and"), clauses) : null;
         }
 
