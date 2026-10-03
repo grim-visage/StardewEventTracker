@@ -108,6 +108,9 @@ namespace StardewEventTracker.Data
                     : I18n.Get($"{prefix}.special-order", new { name = source.SpecialOrderName });
             }
 
+            if (source.QuestTitle != null)
+                return I18n.Get($"{prefix}.quest", new { title = source.QuestTitle });
+
             string? when = source.TriggerCondition != null && depth == 0 ? DescribeCondition(source.TriggerCondition, index) : null;
             if (source.LetterTitle != null)
             {
@@ -119,6 +122,8 @@ namespace StardewEventTracker.Data
                 return I18n.Get($"{prefix}.trigger", new { when });
             if (source.EventKey != null && index.FindByKey(source.EventKey) is { } evt)
                 return I18n.Get($"{prefix}.from-event", new { @event = index.DescribeEventShort(evt.Id) });
+            if (source.DialogueNpc != null)
+                return I18n.Get($"{prefix}.dialogue", new { name = EventIndex.GetNpcDisplayName(source.DialogueNpc) });
             return null;
         }
 
@@ -137,7 +142,8 @@ namespace StardewEventTracker.Data
 
             string? after = source.EventKey != null && index.FindByKey(source.EventKey) is { } evt
                 ? index.DescribeEventShort(evt.Id)
-                : source.LetterTitle != null ? I18n.Get("topic.letter", new { title = source.LetterTitle }) : null;
+                : source.LetterTitle != null ? I18n.Get("topic.letter", new { title = source.LetterTitle })
+                : source.QuestTitle != null ? I18n.Get("topic.quest", new { title = source.QuestTitle }) : null;
             if (after == null)
                 return null;
 

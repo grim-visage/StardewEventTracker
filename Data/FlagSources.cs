@@ -17,10 +17,12 @@ namespace StardewEventTracker.Data
         string? SpecialOrderName,
         string? SpecialOrderObjective,
         string? TriggerCondition,
-        string? EventKey);
+        string? EventKey,
+        string? QuestTitle = null,
+        string? DialogueNpc = null);
 
     /// <summary>An event or letter that starts a conversation topic, and for how many days.</summary>
-    internal sealed record TopicSource(string Topic, string? EventKey, string? LetterTitle, int Days);
+    internal sealed record TopicSource(string Topic, string? EventKey, string? LetterTitle, int Days, string? QuestTitle = null);
 
     /// <summary>
     /// Explains mail flags and conversation topics in event requirements, from the game's own data (letters, special
@@ -29,12 +31,23 @@ namespace StardewEventTracker.Data
     /// </summary>
     internal sealed class FlagSources
     {
-        // event commands are separated by '/', so captured IDs stop there
-        private static readonly Regex MailCommand = new(@"(?:^|/)\s*(?:mail|addMailReceived|mailReceived|addWorldState|action\s+AddMail\s+\S+)\s+([^\s/]+)", RegexOptions.IgnoreCase);
-        private static readonly Regex TopicCommand = new(@"(?:^|/)\s*addConversationTopic\s+([^\s/]+)(?:\s+(\d+))?", RegexOptions.IgnoreCase);
+        // event commands are separated by '/', or by '\' and "(break)" inside a question's answers, so IDs stop there
+        private const string CommandStart = @"(?:^|[/\\]|\(break\))\s*";
+        private const string Id = @"([^\s/\\(]+)";
+        private static readonly Regex MailCommand = new(CommandStart + @"(?:mail|addMailReceived|mailReceived|addWorldState|action\s+AddMail\s+\S+)\s+" + Id, RegexOptions.IgnoreCase);
+        private static readonly Regex TopicCommand = new(CommandStart + @"addConversationTopic\s+" + Id + @"(?:\s+(\d+))?", RegexOptions.IgnoreCase);
 
-        /// <summary>An event branch: "fork &lt;id&gt;" or "fork &lt;requirement&gt; &lt;id&gt;".</summary>
-        private static readonly Regex ForkCommand = new(@"(?:^|/)\s*fork\s+(?:[^\s/]+\s+)?([^\s/]+)", RegexOptions.IgnoreCase);
+        /// <summary>An event branch: "fork &lt;id&gt;", "fork &lt;requirement&gt; &lt;id&gt;" or "switchEvent &lt;id&gt;".</summary>
+        private static readonly Regex ForkCommand = new(CommandStart + @"(?:fork\s+(?:[^\s/\\(]+\s+)?|switchEvent\s+)" + Id, RegexOptions.IgnoreCase);
+
+        /// <summary>Dialogue shown once, which sets a flag: "$1 &lt;flag&gt;#&lt;text&gt;".</summary>
+        private static readonly Regex OnceDialogue = new(@"\$1\s+([^\s#]+)#");
+
+        /// <summary>Flags and topics the game's own code sets when you finish a quest (Quest.questComplete).</summary>
+        private static readonly Dictionary<string, (string QuestId, int TopicDays)> CodeQuestFlags = new()
+        {
+            ["emilyFiber"] = ("126", 2)
+        };
 
         /// <summary>Special order text that refers to the game's string table: "[key]".</summary>
         private static readonly Regex OrderStringKey = new(@"\[([^\[\]\s]+)\]");
@@ -46,6 +59,8 @@ namespace StardewEventTracker.Data
         private readonly Dictionary<string, (string Name, string? Objective)> specialOrders = new();
         private readonly Dictionary<string, string> triggerConditions = new();
         private readonly Dictionary<string, string> flagEvents = new();
+        private readonly Dictionary<string, string> questFlags = new();
+        private readonly Dictionary<string, string> dialogueFlags = new();
         private readonly Dictionary<string, TopicSource> topics = new();
 
         /// <summary>The event that branches into each fork script, by location and fork key.</summary>
@@ -61,6 +76,8 @@ namespace StardewEventTracker.Data
             this.specialOrders.Clear();
             this.triggerConditions.Clear();
             this.flagEvents.Clear();
+            this.questFlags.Clear();
+            this.dialogueFlags.Clear();
             this.topics.Clear();
             this.forkParents.Clear();
             this.forkScripts.Clear();
@@ -94,6 +111,41 @@ namespace StardewEventTracker.Data
                             foreach (string flag in flags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                                 this.specialOrders.TryAdd(flag, (name, objective));
                         }
+                    }
+                }
+            });
+
+            Try(monitor, "quests", () =>
+            {
+                // type/title/description/objective/requirements/next/money/reward/cancellable/reaction text
+                Dictionary<string, string> quests = DataLoader.Quests(Game1.content);
+                foreach ((string id, string data) in quests)
+                {
+                    string title = Parse(ArgUtility.Get(data.Split('/'), 1)) ?? id;
+                    foreach (Match match in OnceDialogue.Matches(data))
+                        this.questFlags.TryAdd(match.Groups[1].Value, title);
+                }
+                foreach ((string flag, (string questId, int days)) in CodeQuestFlags)
+                {
+                    if (quests.TryGetValue(questId, out string? data) && Parse(ArgUtility.Get(data.Split('/'), 1)) is { } title)
+                    {
+                        this.questFlags.TryAdd(flag, title);
+                        this.topics.TryAdd(flag, new TopicSource(flag, null, null, days, title));
+                    }
+                }
+            });
+
+            Try(monitor, "dialogue", () =>
+            {
+                foreach (string npc in Game1.characterData.Keys)
+                {
+                    string asset = "Characters\\Dialogue\\" + npc;
+                    if (!Game1.content.DoesAssetExist<Dictionary<string, string>>(asset))
+                        continue;
+                    foreach (string line in Game1.content.Load<Dictionary<string, string>>(asset).Values)
+                    {
+                        foreach (Match match in OnceDialogue.Matches(line))
+                            this.dialogueFlags.TryAdd(match.Groups[1].Value, npc);
                     }
                 }
             });
@@ -164,11 +216,13 @@ namespace StardewEventTracker.Data
             this.letterTitles.TryGetValue(flag, out string? title);
             this.triggerConditions.TryGetValue(flag, out string? condition);
             this.flagEvents.TryGetValue(flag, out string? eventKey);
+            this.questFlags.TryGetValue(flag, out string? quest);
+            this.dialogueFlags.TryGetValue(flag, out string? npc);
             bool hasOrder = this.specialOrders.TryGetValue(flag, out var order);
 
-            if (title == null && condition == null && eventKey == null && !hasOrder)
+            if (title == null && condition == null && eventKey == null && quest == null && npc == null && !hasOrder)
                 return null;
-            return new FlagSource(flag, title, hasOrder ? order.Name : null, hasOrder ? order.Objective : null, condition, eventKey);
+            return new FlagSource(flag, title, hasOrder ? order.Name : null, hasOrder ? order.Objective : null, condition, eventKey, quest, npc);
         }
 
         public TopicSource? GetTopic(string topic) => this.topics.TryGetValue(topic, out TopicSource? source) ? source : null;

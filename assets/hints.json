@@ -30,6 +30,18 @@
       "Source": "Stardew Valley Wiki",
       "Url": "https://stardewvalleywiki.com/Community_Center"
     },
+    "clothFound": {
+      "Text": "Get your first Cloth (it counts from the next day)",
+      "Source": "game code"
+    },
+    "CF_Sewer": {
+      "Text": "Buy the Stardrop from Krobus in the Sewers",
+      "Source": "game code"
+    },
+    "pamHouseUpgrade": {
+      "Text": "Buy the community upgrade for Pam's house from Robin and wait for it to finish",
+      "Source": "game code"
+    },
     "ccPantry": {
       "Text": "Complete the Pantry bundles in the Community Center",
       "Source": "Stardew Valley Wiki",
@@ -107,6 +119,10 @@
     }
   },
   "Topics": {
+    "DitR_CT_GardenCompleted": {
+      "Text": "the second part of Sen's 6-heart event (Lurking in the Dark adds it once Sen's garden is finished)",
+      "Source": "Lurking in the Dark data"
+    },
     "cc_Bus": {
       "Text": "the bus is repaired (Community Center Vault)",
       "Source": "Stardew Valley Wiki",

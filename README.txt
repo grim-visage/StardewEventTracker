@@ -174,11 +174,15 @@ explains them instead of showing an internal ID:
                        10 Slime Eggs to the fridge in the Orchard House
   * an automatic rule: Once you have Cherry Pit
   * a cooldown:        Wait 4 days after Cirrus's 1-heart event
-  * another event:     See Corwin's 6-heart event
+  * another event:     See Corwin's 6-heart event (including choices you
+                       make during it)
+  * a quest:           Complete the quest 'Stone for a garden'
+  * a conversation:    Talk to Kataryna
 
-A few flags aren't set by anything in the game's data (a mod's own code, quest
-rewards, or content that isn't finished yet). For those, assets/hints.json has
-short hand-written hints researched from mod wikis and handbooks, e.g.
+A few flags aren't set by anything in the game's data (the game's or a mod's
+own code, or content that isn't finished yet). For those, assets/hints.json
+has short hand-written hints researched from the game code, mod wikis and
+handbooks, e.g.
 "Complete Jade's quest 'Iron Bar for Jade' (from the East Scarp wiki)". A
 hint is also used when the data's explanation is unclear, and always wins. Any
 flag still unexplained is shown as words, e.g. "Story flag: Duskspire
