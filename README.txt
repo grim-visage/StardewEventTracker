@@ -12,6 +12,11 @@ It reads the game's live event data, so events added by mods like Stardew
 Valley Expanded, Ridgeside Village, East Scarp, and custom NPC mods are
 included automatically.
 
+FIRST PLAYTHROUGH? The tracker shows where every event happens and what it
+needs, including ones you haven't unlocked yet. If you'd rather discover them
+yourself, turn on spoiler-free mode (see "Spoiler-free mode" below). The
+first time you open the menu, it asks whether you want it on.
+
 
 REQUIREMENTS
 ------------
@@ -241,7 +246,11 @@ Spoiler-free mode
 ~~~~~~~~~~~~~~~~~
 Turn on SpoilerFree for a first playthrough. Events that aren't unlocked yet
 only show their title: no location, requirements, or what they lead to.
-Story events that aren't unlocked are hidden completely.
+Story events that aren't unlocked are hidden completely. Events you can
+already do still show everything you need to find them.
+
+The first time you open the menu, a message asks whether you want it on.
+After that, change it any time in Generic Mod Config Menu or config.json.
 
 
 Split-screen co-op

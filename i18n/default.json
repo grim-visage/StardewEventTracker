@@ -318,5 +318,6 @@
   "title-inline.dating": "dating event",
   "title-inline.spouse": "marriage event",
   "title-inline.roommate": "roommate event",
-  "hud.next-step": "{{name}}: next - {{step}}"
+  "hud.next-step": "{{name}}: next - {{step}}",
+  "spoiler-prompt": "Playing for the first time? Spoiler-free mode hides where events you haven't unlocked yet happen, what they need, and what they lead to. Turn it on? You can change this anytime in the mod's settings."
 }

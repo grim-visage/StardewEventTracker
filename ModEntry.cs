@@ -338,16 +338,40 @@ namespace StardewEventTracker
                 if (Game1.activeClickableMenu is TrackerMenu menu)
                     menu.exitThisMenu();
                 else if (Context.IsPlayerFree)
-                {
-                    this.Index.Invalidate();
-                    Game1.activeClickableMenu = new TrackerMenu(this);
-                }
+                    this.OpenTrackerMenu();
             }
         }
 
         /****
         ** Helpers
         ****/
+        /// <summary>Opens the tracker menu, first asking once whether the player wants spoiler-free mode.</summary>
+        private void OpenTrackerMenu()
+        {
+            this.Index.Invalidate();
+            if (this.Config.SpoilerPromptShown || this.Config.SpoilerFree)
+            {
+                Game1.activeClickableMenu = new TrackerMenu(this);
+                return;
+            }
+
+            this.Config.SpoilerPromptShown = true;
+            this.Helper.WriteConfig(this.Config);
+
+            // both answers continue into the menu; the dialog doesn't close itself
+            string text = Game1.parseText(I18n.Get("spoiler-prompt"), Game1.dialogueFont, Math.Min(900, Game1.uiViewport.Width - 200));
+            Game1.activeClickableMenu = new ConfirmationDialog(
+                text,
+                onConfirm: _ =>
+                {
+                    this.Config.SpoilerFree = true;
+                    this.Helper.WriteConfig(this.Config);
+                    this.Index.Invalidate();
+                    Game1.activeClickableMenu = new TrackerMenu(this);
+                },
+                onCancel: _ => Game1.activeClickableMenu = new TrackerMenu(this));
+        }
+
         /// <summary>Pins the NPC hovered on the Social tab, or standing under the cursor in the world.</summary>
         private void PinUnderCursor()
         {

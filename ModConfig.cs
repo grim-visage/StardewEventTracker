@@ -46,6 +46,9 @@ namespace StardewEventTracker
         /// <summary>Hide the details of events that aren't unlocked yet (location, requirements, what they lead to).</summary>
         public bool SpoilerFree { get; set; }
 
+        /// <summary>Whether the player has been asked, on first opening the menu, if they want spoiler-free mode.</summary>
+        public bool SpoilerPromptShown { get; set; }
+
         /// <summary>Whether the HUD tracker for pinned NPCs is visible.</summary>
         public bool ShowHud { get; set; } = true;
 
