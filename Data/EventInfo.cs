@@ -167,8 +167,20 @@ namespace StardewEventTracker.Data
         /// <summary>An event with no relationship requirement; grouped by location rather than NPC.</summary>
         public bool IsStory => !this.IsHeartEvent;
 
-        /// <summary>Unique across locations, since mods can reuse an ID in different locations.</summary>
+        /// <summary>
+        /// Identifies the event across locations (mods can reuse an ID in different locations). Versions of the same
+        /// event with different requirements share it, so pins, snoozes and reminders cover all of them.
+        /// </summary>
         public string Key => $"{this.LocationName}|{this.Id}";
+
+        /// <summary>The full entry key, including its preconditions, as written in the event data.</summary>
+        public string RawKey { get; }
+
+        /// <summary>
+        /// Unique per entry: mods sometimes list several versions of one event (same ID and location, different
+        /// requirements), which each need their own evaluation.
+        /// </summary>
+        public string EntryKey => $"{this.LocationName}|{this.RawKey}";
 
         public bool Seen => Game1.player.eventsSeen.Contains(this.Id);
 
@@ -203,9 +215,10 @@ namespace StardewEventTracker.Data
             return I18n.Get($"{prefix}.story");
         }
 
-        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions)
+        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions, string rawKey)
         {
             this.Id = id;
+            this.RawKey = rawKey;
             this.LocationName = locationName;
             this.LocationDisplayName = locationDisplayName;
             this.Owner = owner;

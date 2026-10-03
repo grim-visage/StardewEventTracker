@@ -219,8 +219,8 @@ namespace StardewEventTracker.Data
 
         public EventEvaluation Evaluate(EventInfo evt)
         {
-            if (!this.evaluations.TryGetValue(evt.Key, out EventEvaluation? eval))
-                this.evaluations[evt.Key] = eval = EventEvaluator.Evaluate(evt);
+            if (!this.evaluations.TryGetValue(evt.EntryKey, out EventEvaluation? eval))
+                this.evaluations[evt.EntryKey] = eval = EventEvaluator.Evaluate(evt);
             return eval;
         }
 
@@ -317,7 +317,7 @@ namespace StardewEventTracker.Data
 
             int Rank(EventInfo evt)
             {
-                if (done.Contains(evt.Key) || !visiting.Add(evt.Key))
+                if (done.Contains(evt.EntryKey) || !visiting.Add(evt.EntryKey))
                     return evt.ProgressRank;
 
                 int rank = evt.BaseRank;
@@ -329,8 +329,8 @@ namespace StardewEventTracker.Data
                         rank = Math.Max(rank, needed.Min());
                 }
 
-                visiting.Remove(evt.Key);
-                done.Add(evt.Key);
+                visiting.Remove(evt.EntryKey);
+                done.Add(evt.EntryKey);
                 return evt.ProgressRank = rank;
             }
 
@@ -393,7 +393,7 @@ namespace StardewEventTracker.Data
                 .ToArray();
 
             string? owner = FindRelationshipOwner(conditions);
-            return new EventInfo(id, locationName, locationDisplayName, owner ?? OtherKey, owner != null, ParseActors(script), conditions);
+            return new EventInfo(id, locationName, locationDisplayName, owner ?? OtherKey, owner != null, ParseActors(script), conditions, key);
         }
 
         /// <summary>The NPC an event needs friendship, dating or marriage with, if any.</summary>

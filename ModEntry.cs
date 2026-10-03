@@ -635,6 +635,7 @@ namespace StardewEventTracker
                     return new
                     {
                         evt.Id,
+                        evt.RawKey,
                         evt.LocationName,
                         Location = evt.LocationDisplayName,
                         evt.Owner,
