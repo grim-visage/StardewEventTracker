@@ -82,7 +82,7 @@ namespace StardewEventTracker
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
             helper.ConsoleCommands.Add("tracker_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: tracker_dump <npc or location name>", this.OnDumpCommand);
-            helper.ConsoleCommands.Add("tracker_export", "Writes every indexed event and its current status to exports/events.json in the mod folder.\n\nUsage: tracker_export", this.OnExportCommand);
+            helper.ConsoleCommands.Add("tracker_export", "Writes every indexed event and its current status, and every NPC, to exports/events.json in the mod folder.\n\nUsage: tracker_export", this.OnExportCommand);
             helper.ConsoleCommands.Add("tracker_travel", "Estimates the walk from you to a location, in in-game minutes.\n\nUsage: tracker_travel <location name>", (_, args) =>
             {
                 if (!Context.IsWorldReady || args.Length == 0)
@@ -729,6 +729,25 @@ namespace StardewEventTracker
                 })
                 .ToList();
 
+            // every NPC the game knows about, including ones without events
+            var inWorld = new HashSet<string>();
+            Utility.ForEachVillager(npc =>
+            {
+                inWorld.Add(npc.Name);
+                return true;
+            });
+            var npcs = Game1.characterData
+                .OrderBy(p => p.Key)
+                .Select(p => new
+                {
+                    Name = p.Key,
+                    DisplayName = EventIndex.GetNpcDisplayName(p.Key),
+                    CanSocialize = SafeCheck(p.Value.CanSocialize),
+                    InWorld = inWorld.Contains(p.Key),
+                    HeartEvents = this.Index.ByOwner.TryGetValue(p.Key, out var events) ? events.Count : 0
+                })
+                .ToList();
+
             const string path = "exports/events.json";
             this.Helper.Data.WriteJsonFile(path, new
             {
@@ -737,9 +756,33 @@ namespace StardewEventTracker
                 Weather = Game1.currentLocation?.GetWeather()?.Weather,
                 Pinned = this.PinnedNpcs.OrderBy(p => p).ToArray(),
                 PinnedStory = this.State.PinnedStoryEvents.OrderBy(p => p).ToArray(),
+                NpcSummary = new
+                {
+                    Total = npcs.Count,
+                    CanSocialize = npcs.Count(n => n.CanSocialize),
+                    InWorld = npcs.Count(n => n.InWorld),
+                    WithHeartEvents = npcs.Count(n => n.HeartEvents > 0)
+                },
+                Npcs = npcs,
                 Events = rows
             });
-            this.Monitor.Log($"Exported {rows.Count} events to {System.IO.Path.Combine(this.Helper.DirectoryPath, path)}.", LogLevel.Info);
+            this.Monitor.Log(
+                $"Exported {rows.Count} events and {npcs.Count} NPCs ({npcs.Count(n => n.CanSocialize)} you can befriend, {npcs.Count(n => n.HeartEvents > 0)} with heart events) "
+                + $"to {System.IO.Path.Combine(this.Helper.DirectoryPath, path)}.",
+                LogLevel.Info);
+        }
+
+        /// <summary>Checks a game state query from game data, treating a broken one as false.</summary>
+        private static bool SafeCheck(string? query)
+        {
+            try
+            {
+                return GameStateQuery.CheckConditions(query);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private void OnDumpCommand(string command, string[] args)

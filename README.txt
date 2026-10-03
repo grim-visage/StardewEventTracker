@@ -371,7 +371,8 @@ Type these in the SMAPI console window:
       Estimate the walk from you to a location.
   tracker_export
       Write every event and its status to exports/events.json in the mod
-      folder.
+      folder, with a count of every NPC in your game (how many you can
+      befriend and how many have heart events).
   tracker_reindex
       Re-read event data.
 
