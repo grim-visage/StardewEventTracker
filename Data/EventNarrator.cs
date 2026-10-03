@@ -106,7 +106,7 @@ namespace NpcEventTracker.Data
                 EventStatus.MissedToday => I18n.Get("status.missed") + tomorrow,
                 EventStatus.NotYet => I18n.Get("status.not-yet", new { step = NextStep(evt, eval, index) }) + MoreSteps(eval),
                 EventStatus.Special => I18n.Get("status.special"),
-                EventStatus.Locked => I18n.Get("status.locked", new { hearts = evt.RequiredHearts }),
+                EventStatus.Locked => I18n.Get("status.locked", new { step = NextStep(evt, eval, index) }),
                 EventStatus.Unreachable => I18n.Get("status.unreachable"),
                 _ => I18n.Get("status.seen")
             };
@@ -254,7 +254,7 @@ namespace NpcEventTracker.Data
                     }))),
                     "sawevent" when !c.Negated => I18n.Get("step.see-event", new { @event = index?.DescribeEventShort(first) ?? I18n.Get("describe.unknown", new { id = first }) }),
                     "hostmail" or "hostorlocalmail" when !c.Negated => I18n.Get("step.story-progress"),
-                    "dating" => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
+                    "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
                     "spouse" when !c.Negated => I18n.Get("step.spouse", new { name = EventIndex.GetNpcDisplayName(first) }),
                     _ => index != null ? PreconditionFormatter.Describe(c, index) : c.Raw
                 };

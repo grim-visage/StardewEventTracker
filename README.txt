@@ -116,7 +116,7 @@ Each event shows where it stands right now:
   Not yet               Something still needs doing first
   Special trigger       Started by the game or a mod some other way, not
                         by visiting the location
-  Locked                Needs more hearts
+  Locked                Needs more hearts, or to be dating or married
 
 When only the day is in the way, the status also checks tomorrow's weather
 forecast and date: "(tomorrow works!)" or "(not tomorrow either)".

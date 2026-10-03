@@ -144,7 +144,7 @@
   "status.missed": "Missed today's window",
   "status.not-yet": "Not yet: {{step}}",
   "status.special": "Special trigger: can't be started by visiting",
-  "status.locked": "Locked: needs {{hearts}} hearts",
+  "status.locked": "Locked: {{step}}",
   "status.unreachable": "Can no longer happen",
   "status.seen": "Seen",
   "hud.away": ", {{duration}} away",
@@ -311,5 +311,12 @@
   "step.spouse": "marry {{name}} first",
   "step.door-closed": "the door is locked at that time of day",
   "step.unknown": "a requirement the tracker can't check",
-  "status.hidden": "Not unlocked yet"
+  "status.hidden": "Not unlocked yet",
+  "title.dating": "Dating event",
+  "title.spouse": "Marriage event",
+  "title.roommate": "Roommate event",
+  "title-inline.dating": "dating event",
+  "title-inline.spouse": "marriage event",
+  "title-inline.roommate": "roommate event",
+  "hud.next-step": "{{name}}: next - {{step}}"
 }

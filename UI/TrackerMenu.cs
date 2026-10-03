@@ -441,7 +441,9 @@ namespace NpcEventTracker.UI
             if (pending.NextLocked is { } next)
             {
                 int current = Game1.player.getFriendshipHeartLevelForNPC(next.Event.Owner);
-                string need = next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
+                bool heartsOnly = next.Event.Relationship == null && next.Event.RequiredPoints > 0 && next.Event.ProgressRank == next.Event.RequiredPoints;
+                string need = !heartsOnly ? EventNarrator.NextStep(next.Event, next.Eval, this.Index)
+                    : next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
                     ? I18n.Get("menu.next.hearts", new { hearts = next.Event.RequiredHearts, current })
                     : I18n.Get("menu.next.points", new { points = next.Event.RequiredPoints });
                 string title = this.mod.Config.SpoilerFree

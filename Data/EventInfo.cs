@@ -180,8 +180,22 @@ namespace NpcEventTracker.Data
         /// <summary>The title as it reads mid-sentence, e.g. "Abigail's 4-heart event".</summary>
         public string TitleInline => this.GetTitle("title-inline");
 
+        /// <summary>The relationship the event needs with its owner ("dating", "spouse", "roommate"), if any.</summary>
+        public string? Relationship { get; }
+
+        /// <summary>
+        /// How far along the NPC's story the event is, in friendship points: its heart requirement, raised for
+        /// dating (8 hearts) or marriage (past 10 hearts), and for needing a later event first. Used for ordering.
+        /// </summary>
+        public int ProgressRank { get; internal set; }
+
+        /// <summary>The rank from the event's own requirements, before earlier events are taken into account.</summary>
+        internal int BaseRank { get; }
+
         private string GetTitle(string prefix)
         {
+            if (this.Relationship != null && this.RequiredPoints < 2000)
+                return I18n.Get($"{prefix}.{this.Relationship}");
             if (this.RequiredPoints > 0)
                 return this.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
                     ? I18n.Get($"{prefix}.hearts", new { hearts = this.RequiredHearts })
@@ -210,6 +224,24 @@ namespace NpcEventTracker.Data
                 .Select(p => p.Points)
                 .DefaultIfEmpty(0)
                 .Max();
+
+            Precondition? relationship = conditions.FirstOrDefault(c => !c.Negated && c.Args.FirstOrDefault() == owner && (c.Is("Dating") || c.Is("Spouse") || c.Is("Roommate")));
+            this.Relationship = relationship?.Name.ToLowerInvariant() switch
+            {
+                "dating" => "dating",
+                "spouse" => "spouse",
+                "roommate" => "roommate",
+                _ => null
+            };
+
+            int perHeart = NPC.friendshipPointsPerHeartLevel;
+            this.BaseRank = this.Relationship switch
+            {
+                "dating" => Math.Max(this.RequiredPoints, 8 * perHeart),
+                "spouse" or "roommate" => Math.Max(this.RequiredPoints, 10 * perHeart + 1),
+                _ => this.RequiredPoints
+            };
+            this.ProgressRank = this.BaseRank;
         }
 
         /// <summary>Reads the <c>&lt;npc&gt; &lt;points&gt;</c> pairs of a Friendship precondition.</summary>

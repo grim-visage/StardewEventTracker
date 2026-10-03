@@ -21,6 +21,31 @@ namespace NpcEventTracker.Data
         public int Unreachable { get; set; }
 
         public int Count(EventStatus status) => this.Pending.Count(p => p.Eval.Status == status);
+
+        /// <summary>Statuses where the player only has to show up at the right time or on the right day.</summary>
+        public static bool IsActionable(EventStatus status) =>
+            status is EventStatus.AvailableNow or EventStatus.LaterToday or EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere or EventStatus.MissedToday;
+
+        /// <summary>
+        /// The event to follow next: one the player can act on today if there is one, otherwise whichever comes
+        /// earliest in the NPC's story among the not-yet and locked events (so a marriage event never jumps ahead
+        /// of an unlocked 4-heart event).
+        /// </summary>
+        public (EventInfo Event, EventEvaluation Eval)? GetNext(Func<EventInfo, bool> skip)
+        {
+            var awake = this.Pending.Where(p => !skip(p.Event)).ToList();
+            var actionable = awake.FirstOrDefault(p => IsActionable(p.Eval.Status));
+            if (actionable.Event != null)
+                return actionable;
+
+            var candidates = awake.Where(p => p.Eval.Status == EventStatus.NotYet).ToList();
+            if (this.NextLocked is { } locked)
+                candidates.Add(locked);
+            if (candidates.Count > 0)
+                return candidates.OrderBy(p => p.Event.ProgressRank).ThenBy(p => p.Eval.Status).First();
+
+            return awake.Count > 0 ? awake[0] : null;
+        }
     }
 
     /// <summary>Every event in the game's current data: heart events by NPC, story events by location.</summary>
@@ -128,7 +153,7 @@ namespace NpcEventTracker.Data
             this.byOwner = all
                 .Where(e => e.IsHeartEvent)
                 .GroupBy(e => e.Owner)
-                .ToDictionary(g => g.Key, g => g.OrderBy(e => e.RequiredPoints).ThenBy(e => e.LocationDisplayName).ToList());
+                .ToDictionary(g => g.Key, g => g.OrderBy(e => e.BaseRank).ThenBy(e => e.LocationDisplayName).ToList());
             this.storyByLocation = all
                 .Where(e => e.IsStory)
                 .GroupBy(e => e.LocationName)
@@ -140,6 +165,8 @@ namespace NpcEventTracker.Data
                 this.byId.TryAdd(info.Id, info);
                 this.byKey.TryAdd(info.Key, info);
             }
+
+            this.ComputeProgressRanks(all);
 
             this.unlockedBy = new();
             foreach (EventInfo info in all)
@@ -240,9 +267,9 @@ namespace NpcEventTracker.Data
             result.Pending.Sort((a, b) =>
             {
                 int byStatus = a.Eval.Status.CompareTo(b.Eval.Status);
-                return byStatus != 0 ? byStatus : a.Event.RequiredPoints.CompareTo(b.Event.RequiredPoints);
+                return byStatus != 0 ? byStatus : a.Event.ProgressRank.CompareTo(b.Event.ProgressRank);
             });
-            result.LockedEvents.Sort((a, b) => a.Event.RequiredPoints.CompareTo(b.Event.RequiredPoints));
+            result.LockedEvents.Sort((a, b) => a.Event.ProgressRank.CompareTo(b.Event.ProgressRank));
             return result;
         }
 
@@ -256,6 +283,35 @@ namespace NpcEventTracker.Data
             var tokens = new { name = GetNpcDisplayName(info.Owner), title = info.TitleInline, location = info.LocationDisplayName, id };
             string label = I18n.Get(info.IsStory ? "describe.story" : "describe.heart", tokens);
             return info.IsSpecial ? I18n.Get("describe.special", new { label }) : label;
+        }
+
+        /// <summary>Raises each event's rank to that of any later event it needs to have seen first (e.g. a marriage event).</summary>
+        private void ComputeProgressRanks(List<EventInfo> all)
+        {
+            var visiting = new HashSet<string>();
+            var done = new HashSet<string>();
+
+            int Rank(EventInfo evt)
+            {
+                if (done.Contains(evt.Key) || !visiting.Add(evt.Key))
+                    return evt.ProgressRank;
+
+                int rank = evt.BaseRank;
+                foreach (Precondition c in evt.Conditions.Where(c => c.Is("SawEvent") && !c.Negated))
+                {
+                    // 'seen any of' these: the earliest one is enough
+                    var needed = c.Args.Select(this.FindById).Where(e => e != null).Select(e => Rank(e!)).ToList();
+                    if (needed.Count > 0)
+                        rank = Math.Max(rank, needed.Min());
+                }
+
+                visiting.Remove(evt.Key);
+                done.Add(evt.Key);
+                return evt.ProgressRank = rank;
+            }
+
+            foreach (EventInfo evt in all)
+                Rank(evt);
         }
 
         /// <summary>A short label for an event ID, e.g. "Leah's 4-heart event", for compact text like the HUD.</summary>
