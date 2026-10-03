@@ -230,8 +230,7 @@ namespace StardewEventTracker.Data
                 return I18n.Get("step.door-hearts", new
                 {
                     name = EventIndex.GetNpcDisplayName(resident),
-                    hearts = (int)Math.Ceiling(door.Door.MinFriendship / (double)NPC.friendshipPointsPerHeartLevel),
-                    current = Game1.player.getFriendshipHeartLevelForNPC(resident)
+                    more = PreconditionFormatter.MoreFriendship(resident, door.Door.MinFriendship) ?? ""
                 });
             }
 
@@ -246,12 +245,13 @@ namespace StardewEventTracker.Data
                 string first = c.Args.FirstOrDefault() ?? "";
                 return c.Name.ToLowerInvariant() switch
                 {
-                    "friendship" => string.Join("; ", EventInfo.FriendshipPairs(c).Select(p => I18n.Get("step.hearts", new
-                    {
-                        name = EventIndex.GetNpcDisplayName(p.Npc),
-                        hearts = p.Points / NPC.friendshipPointsPerHeartLevel,
-                        current = Game1.player.getFriendshipHeartLevelForNPC(p.Npc)
-                    }))),
+                    "friendship" => string.Join("; ", EventInfo.FriendshipPairs(c)
+                        .Where(p => PreconditionFormatter.MoreFriendship(p.Npc, p.Points) != null)
+                        .Select(p => I18n.Get("step.hearts", new
+                        {
+                            name = EventIndex.GetNpcDisplayName(p.Npc),
+                            more = PreconditionFormatter.MoreFriendship(p.Npc, p.Points)
+                        }))),
                     "sawevent" when !c.Negated => I18n.Get("step.see-event", new { @event = index?.DescribeEventShort(first) ?? I18n.Get("describe.unknown", new { id = first }) }),
                     "hostmail" or "hostorlocalmail" when !c.Negated => I18n.Get("step.story-progress"),
                     "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
@@ -261,6 +261,19 @@ namespace StardewEventTracker.Data
             }
 
             return eval.DoorNeverOpen ? I18n.Get("step.door-closed") : I18n.Get("step.unknown");
+        }
+
+        /// <summary>An NPC's possessive pronoun from their gender in the game data ("her", "his", "their").</summary>
+        public static string Possessive(string npc)
+        {
+            Game1.characterData.TryGetValue(npc, out CharacterData? data);
+            string gender = data?.Gender switch
+            {
+                Gender.Male => "male",
+                Gender.Female => "female",
+                _ => "neutral"
+            };
+            return I18n.Get($"pronoun.{gender}.possessive");
         }
 
         /// <summary>" (+1 more)" when more than one thing is still needed.</summary>

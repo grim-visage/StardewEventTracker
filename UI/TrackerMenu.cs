@@ -440,12 +440,10 @@ namespace StardewEventTracker.UI
 
             if (pending.NextLocked is { } next)
             {
-                int current = Game1.player.getFriendshipHeartLevelForNPC(next.Event.Owner);
                 bool heartsOnly = next.Event.Relationship == null && next.Event.RequiredPoints > 0 && next.Event.ProgressRank == next.Event.RequiredPoints;
-                string need = !heartsOnly ? EventNarrator.NextStep(next.Event, next.Eval, this.Index)
-                    : next.Event.RequiredPoints % NPC.friendshipPointsPerHeartLevel == 0
-                    ? I18n.Get("menu.next.hearts", new { hearts = next.Event.RequiredHearts, current })
-                    : I18n.Get("menu.next.points", new { points = next.Event.RequiredPoints });
+                string need = heartsOnly && PreconditionFormatter.MoreFriendship(next.Event.Owner, next.Event.RequiredPoints) is { } more
+                    ? I18n.Get("menu.next.more", new { more })
+                    : EventNarrator.NextStep(next.Event, next.Eval, this.Index);
                 string title = this.mod.Config.SpoilerFree
                     ? next.Event.Title
                     : I18n.Get("menu.event-at", new { title = next.Event.Title, location = next.Event.LocationDisplayName });
@@ -551,11 +549,10 @@ namespace StardewEventTracker.UI
             {
                 string name = EventIndex.GetNpcDisplayName(door.Door.Npc);
                 int hearts = (int)Math.Ceiling(door.Door.MinFriendship / (double)NPC.friendshipPointsPerHeartLevel);
-                int current = Game1.player.getFriendshipHeartLevelForNPC(door.Door.Npc);
                 if (door.HeartsOk)
                     this.AddRow("+ " + I18n.Get("door.hearts.ok", new { name, hearts }), MetColor, indent);
                 else
-                    this.AddRow("x " + I18n.Get("door.hearts", new { name, hearts, current }), UnmetColor, indent);
+                    this.AddRow("x " + I18n.Get("door.hearts", new { name, hearts, more = PreconditionFormatter.MoreFriendship(door.Door.Npc, door.Door.MinFriendship) ?? "" }), UnmetColor, indent);
             }
 
             if (door.AllDay)

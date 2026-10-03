@@ -74,9 +74,14 @@ namespace StardewEventTracker.UI
                     lines.Add((I18n.Get("hud.snoozed", new { name }), MutedColor));
                 else if (next is { } locked && locked.Eval.Status == EventStatus.Locked)
                 {
-                    int current = Game1.player.getFriendshipHeartLevelForNPC(npc);
                     lines.Add(locked.Event.Relationship == null && locked.Event.RequiredPoints > 0 && locked.Event.ProgressRank == locked.Event.RequiredPoints
-                        ? (I18n.Get("hud.next-locked", new { name, hearts = locked.Event.RequiredHearts, current }), MutedColor)
+                        ? (I18n.Get("hud.next-locked", new
+                        {
+                            name,
+                            more = PreconditionFormatter.MoreFriendship(npc, locked.Event.RequiredPoints) ?? "",
+                            poss = EventNarrator.Possessive(npc),
+                            title = locked.Event.TitleInline
+                        }), MutedColor)
                         : (I18n.Get("hud.next-step", new { name, step = this.mod.HidesDetails(locked.Eval) ? I18n.Get("status.hidden") : EventNarrator.NextStep(locked.Event, locked.Eval, this.mod.Index) }), MutedColor));
                 }
                 else if (next is { } chosen)

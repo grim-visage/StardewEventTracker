@@ -100,14 +100,35 @@ namespace StardewEventTracker.Data
                 : I18n.Get("duration.hours-minutes", new { hours, minutes = rest });
         }
 
+        /// <summary>A friendship requirement, plus how much is left if it isn't met: "4 hearts with Leah (2 more hearts to go)".</summary>
         public static string DescribeFriendship(string npc, int points)
         {
             string name = EventIndex.GetNpcDisplayName(npc);
-            int current = Game1.player.getFriendshipLevelForNPC(npc);
+            bool isHearts = points % NPC.friendshipPointsPerHeartLevel == 0;
+            string requirement = isHearts
+                ? I18n.Get("cond.hearts", new { hearts = points / NPC.friendshipPointsPerHeartLevel, name })
+                : I18n.Get("cond.points", new { points, name });
+
+            string? more = MoreFriendship(npc, points);
+            return more == null ? requirement : I18n.Get("cond.friendship-to-go", new { requirement, more });
+        }
+
+        /// <summary>
+        /// How much more friendship is needed to reach a requirement, e.g. "1 more heart" or "120 more points";
+        /// null if it's already met. A heart counts as reached at its threshold, so 7.6 hearts needs "1 more heart" for 8.
+        /// </summary>
+        public static string? MoreFriendship(string npc, int requiredPoints)
+        {
+            int missing = requiredPoints - Game1.player.getFriendshipLevelForNPC(npc);
+            if (missing <= 0)
+                return null;
+
             int perHeart = NPC.friendshipPointsPerHeartLevel;
-            return points % perHeart == 0
-                ? I18n.Get("cond.hearts", new { hearts = points / perHeart, name, current = current / perHeart })
-                : I18n.Get("cond.points", new { points, name, current });
+            if (requiredPoints % perHeart != 0)
+                return I18n.Get(missing == 1 ? "friendship.more-point" : "friendship.more-points", new { count = missing });
+
+            int hearts = (int)Math.Ceiling(missing / (double)perHeart);
+            return I18n.Get(hearts == 1 ? "friendship.more-heart" : "friendship.more-hearts", new { count = hearts });
         }
 
         /// <summary>A weather value from an event condition, translated where known ("sunny" -> "Sunny").</summary>

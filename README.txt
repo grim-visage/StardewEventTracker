@@ -77,8 +77,8 @@ Tracker menu (F2)
                at the top.
 
 Each NPC's events are listed in story order, followed by a "Next up" line for
-the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (needs 4
-hearts, you have 3)" or "(marry Leah first)".
+the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
+heart to go)" or "(marry Leah first)".
 
 Each event also shows:
   * how far away it is on foot, when it can happen today
@@ -181,10 +181,11 @@ can act on today if there is one, otherwise the earliest one in their story.
   Festival here       A festival blocks it today (or every shop and house
   today               is locked for one)
   Missed today        Today's time window has passed
-  Not yet - ...       The first thing you still need, e.g. "needs 2 hearts
-                      with Leah to get in (you: 1)" or "see Leah's 4-heart
-                      event first", plus how many more
-  next at N hearts    The next event is locked; also "next - marry Leah
+  Not yet - ...       The first thing you still need, e.g. "1 more heart
+                      with Leah to get in" or "see Leah's 4-heart event
+                      first", plus how many more
+  N more hearts to    The next event is locked, e.g. "Abigail: 1 more heart
+  unlock ...          to unlock her 8-heart event"; or "next - marry Leah
                       first" for dating and marriage events
   snoozed until       You snoozed the NPC's events for today
   tomorrow
