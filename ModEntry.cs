@@ -235,6 +235,7 @@ namespace StardewEventTracker
             }
 
             this.Index.Rebuild();
+            this.NormalizeStoryPins();
         }
 
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
@@ -436,6 +437,32 @@ namespace StardewEventTracker
         private static bool IsPartner(string npc) =>
             Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship)
             && (friendship.IsDating() || friendship.IsEngaged() || friendship.IsMarried() || friendship.IsRoommate());
+
+        /// <summary>
+        /// Points story pins made before 'anywhere' events were indexed once (e.g. "BoatTunnel|558291") at the single
+        /// "any location" entry.
+        /// </summary>
+        private void NormalizeStoryPins()
+        {
+            var pins = this.State.PinnedStoryEvents;
+            var fixedPins = pins
+                .Select(key =>
+                {
+                    if (this.Index.FindByKey(key) != null)
+                        return key;
+                    string id = key[(key.IndexOf('|') + 1)..];
+                    string anywhere = $"{EventIndex.AnywhereKey}|{id}";
+                    return this.Index.FindByKey(anywhere) != null ? anywhere : key;
+                })
+                .ToHashSet();
+
+            if (!fixedPins.SetEquals(pins))
+            {
+                pins.Clear();
+                pins.UnionWith(fixedPins);
+                this.SavePins();
+            }
+        }
 
         /// <summary>Unpins story events the player has seen. Missing ones are kept, since content packs can add events only on some days.</summary>
         private void DropSeenStoryPins()

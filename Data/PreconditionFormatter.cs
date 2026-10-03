@@ -32,7 +32,13 @@ namespace StardewEventTracker.Data
                 "dating" => I18n.Get("cond.dating", new { name = Npc(a) }),
                 "spouse" => I18n.Get("cond.spouse" + neg, new { name = Npc(a) }),
                 "roommate" => I18n.Get("cond.roommate" + neg, new { name = Npc(a) }),
-                "hostmail" or "hostorlocalmail" => I18n.Get("cond.mail" + neg, new { flag = all }),
+                "hostmail" or "hostorlocalmail" or "localmail" => I18n.Get("cond.mail" + neg, new { flag = all }),
+                "worldstate" => I18n.Get("cond.world-state" + neg, new { flag = all }),
+                "hasmoney" => I18n.Get("cond.has-money", new { amount = all }),
+                "freeinventoryslots" => I18n.Get("cond.free-slots", new { count = all }),
+                "spousebed" => I18n.Get("cond.spouse-bed"),
+                "activedialogueevent" => I18n.Get("cond.conversation-topic" + neg, new { topic = all }),
+                "skill" when a.Length >= 2 => I18n.Get("cond.skill" + neg, new { skill = a[0], level = a[1] }),
                 "tile" => a.Length >= 2 ? I18n.Get("cond.tile", new { x = a[0], y = a[1] }) : I18n.Get("cond.tile-any"),
                 "ishost" => I18n.Get("cond.is-host"),
                 "earnedmoney" => I18n.Get("cond.earned-money", new { amount = all }),
@@ -48,7 +54,7 @@ namespace StardewEventTracker.Data
                 "upcomingfestival" => I18n.Get("cond.upcoming-festival" + neg, new { days = all }),
                 "goldenwalnuts" => I18n.Get("cond.golden-walnuts", new { count = all }),
                 "reachedminebottom" => I18n.Get("cond.mine-bottom"),
-                "communitycenterorwarehousedone" => I18n.Get("cond.cc-or-joja-done"),
+                "communitycenterorwarehousedone" => I18n.Get("cond.cc-or-joja-done" + neg),
                 "jojabundlesdone" => I18n.Get("cond.joja-done"),
                 "inupgradedhouse" => I18n.Get("cond.house-upgrade", new { level = a.Length > 0 ? all : "1" }),
                 "npcvisiblehere" => I18n.Get("cond.npc-here", new { name = Npc(a) }),
@@ -59,12 +65,14 @@ namespace StardewEventTracker.Data
                 _ => null
             };
 
+            // e.g. a requirement another mod registered with the game
             if (text == null)
-                return c.Raw;
+                return I18n.Get("cond.other", new { raw = c.Raw });
 
             // conditions whose text above doesn't already reflect negation
             bool handlesNegation = c.Name.ToLowerInvariant() is "dayofweek" or "dayofmonth" or "season" or "sawevent"
-                or "spouse" or "roommate" or "hostmail" or "hostorlocalmail" or "festivalday" or "upcomingfestival";
+                or "spouse" or "roommate" or "hostmail" or "hostorlocalmail" or "localmail" or "festivalday" or "upcomingfestival"
+                or "worldstate" or "activedialogueevent" or "skill" or "communitycenterorwarehousedone";
             return c.Negated && !handlesNegation ? I18n.Get("cond.negated", new { text }) : text;
         }
 

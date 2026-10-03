@@ -330,5 +330,20 @@
   "config.hud-order.tip": "By urgency puts what needs doing soonest at the top, so it's never cut off. Alphabetical lists NPCs A-Z, then story events.",
   "config.hud-order.urgency": "By urgency",
   "config.hud-order.alphabetical": "Alphabetical",
-  "location.anywhere": "any location"
+  "location.anywhere": "any location",
+  "cond.world-state": "World state '{{flag}}' is set",
+  "cond.world-state.not": "World state '{{flag}}' isn't set",
+  "cond.has-money": "Have {{amount}}g on hand",
+  "cond.free-slots": "At least {{count}} free inventory slots",
+  "cond.spouse-bed": "A bed for your spouse in the farmhouse",
+  "cond.conversation-topic": "Conversation topic '{{topic}}' is active",
+  "cond.conversation-topic.not": "Conversation topic '{{topic}}' isn't active",
+  "cond.skill": "{{skill}} level {{level}} or higher",
+  "cond.skill.not": "{{skill}} below level {{level}}",
+  "cond.cc-or-joja-done.not": "Community Center and Joja Warehouse not completed yet",
+  "cond.other": "Other requirement: {{raw}}",
+  "step.year": "wait until year {{year}}",
+  "step.house-upgrade": "upgrade your farmhouse to level {{level}}",
+  "status.on-entry": "No requirements: plays when you next go there, once you can reach it",
+  "hud.on-entry": "Plays when you next go there"
 }

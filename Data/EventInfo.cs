@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using StardewValley;
@@ -65,8 +66,11 @@ namespace StardewEventTracker.Data
         public bool IsNeverTrue =>
             !this.Negated
             && (
-                ((this.Is("HostOrLocalMail") || this.Is("HostMail")) && this.Args.Any(a => NeverFlagPattern.IsMatch(a)))
+                ((this.Is("LocalMail") || this.Is("HostOrLocalMail") || this.Is("HostMail")) && this.Args.Any(a => NeverFlagPattern.IsMatch(a)))
                 || (this.Is("GameStateQuery") && this.Args.Length == 1 && this.Args[0].Equals("FALSE", StringComparison.OrdinalIgnoreCase))
+
+                // a zero or negative chance never passes (East Scarp uses 'r -1' for events its code starts)
+                || (this.Is("Random") && double.TryParse(this.Args.FirstOrDefault(), NumberStyles.Float, CultureInfo.InvariantCulture, out double chance) && chance <= 0)
             );
 
         private static readonly Regex NeverFlagPattern = new("(inexist|nonexist|never|impossible)", RegexOptions.IgnoreCase);
@@ -88,10 +92,20 @@ namespace StardewEventTracker.Data
                 negated ^= alias.Inverted;
             }
 
+            // long-form inverted names: NotSpouse, NotLocalMail, NotSeason...
+            else if (key.Length > 3 && key.StartsWith("Not", StringComparison.Ordinal) && char.IsUpper(key[3]))
+            {
+                key = key[3..];
+                negated = !negated;
+            }
+
             return new Precondition(raw, key, negated, parts.Skip(1).ToArray());
         }
 
-        /// <summary>Legacy single-letter aliases (case-sensitive) and whether they invert the long-form condition.</summary>
+        /// <summary>
+        /// The game's short precondition names (its [OtherNames] attributes in StardewValley.Preconditions, case-sensitive),
+        /// mapped to the positive long-form name and whether they invert it.
+        /// </summary>
         private static readonly Dictionary<string, (string Name, bool Inverted)> Aliases = new(StringComparer.Ordinal)
         {
             ["a"] = ("Tile", false),
@@ -108,15 +122,23 @@ namespace StardewEventTracker.Data
             ["H"] = ("IsHost", false),
             ["Hn"] = ("HostMail", false),
             ["Hl"] = ("HostMail", true),
+            ["*"] = ("WorldState", false),
+            ["*n"] = ("HostOrLocalMail", false),
+            ["*l"] = ("HostOrLocalMail", true),
+            ["M"] = ("HasMoney", false),
+            ["c"] = ("FreeInventorySlots", false),
+            ["X"] = ("CommunityCenterOrWarehouseDone", true),
+            ["B"] = ("SpouseBed", false),
+            ["A"] = ("ActiveDialogueEvent", true),
             ["h"] = ("MissingPet", false),
             ["i"] = ("HasItem", false),
             ["J"] = ("JojaBundlesDone", false),
             ["j"] = ("DaysPlayed", false),
             ["L"] = ("InUpgradedHouse", false),
-            ["l"] = ("HostOrLocalMail", true),
+            ["l"] = ("LocalMail", true),
             ["m"] = ("EarnedMoney", false),
             ["N"] = ("GoldenWalnuts", false),
-            ["n"] = ("HostOrLocalMail", false),
+            ["n"] = ("LocalMail", false),
             ["O"] = ("Spouse", false),
             ["o"] = ("Spouse", true),
             ["p"] = ("NpcVisibleHere", false),

@@ -100,6 +100,7 @@ namespace StardewEventTracker.Data
                     ? I18n.Get("status.available-until", new { end = PreconditionFormatter.Time(w.End) })
                     : I18n.Get("status.available"),
                 EventStatus.LaterToday => I18n.Get("status.later-today", new { start = StartTime(evt, eval), duration = PreconditionFormatter.FormatDuration(eval.MinutesUntilStart ?? 0) }),
+                EventStatus.OnEntry => I18n.Get("status.on-entry"),
                 EventStatus.WrongDay => I18n.Get("status.wait-for", new { day = WaitFor(evt, eval) }) + tomorrow,
                 EventStatus.GreenRain => I18n.Get("status.green-rain") + tomorrow,
                 EventStatus.FestivalHere => FestivalTag(eval) + tomorrow,
@@ -159,6 +160,8 @@ namespace StardewEventTracker.Data
                         return (I18n.Get("hud.get-ready", new { when }), HudTone.Soon);
                     return (I18n.Get("hud.later-today", new { when }), HudTone.Normal);
 
+                case EventStatus.OnEntry:
+                    return (I18n.Get("hud.on-entry"), HudTone.Normal);
                 case EventStatus.WrongDay:
                     return (I18n.Get("status.wait-for", new { day = WaitFor(evt, eval) }) + tomorrow, HudTone.Normal);
                 case EventStatus.GreenRain:
@@ -176,29 +179,80 @@ namespace StardewEventTracker.Data
             }
         }
 
-        /// <summary>What day an event is waiting for, e.g. "a sunny day" or "a day other than Tue".</summary>
+        /// <summary>
+        /// What day an event is waiting for, e.g. "a sunny day", "Winter" or "a Sat or Sun". Season and weekday rules are
+        /// combined, so three "not in X" seasons read as the one season that's left.
+        /// </summary>
         public static string WaitFor(EventInfo evt, EventEvaluation eval)
         {
             var parts = new List<string>();
             string or = I18n.Get("join.or");
+            var seasons = new HashSet<Season>(Enum.GetValues<Season>());
+            var days = new HashSet<DayOfWeek>(Enum.GetValues<DayOfWeek>());
+            bool seasonUnmet = false, dayUnmet = false;
+
             for (int i = 0; i < evt.Conditions.Count; i++)
             {
                 Precondition c = evt.Conditions[i];
-                if (c.Category != ConditionCategory.Calendar || eval.States[i] != ConditionState.Unmet)
+                if (c.Category != ConditionCategory.Calendar)
                     continue;
-
+                bool unmet = eval.States[i] == ConditionState.Unmet;
                 string neg = c.Negated ? ".not" : "";
-                parts.Add(c.Name.ToLowerInvariant() switch
+
+                switch (c.Name.ToLowerInvariant())
                 {
-                    "weather" => I18n.Get("wait.weather", new { weather = string.Join(or, c.Args.Select(a => PreconditionFormatter.WeatherName(a).ToLower())) }),
-                    "dayofweek" => I18n.Get("wait.day-of-week" + neg, new { days = string.Join("/", c.Args.Select(PreconditionFormatter.DayName)) }),
-                    "dayofmonth" => I18n.Get("wait.day-of-month" + neg, new { days = string.Join(or, c.Args) }),
-                    "season" => I18n.Get("wait.season" + neg, new { seasons = string.Join("/", c.Args.Select(PreconditionFormatter.SeasonName)) }),
-                    "festivalday" => I18n.Get("wait.festival-day" + neg),
-                    "upcomingfestival" => I18n.Get("wait.upcoming-festival" + neg),
-                    _ => c.Raw
-                });
+                    // like the game, only the first season listed counts
+                    case "season":
+                        if (c.Args.Length > 0 && Enum.TryParse(c.Args[0], ignoreCase: true, out Season season))
+                        {
+                            if (c.Negated)
+                                seasons.Remove(season);
+                            else
+                                seasons.IntersectWith(new[] { season });
+                        }
+                        seasonUnmet |= unmet;
+                        break;
+
+                    case "dayofweek":
+                        var listed = c.Args.Select(a => WorldDate.TryGetDayOfWeekFor(a, out DayOfWeek day) ? day : (DayOfWeek?)null).OfType<DayOfWeek>().ToList();
+                        if (c.Negated)
+                            days.ExceptWith(listed);
+                        else
+                            days.IntersectWith(listed);
+                        dayUnmet |= unmet;
+                        break;
+
+                    case "weather" when unmet:
+                        parts.Add(I18n.Get("wait.weather", new { weather = string.Join(or, c.Args.Select(a => PreconditionFormatter.WeatherName(a).ToLower())) }));
+                        break;
+                    case "dayofmonth" when unmet:
+                        parts.Add(I18n.Get("wait.day-of-month" + neg, new { days = string.Join(or, c.Args) }));
+                        break;
+                    case "festivalday" when unmet:
+                        parts.Add(I18n.Get("wait.festival-day" + neg));
+                        break;
+                    case "upcomingfestival" when unmet:
+                        parts.Add(I18n.Get("wait.upcoming-festival" + neg));
+                        break;
+                    default:
+                        if (unmet)
+                            parts.Add(c.Raw);
+                        break;
+                }
             }
+
+            if (dayUnmet && days.Count > 0)
+            {
+                // Monday first
+                var ordered = days.OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.DayName(d.ToString()[..3])).ToList();
+                var others = Enum.GetValues<DayOfWeek>().Except(days).OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.DayName(d.ToString()[..3])).ToList();
+                parts.Insert(0, days.Count <= 3
+                    ? I18n.Get("wait.day-of-week", new { days = string.Join(or, ordered) })
+                    : I18n.Get("wait.day-of-week.not", new { days = string.Join("/", others) }));
+            }
+            if (seasonUnmet && seasons.Count > 0)
+                parts.Insert(0, I18n.Get("wait.season", new { seasons = string.Join(or, seasons.OrderBy(x => x).Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
+
             return parts.Count > 0 ? string.Join(I18n.Get("join.and"), parts) : I18n.Get("wait.another-day");
         }
 
@@ -264,8 +318,13 @@ namespace StardewEventTracker.Data
                             name = EventIndex.GetNpcDisplayName(p.Npc),
                             more = PreconditionFormatter.MoreFriendship(p.Npc, p.Points)
                         }))),
-                    "sawevent" when !c.Negated => I18n.Get("step.see-event", new { @event = index?.DescribeEventShort(first) ?? I18n.Get("describe.unknown", new { id = first }) }),
-                    "hostmail" or "hostorlocalmail" when !c.Negated => I18n.Get("step.story-progress"),
+                    // events the index doesn't know are usually started by a mod's own code: just more story to go
+                    "sawevent" when !c.Negated => index?.FindById(first) != null
+                        ? I18n.Get("step.see-event", new { @event = index.DescribeEventShort(first) })
+                        : I18n.Get("step.story-progress"),
+                    "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated => I18n.Get("step.story-progress"),
+                    "year" when !c.Negated && first != "1" => I18n.Get("step.year", new { year = first }),
+                    "inupgradedhouse" => I18n.Get("step.house-upgrade", new { level = c.Args.Length > 0 ? first : "1" }),
                     "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
                     "spouse" when !c.Negated => I18n.Get("step.spouse", new { name = EventIndex.GetNpcDisplayName(first) }),
                     _ => index != null ? PreconditionFormatter.Describe(c, index) : c.Raw

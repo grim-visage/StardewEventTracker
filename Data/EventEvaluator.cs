@@ -30,6 +30,12 @@ namespace StardewEventTracker.Data
         /// <summary>Everything is met except the time window, which opens later today.</summary>
         LaterToday,
 
+        /// <summary>
+        /// A story event with no real requirements: it plays the next time the player enters its location, which may
+        /// not be reachable yet (e.g. Ginger Island or a modded area's intro). Not treated as available now.
+        /// </summary>
+        OnEntry,
+
         /// <summary>Progress requirements are met; only weather, day or season is wrong today.</summary>
         WrongDay,
 
@@ -169,6 +175,10 @@ namespace StardewEventTracker.Data
                 status = EventStatus.FestivalHere;
             else
                 (status, untilStart, startTime) = WithFestival(evt, festival, doorHours, timeOpen, untilStart);
+
+            if (status == EventStatus.AvailableNow && evt.IsStory && evt.Conditions.All(c =>
+                    c.Category is ConditionCategory.Time or ConditionCategory.Calendar || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
+                status = EventStatus.OnEntry;
 
             // only worth predicting once nothing but the day is in the way
             bool? worksTomorrow = status is EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere or EventStatus.MissedToday

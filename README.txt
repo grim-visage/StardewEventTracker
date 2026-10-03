@@ -116,6 +116,9 @@ Each event shows where it stands right now:
   --------------------  ------------------------------------------------
   Available now         Walk into the location and it plays
   Later today           Everything is met; it can start later today
+  Plays when you go     A story event with no requirements: it plays the
+  there                 next time you enter that place, once you can get
+                        there (often the first visit to a new area)
   Wait for ...          Needs a different day, e.g. "a sunny day"
   No events during      Green Rain stops every location event that day
   Green Rain
