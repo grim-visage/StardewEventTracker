@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 
@@ -259,10 +260,15 @@ namespace StardewEventTracker.Data
             }
         }
 
+        /// <summary>A game state query's RANDOM clause (not SYNCED_RANDOM, which is fixed for the day).</summary>
+        private static readonly Regex RandomQuery = new(@"\bRANDOM\b", RegexOptions.IgnoreCase);
+
         private static ConditionState Check(GameLocation location, string eventId, Precondition condition)
         {
             // SendMail has side effects (it queues a letter), so never run it; Tile/Random can't be predicted.
-            if (condition.Is("SendMail") || condition.Is("Tile") || condition.Is("Random") || condition.IsNeverTrue)
+            // A RANDOM query can't be predicted either, and checking it would use up the game's random numbers.
+            if (condition.Is("SendMail") || condition.Is("Tile") || condition.Is("Random") || condition.IsNeverTrue
+                || (condition.Is("GameStateQuery") && RandomQuery.IsMatch(condition.Raw)))
                 return ConditionState.Neutral;
 
             try

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using StardewModdingAPI;
 
 namespace StardewEventTracker.Data
@@ -35,9 +36,15 @@ namespace StardewEventTracker.Data
         public static void Load(IModHelper helper, IMonitor monitor)
         {
             file = helper.Data.ReadJsonFile<HintFile>("assets/hints.json") ?? new HintFile();
-            file.Preconditions = new Dictionary<string, Hint>(file.Preconditions, StringComparer.OrdinalIgnoreCase);
+            file.Flags = WithoutNulls(file.Flags, StringComparer.Ordinal);
+            file.Topics = WithoutNulls(file.Topics, StringComparer.Ordinal);
+            file.Preconditions = WithoutNulls(file.Preconditions, StringComparer.OrdinalIgnoreCase);
             monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints and {file.Preconditions.Count} requirement hints.", LogLevel.Trace);
         }
+
+        /// <summary>A section of the file without the null sections or entries a typo can leave.</summary>
+        private static Dictionary<string, Hint> WithoutNulls(Dictionary<string, Hint>? hints, StringComparer comparer) =>
+            new((hints ?? new Dictionary<string, Hint>()).Where(p => p.Value != null), comparer);
 
         public static Hint? ForTopic(string topic) =>
             file.Topics.TryGetValue(topic, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;

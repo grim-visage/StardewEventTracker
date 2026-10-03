@@ -94,7 +94,11 @@ namespace StardewEventTracker.Data
                         this.letterTitles[id] = title;
 
                     foreach (Match match in LetterTopic.Matches(text))
-                        this.topics.TryAdd(match.Groups[1].Value, new TopicSource(match.Groups[1].Value, null, title ?? id, int.Parse(match.Groups[2].Value)));
+                    {
+                        // an out-of-range day count would otherwise stop the scan of every letter after it
+                        if (int.TryParse(match.Groups[2].Value, out int days))
+                            this.topics.TryAdd(match.Groups[1].Value, new TopicSource(match.Groups[1].Value, null, title ?? id, days));
+                    }
                 }
             });
 

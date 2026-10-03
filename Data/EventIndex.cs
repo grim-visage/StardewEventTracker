@@ -96,6 +96,8 @@ namespace StardewEventTracker.Data
             this.byOwner = new();
             this.storyByLocation = new();
             this.byId = new();
+            this.byKey = new();
+            this.unlockedBy = new();
             this.Invalidate();
         }
 

@@ -255,14 +255,18 @@ namespace StardewEventTracker
             PinData? data = this.Helper.Data.ReadJsonFile<PinData>(this.PinDataPath);
             if (data != null)
             {
-                this.PinnedNpcs.UnionWith(data.PinnedNpcs);
-                this.State.PinnedStoryEvents.UnionWith(data.PinnedStoryEvents);
-                this.State.AutoPinDismissed.UnionWith(data.AutoPinDismissed);
+                this.PinnedNpcs.UnionWith(ValidPins(data.PinnedNpcs));
+                this.State.PinnedStoryEvents.UnionWith(ValidPins(data.PinnedStoryEvents));
+                this.State.AutoPinDismissed.UnionWith(ValidPins(data.AutoPinDismissed));
             }
 
             this.Index.Rebuild();
             this.NormalizeStoryPins();
         }
+
+        /// <summary>A list from the pin file, without the nulls a hand edit can leave.</summary>
+        private static IEnumerable<string> ValidPins(List<string>? pins) =>
+            pins?.Where(pin => !string.IsNullOrEmpty(pin)) ?? Enumerable.Empty<string>();
 
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
@@ -666,6 +670,22 @@ namespace StardewEventTracker
         private void NormalizeConfig()
         {
             bool changed = false;
+
+            // a hand-edited config.json can set a value to null; put the default back
+            ModConfig defaults = new();
+            if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null || this.Config.HudDragKey is null
+                || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null)
+            {
+                this.Config.OpenMenuKey ??= defaults.OpenMenuKey;
+                this.Config.ToggleHudKey ??= defaults.ToggleHudKey;
+                this.Config.PinKey ??= defaults.PinKey;
+                this.Config.HudDragKey ??= defaults.HudDragKey;
+                this.Config.ReminderMinutesBefore ??= defaults.ReminderMinutesBefore;
+                this.Config.ReminderSound ??= defaults.ReminderSound;
+                this.Config.AvailableSound ??= defaults.AvailableSound;
+                changed = true;
+            }
+
             if (this.Config.ShowAlerts is { } showAlerts)
             {
                 this.Config.AlertWhenAvailable = showAlerts;
@@ -694,12 +714,12 @@ namespace StardewEventTracker
 
             if (!ModConfig.AllowedSounds.ContainsKey(this.Config.ReminderSound))
             {
-                this.Config.ReminderSound = new ModConfig().ReminderSound;
+                this.Config.ReminderSound = defaults.ReminderSound;
                 changed = true;
             }
             if (!ModConfig.AllowedSounds.ContainsKey(this.Config.AvailableSound))
             {
-                this.Config.AvailableSound = new ModConfig().AvailableSound;
+                this.Config.AvailableSound = defaults.AvailableSound;
                 changed = true;
             }
 

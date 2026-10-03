@@ -30,6 +30,9 @@ namespace StardewEventTracker.Data
         /// <summary>Locked doors by the location they lead to. Locations with any unlocked entrance aren't listed.</summary>
         private static Dictionary<string, List<DoorLock>> locks = new();
 
+        /// <summary>How many doors deep an inner door's outer door is followed, so doors that lead into each other can't loop.</summary>
+        private const int MaxInnerDepth = 8;
+
         public static void Rebuild(IMonitor monitor)
         {
             var timer = Stopwatch.StartNew();
@@ -64,15 +67,17 @@ namespace StardewEventTracker.Data
         }
 
         /// <summary>The state of the most permissive locked door into a location, or null if it isn't behind a locked door.</summary>
-        public static DoorState? GetState(string locationName)
+        public static DoorState? GetState(string locationName) => GetState(locationName, depth: 0);
+
+        private static DoorState? GetState(string locationName, int depth)
         {
-            if (!locks.TryGetValue(locationName, out List<DoorLock>? doors) || doors.Count == 0)
+            if (depth > MaxInnerDepth || !locks.TryGetValue(locationName, out List<DoorLock>? doors) || doors.Count == 0)
                 return null;
 
             DoorState? best = null;
             foreach (DoorLock door in doors)
             {
-                DoorState state = Evaluate(door);
+                DoorState state = Evaluate(door, depth);
                 if (best == null || Rank(state) > Rank(best.Value))
                     best = state;
             }
@@ -103,7 +108,7 @@ namespace StardewEventTracker.Data
         private static int Rank(DoorState s) => (s.MailOk ? 8 : 0) + (s.HeartsOk ? 4 : 0) + (s.FestivalClosed ? 0 : 2) + (s.AllDay ? 1 : 0);
 
         /// <summary>Applies the game's lockedDoorWarp rules to one door.</summary>
-        private static DoorState Evaluate(DoorLock door)
+        private static DoorState Evaluate(DoorLock door, int depth)
         {
             GameLocation? from = Game1.getLocationFromName(door.FromLocation);
 
@@ -114,7 +119,7 @@ namespace StardewEventTracker.Data
                 bool mailOk = door.RequiredMail == null || door.RequiredMail.Split('|').Any(mailOf.mailReceived.Contains);
                 bool friendsOk = door.MinFriendship <= 0
                     || (door.Npc != null && Game1.player.friendshipData.TryGetValue(door.Npc, out Friendship? f) && f.Points >= door.MinFriendship);
-                return door.Inner && GetState(door.FromLocation) is { } outer
+                return door.Inner && GetState(door.FromLocation, depth + 1) is { } outer
                     ? outer with { Door = door, MailOk = outer.MailOk && mailOk, HeartsOk = outer.HeartsOk && friendsOk }
                     : new DoorState(door, friendsOk, FestivalClosed: false, door.Open, door.Close, AllDay: true, mailOk);
             }

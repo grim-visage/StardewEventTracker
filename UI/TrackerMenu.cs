@@ -449,7 +449,10 @@ namespace StardewEventTracker.UI
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
             // everyone listed here has heart events, so show hearts even before they can be befriended
-            this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, at, maxRight);
+            // (finding the NPC searches every location, so it's done once here rather than every frame)
+            NPC? character = Game1.getCharacterFromName(owner);
+            int maxHearts = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
+            this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, maxHearts, at, maxRight);
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
         }
 
@@ -457,7 +460,7 @@ namespace StardewEventTracker.UI
         /// A row of hearts like the game's Social tab: red up to the current level, empty after, and darkened past 8 for
         /// someone you could date but aren't dating yet. "Not met" instead until you've introduced yourself.
         /// </summary>
-        private static void DrawHearts(SpriteBatch b, string npc, Vector2 at, int maxRight)
+        private static void DrawHearts(SpriteBatch b, string npc, int max, Vector2 at, int maxRight)
         {
             // no friendship until you've introduced yourself: say so instead of an empty bar
             if (!Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship))
@@ -472,8 +475,6 @@ namespace StardewEventTracker.UI
             bool dating = friendship.IsDating();
             bool married = friendship.IsMarried() || friendship.IsRoommate();
             bool datable = Game1.characterData.TryGetValue(npc, out var data) && data.CanBeRomanced;
-            NPC? character = Game1.getCharacterFromName(npc);
-            int max = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
 
             // the game's 7x6 heart sprite; smaller if a long name leaves less room
             float scale = at.X + max * 8 * 4 <= maxRight ? 4f : 3f;
