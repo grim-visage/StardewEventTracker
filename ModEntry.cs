@@ -56,10 +56,12 @@ namespace StardewEventTracker
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
+            helper.Events.Content.AssetsInvalidated += this.OnAssetsInvalidated;
             helper.Events.GameLoop.UpdateTicked += (_, _) =>
             {
                 if (!Context.IsWorldReady)
                     return;
+                this.ReindexIfDataChanged();
                 this.State.Travel.OnUpdateTicked();
                 this.UpdateHudDrag();
                 if (this.openMenuNextTick.Value && Game1.activeClickableMenu == null && !Game1.dialogueUp)
@@ -248,6 +250,7 @@ namespace StardewEventTracker
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
         {
+            this.dataChangedTick.Value = null;
             this.State.Reset();
             PinData? data = this.Helper.Data.ReadJsonFile<PinData>(this.PinDataPath);
             if (data != null)
@@ -264,11 +267,47 @@ namespace StardewEventTracker
         private void OnDayStarted(object? sender, DayStartedEventArgs e)
         {
             // content packs can add or change events from day to day
+            this.dataChangedTick.Value = null;
             this.Index.Rebuild();
             this.State.StartDay();
             this.AutoPinPartners();
             this.DropSeenStoryPins();
             this.RunReminders(morning: true);
+        }
+
+        /// <summary>
+        /// Content packs can change events, letters and dialogue at any time, e.g. a Content Patcher patch that waits
+        /// for a token only set once the save is loaded. Re-read them when that happens, once things settle.
+        /// </summary>
+        private void OnAssetsInvalidated(object? sender, AssetsInvalidatedEventArgs e)
+        {
+            if (!Context.IsWorldReady || !e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
+                return;
+
+            // each split-screen player has their own index
+            foreach ((int screen, _) in this.dataChangedTick.GetActiveValues())
+                this.dataChangedTick.SetValueForScreen(screen, Game1.ticks);
+            this.dataChangedTick.Value = Game1.ticks;
+        }
+
+        /// <summary>The assets the index reads, by name prefix.</summary>
+        private static readonly string[] IndexedAssets =
+        {
+            "Data/Events", "Data/Mail", "Data/Quests", "Data/SpecialOrders", "Data/TriggerActions", "Characters/Dialogue"
+        };
+
+        /// <summary>The tick event data last changed, if this screen's index hasn't caught up yet.</summary>
+        private readonly PerScreen<int?> dataChangedTick = new();
+
+        private void ReindexIfDataChanged()
+        {
+            // wait a moment so a burst of changes means one rebuild, and don't stall a cutscene
+            if (this.dataChangedTick.Value is not { } changed || Game1.ticks - changed < 30 || Game1.eventUp)
+                return;
+
+            this.dataChangedTick.Value = null;
+            this.Index.Rebuild();
+            this.NormalizeStoryPins();
         }
 
         private void OnTimeChanged(object? sender, TimeChangedEventArgs e)

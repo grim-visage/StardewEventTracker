@@ -374,7 +374,8 @@ Type these in the SMAPI console window:
       folder, with a count of every NPC in your game (how many you can
       befriend and how many have heart events).
   tracker_reindex
-      Re-read event data.
+      Re-read event data. The tracker also does this by itself each morning
+      and whenever a mod changes events, letters or dialogue.
 
 
 COMPATIBILITY

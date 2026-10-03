@@ -102,6 +102,7 @@ namespace StardewEventTracker.Data
         /// <summary>Re-reads event data for every known location.</summary>
         public void Rebuild()
         {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             NpcNameCache.Clear();
             CalendarInfo.Clear();
             DoorAccess.Rebuild(this.monitor);
@@ -220,7 +221,7 @@ namespace StardewEventTracker.Data
             }
 
             this.Invalidate();
-            this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} NPCs with heart events, {this.storyByLocation.Count} locations with story events).", LogLevel.Debug);
+            this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} NPCs with heart events, {this.storyByLocation.Count} locations with story events) in {timer.ElapsedMilliseconds}ms.", LogLevel.Debug);
         }
 
         /// <summary>Drops cached evaluations; call when time, location, weather or friendship may have changed.</summary>
