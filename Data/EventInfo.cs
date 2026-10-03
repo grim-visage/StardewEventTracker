@@ -73,7 +73,7 @@ namespace StardewEventTracker.Data
                 || (this.Is("Random") && double.TryParse(this.Args.FirstOrDefault(), NumberStyles.Float, CultureInfo.InvariantCulture, out double chance) && chance <= 0)
             );
 
-        private static readonly Regex NeverFlagPattern = new("(inexist|nonexist|never|impossible)", RegexOptions.IgnoreCase);
+        private static readonly Regex NeverFlagPattern = new("(inexist|nonexist|notexist|never|impossible)", RegexOptions.IgnoreCase);
 
         public static Precondition Parse(string raw)
         {

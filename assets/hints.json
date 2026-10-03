@@ -19,6 +19,108 @@
     "Corwin_dateInvite": {
       "Text": "May not be available yet: East Scarp doesn't set this flag, so this date can't start in the current version",
       "Source": "East Scarp data"
+    },
+    "ccPantry": {
+      "Text": "Complete the Pantry bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "ccCraftsRoom": {
+      "Text": "Complete the Crafts Room bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "ccFishTank": {
+      "Text": "Complete the Fish Tank bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "ccBoilerRoom": {
+      "Text": "Complete the Boiler Room bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "ccVault": {
+      "Text": "Complete the Vault bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "ccBulletin": {
+      "Text": "Complete the Bulletin Board bundles in the Community Center",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bundles"
+    },
+    "slimeHutchBuilt": {
+      "Text": "Build a Slime Hutch on your farm",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Slime_Hutch"
+    },
+    "hasPickedUpMagicInk": {
+      "Text": "Pick up the Magic Ink in the Witch's Hut (the Wizard's 'Goblin Problem' quest)",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Magic_Ink"
+    },
+    "ccMovieTheater": {
+      "Text": "Get the Movie Theater built in Pelican Town",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Movie_Theater"
+    },
+    "HasDwarvishTranslationGuide": {
+      "Text": "Get the Dwarvish Translation Guide by donating all four Dwarf Scrolls to the museum",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Dwarvish_Translation_Guide"
+    },
+    "Island_Resort": {
+      "Text": "Rebuild the Ginger Island resort (give the parrot on the island's south beach 20 golden walnuts)",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Island_South"
+    },
+    "GiEXbundle.farming.done": {
+      "Text": "Complete the Farming bundle on Ginger Island",
+      "Source": "GI Extra Locations data"
+    },
+    "GiEXbundle.cooking.done": {
+      "Text": "Complete the Cooking bundle on Ginger Island",
+      "Source": "GI Extra Locations data"
+    },
+    "GiEXbundle.fishing.done": {
+      "Text": "Complete the Fishing bundle on Ginger Island",
+      "Source": "GI Extra Locations data"
+    },
+    "GiEXbundle.mining.done": {
+      "Text": "Complete the Mining bundle on Ginger Island",
+      "Source": "GI Extra Locations data"
+    },
+    "GiEXbundle.combat.done": {
+      "Text": "Complete the Combat bundle on Ginger Island",
+      "Source": "GI Extra Locations data"
+    }
+  },
+  "Topics": {
+    "cc_Bus": {
+      "Text": "the bus is repaired (Community Center Vault)",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Bus_Stop"
+    },
+    "cc_Greenhouse": {
+      "Text": "the greenhouse is restored (Community Center Pantry)",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Greenhouse"
+    },
+    "pamHouseUpgrade": {
+      "Text": "Pam's house is upgraded",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Pam"
+    },
+    "pamHouseUpgradeAnonymous": {
+      "Text": "Pam's house is upgraded anonymously",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Pam"
+    },
+    "islandResortUnlocked": {
+      "Text": "the Ginger Island resort reopens",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Island_South"
     }
   }
 }

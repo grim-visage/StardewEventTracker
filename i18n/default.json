@@ -389,5 +389,11 @@
   "step.topic-wait.1": "wait 1 day after {{event}}",
   "step.topic-within.0": "on the same day as {{event}}",
   "step.topic-within.1": "within 1 day after {{event}}",
-  "flag.hint-source": "{{hint}} (from the {{source}})"
+  "flag.hint-source": "{{hint}} (from the {{source}})",
+  "gsq.journal-scrap": "have found Journal Scrap #{{number}}",
+  "gsq.secret-note": "have found Secret Note #{{number}}",
+  "topic.topic-wait-hint": "Wait a few days after {{cause}}",
+  "topic.topic-within-hint": "Within a few days after {{cause}}",
+  "step.topic-wait-hint": "wait a few days after {{cause}}",
+  "step.topic-within-hint": "within a few days after {{cause}}"
 }

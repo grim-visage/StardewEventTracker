@@ -15,6 +15,9 @@ namespace StardewEventTracker.Data
     internal sealed class HintFile
     {
         public Dictionary<string, Hint> Flags { get; set; } = new();
+
+        /// <summary>What starts a conversation topic, phrased to follow "after", e.g. "the bus is repaired".</summary>
+        public Dictionary<string, Hint> Topics { get; set; } = new();
     }
 
     /// <summary>
@@ -28,8 +31,11 @@ namespace StardewEventTracker.Data
         public static void Load(IModHelper helper, IMonitor monitor)
         {
             file = helper.Data.ReadJsonFile<HintFile>("assets/hints.json") ?? new HintFile();
-            monitor.Log($"Loaded {file.Flags.Count} flag hints.", LogLevel.Trace);
+            monitor.Log($"Loaded {file.Flags.Count} flag hints and {file.Topics.Count} topic hints.", LogLevel.Trace);
         }
+
+        public static Hint? ForTopic(string topic) =>
+            file.Topics.TryGetValue(topic, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
 
         public static Hint? ForFlag(string flag) =>
             file.Flags.TryGetValue(flag, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;

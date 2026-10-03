@@ -126,7 +126,14 @@ namespace StardewEventTracker.Data
         public static string? ExplainTopic(string topic, bool negated, EventIndex index, bool forStep)
         {
             if (index.Flags.GetTopic(topic) is not { } source)
-                return null;
+            {
+                // e.g. the game's own topics, started by its code: use a researched hint if there is one
+                if (Hints.ForTopic(topic) is not { } hint)
+                    return null;
+                return I18n.Get(forStep
+                    ? (negated ? "step.topic-wait-hint" : "step.topic-within-hint")
+                    : (negated ? "topic.topic-wait-hint" : "topic.topic-within-hint"), new { cause = hint.Text });
+            }
 
             string? after = source.EventKey != null && index.FindByKey(source.EventKey) is { } evt
                 ? index.DescribeEventShort(evt.Id)
@@ -172,6 +179,11 @@ namespace StardewEventTracker.Data
                         ? I18n.Get("gsq.seen-event", new { @event = index.DescribeEventShort(t[2]) })
                         : null,
                     "PLAYER_HAS_MAIL" when !negated && t.Length >= 3 => ExplainFlag(t[2], index, forStep: true, depth: 1),
+
+                    // secret notes from 1000 up are Ginger Island's journal scraps
+                    "PLAYER_HAS_SECRET_NOTE" when !negated && t.Length >= 3 && int.TryParse(t[2], out int note) => note >= 1000
+                        ? I18n.Get("gsq.journal-scrap", new { number = note - 1000 })
+                        : I18n.Get("gsq.secret-note", new { number = note }),
                     "PLAYER_NPC_RELATIONSHIP" when !negated && t.Length >= 4 => I18n.Get("gsq.relationship", new
                     {
                         types = string.Join(I18n.Get("join.or"), t.Skip(3).Select(type => I18n.GetOr($"relationship.{type.ToLowerInvariant()}", type.ToLowerInvariant()))),

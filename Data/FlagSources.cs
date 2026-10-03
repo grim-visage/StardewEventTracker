@@ -30,7 +30,7 @@ namespace StardewEventTracker.Data
     internal sealed class FlagSources
     {
         // event commands are separated by '/', so captured IDs stop there
-        private static readonly Regex MailCommand = new(@"(?:^|/)\s*(?:mail|addMailReceived|mailReceived|addWorldState)\s+([^\s/]+)", RegexOptions.IgnoreCase);
+        private static readonly Regex MailCommand = new(@"(?:^|/)\s*(?:mail|addMailReceived|mailReceived|addWorldState|action\s+AddMail\s+\S+)\s+([^\s/]+)", RegexOptions.IgnoreCase);
         private static readonly Regex TopicCommand = new(@"(?:^|/)\s*addConversationTopic\s+([^\s/]+)(?:\s+(\d+))?", RegexOptions.IgnoreCase);
 
         /// <summary>An event branch: "fork &lt;id&gt;" or "fork &lt;requirement&gt; &lt;id&gt;".</summary>
