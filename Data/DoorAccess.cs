@@ -12,10 +12,11 @@ using xTile.Tiles;
 namespace StardewEventTracker.Data
 {
     /// <summary>
-    /// A locked door leading into a location: a map's <c>LockedDoorWarp</c> action, or a door the game's code only
-    /// opens once you've received a letter (<see cref="RequiredMail"/>).
+    /// A locked door leading into a location: a map's <c>LockedDoorWarp</c> action, or one of the game's special doors
+    /// that opens with a letter (<see cref="RequiredMail"/>, any of '|'-separated flags) or friendship. An
+    /// <see cref="Inner"/> door is inside another location, whose own door decides the hours.
     /// </summary>
-    internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship, string? RequiredMail = null);
+    internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship, string? RequiredMail = null, bool HostMail = false, bool Inner = false);
 
     /// <summary>Whether the player can get through a locked door right now, mirroring <c>GameLocation.lockedDoorWarp</c>.</summary>
     internal readonly record struct DoorState(DoorLock Door, bool HeartsOk, bool FestivalClosed, int Open, int Close, bool AllDay, bool MailOk = true);
@@ -40,7 +41,10 @@ namespace StardewEventTracker.Data
                 try
                 {
                     foreach (Warp warp in location.warps)
-                        openEntrances.Add(warp.TargetName);
+                    {
+                        if (!warp.npcOnly.Value)
+                            openEntrances.Add(warp.TargetName);
+                    }
                     ScanLayer(location, location.Map?.GetLayer("Buildings"), "Action", lockedInto, openEntrances);
                     ScanLayer(location, location.Map?.GetLayer("Back"), "TouchAction", lockedInto, openEntrances);
                 }
@@ -51,9 +55,11 @@ namespace StardewEventTracker.Data
                 return true;
             });
 
+            // another way in makes a LockedDoorWarp moot, but the game's special doors are the only way in for players
             locks = lockedInto
-                .Where(p => !openEntrances.Contains(p.Key))
-                .ToDictionary(p => p.Key, p => p.Value);
+                .Select(p => (p.Key, Doors: openEntrances.Contains(p.Key) ? p.Value.Where(IsSpecial).ToList() : p.Value))
+                .Where(p => p.Doors.Count > 0)
+                .ToDictionary(p => p.Key, p => p.Doors);
             monitor.Log($"Found {locks.Count} locations behind locked doors in {timer.ElapsedMilliseconds}ms.", LogLevel.Trace);
         }
 
@@ -80,6 +86,20 @@ namespace StardewEventTracker.Data
             return tomorrowsFestival is { } f && f.Start < 1900 && from?.InValleyContext() == true;
         }
 
+        /// <summary>
+        /// The NPC whose friendship every door into a location needs, e.g. Caroline for the Sunroom. Events there that
+        /// feature them are their heart events, even without a friendship requirement of their own.
+        /// </summary>
+        public static (string Npc, int Points)? GetResidentFriendship(string locationName)
+        {
+            if (!locks.TryGetValue(locationName, out List<DoorLock>? doors) || doors.Count == 0)
+                return null;
+            DoorLock first = doors[0];
+            if (first.Npc == null || first.MinFriendship <= 0 || doors.Any(d => d.Npc != first.Npc || d.MinFriendship <= 0))
+                return null;
+            return (first.Npc, doors.Min(d => d.MinFriendship));
+        }
+
         private static int Rank(DoorState s) => (s.MailOk ? 8 : 0) + (s.HeartsOk ? 4 : 0) + (s.FestivalClosed ? 0 : 2) + (s.AllDay ? 1 : 0);
 
         /// <summary>Applies the game's lockedDoorWarp rules to one door.</summary>
@@ -87,13 +107,16 @@ namespace StardewEventTracker.Data
         {
             GameLocation? from = Game1.getLocationFromName(door.FromLocation);
 
-            // a door that opens with a letter is inside another location, so that location's own door decides the hours
-            if (door.RequiredMail != null)
+            // the game's special doors: no hours of their own, but a door inside a shop keeps the shop's hours
+            if (door.RequiredMail != null || door.Inner)
             {
-                bool mailOk = Game1.player.mailReceived.Contains(door.RequiredMail);
-                return GetState(door.FromLocation) is { } outer
-                    ? outer with { Door = door, MailOk = mailOk }
-                    : new DoorState(door, HeartsOk: true, FestivalClosed: false, door.Open, door.Close, AllDay: true, mailOk);
+                Farmer mailOf = door.HostMail ? Game1.MasterPlayer : Game1.player;
+                bool mailOk = door.RequiredMail == null || door.RequiredMail.Split('|').Any(mailOf.mailReceived.Contains);
+                bool friendsOk = door.MinFriendship <= 0
+                    || (door.Npc != null && Game1.player.friendshipData.TryGetValue(door.Npc, out Friendship? f) && f.Points >= door.MinFriendship);
+                return door.Inner && GetState(door.FromLocation) is { } outer
+                    ? outer with { Door = door, MailOk = outer.MailOk && mailOk, HeartsOk = outer.HeartsOk && friendsOk }
+                    : new DoorState(door, friendsOk, FestivalClosed: false, door.Open, door.Close, AllDay: true, mailOk);
             }
 
             bool valley = from?.InValleyContext() ?? true;
@@ -130,6 +153,15 @@ namespace StardewEventTracker.Data
             }
         }
 
+        private static bool IsSpecial(DoorLock door) => door.RequiredMail != null || door.Inner;
+
+        private static void Add(Dictionary<string, List<DoorLock>> lockedInto, DoorLock door)
+        {
+            if (!lockedInto.TryGetValue(door.ToLocation, out List<DoorLock>? list))
+                lockedInto[door.ToLocation] = list = new List<DoorLock>();
+            list.Add(door);
+        }
+
         private static string? Read(IPropertyCollection? properties, string key) =>
             properties != null && properties.TryGetValue(key, out PropertyValue? value) ? value?.ToString() : null;
 
@@ -152,14 +184,16 @@ namespace StardewEventTracker.Data
                     break;
                 }
 
-                // Willy's back room: FishShop.performAction only opens it after his invitation
+                // special doors, from GameLocation.performAction and FishShop.performAction
                 case "WarpBoatTunnel":
-                {
-                    if (!lockedInto.TryGetValue("BoatTunnel", out List<DoorLock>? list))
-                        lockedInto["BoatTunnel"] = list = new List<DoorLock>();
-                    list.Add(new DoorLock(location.NameOrUniqueName, "BoatTunnel", 600, 2600, null, 0, RequiredMail: "willyBackRoomInvitation"));
+                    Add(lockedInto, new DoorLock(location.NameOrUniqueName, "BoatTunnel", 600, 2600, null, 0, RequiredMail: "willyBackRoomInvitation", Inner: true));
                     break;
-                }
+                case "Warp_Sunroom_Door":
+                    Add(lockedInto, new DoorLock(location.NameOrUniqueName, "Sunroom", 600, 2600, "Caroline", 2 * NPC.friendshipPointsPerHeartLevel, Inner: true));
+                    break;
+                case "WarpCommunityCenter":
+                    Add(lockedInto, new DoorLock(location.NameOrUniqueName, "CommunityCenter", 600, 2600, null, 0, RequiredMail: "ccDoorUnlock|JojaMember", HostMail: true));
+                    break;
 
                 // Warp <x> <y> <location>
                 case "Warp" or "WarpMensLocker" or "WarpWomensLocker" when args.Length >= 4 && !int.TryParse(args[3], out _):

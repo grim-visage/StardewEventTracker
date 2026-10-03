@@ -237,7 +237,7 @@ namespace StardewEventTracker.Data
             return I18n.Get($"{prefix}.story");
         }
 
-        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions, string rawKey)
+        public EventInfo(string id, string locationName, string locationDisplayName, string owner, bool isHeartEvent, IReadOnlyList<string> actors, IReadOnlyList<Precondition> conditions, string rawKey, int doorPoints = 0)
         {
             this.Id = id;
             this.RawKey = rawKey;
@@ -257,7 +257,7 @@ namespace StardewEventTracker.Data
                 .SelectMany(c => FriendshipPairs(c))
                 .Where(p => p.Npc == owner)
                 .Select(p => p.Points)
-                .DefaultIfEmpty(0)
+                .DefaultIfEmpty(doorPoints)
                 .Max();
 
             Precondition? relationship = conditions.FirstOrDefault(c => !c.Negated && c.Args.FirstOrDefault() == owner && (c.Is("Dating") || c.Is("Spouse") || c.Is("Roommate")));

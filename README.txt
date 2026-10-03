@@ -153,9 +153,15 @@ Each requirement has a mark showing whether it's met right now:
 Events inside shops and houses also account for the door: its opening hours
 (the Town Key opens it any time), any hearts the resident requires before
 letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
-when every shop and house in the valley is locked. Willy's back room (the Boat
-Tunnel) stays locked until his invitation letter arrives. These show as "Door"
+when every shop and house in the valley is locked. The game's special doors
+count too: the Community Center (locked until Lewis opens it, or you join
+Joja), Caroline's Sunroom (2 hearts with Caroline) and Willy's back room, the
+Boat Tunnel (locked until his invitation letter arrives). These show as "Door"
 lines under the event.
+
+When a door needs hearts with someone and they're in the event, it's their
+heart event even if the event itself doesn't ask for hearts. Caroline's
+2-heart event in the Sunroom is listed under Hearts for that reason.
 
 Many events (especially in mods) depend on hidden "story flags" and
 conversation topics. Where the game's data says how they're set, the tracker

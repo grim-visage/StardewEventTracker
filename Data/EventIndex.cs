@@ -405,8 +405,15 @@ namespace StardewEventTracker.Data
                 .Select(Precondition.Parse)
                 .ToArray();
 
+            string[] actors = ParseActors(script);
             string? owner = FindRelationshipOwner(conditions);
-            return new EventInfo(id, locationName, locationDisplayName, owner ?? OtherKey, owner != null, ParseActors(script), conditions, key);
+            int doorPoints = 0;
+
+            // behind a door that needs their friendship (Caroline's Sunroom): their heart event, with the door's hearts
+            if (owner == null && DoorAccess.GetResidentFriendship(locationName) is { } resident && actors.Contains(resident.Npc))
+                (owner, doorPoints) = resident;
+
+            return new EventInfo(id, locationName, locationDisplayName, owner ?? OtherKey, owner != null, actors, conditions, key, doorPoints);
         }
 
         /// <summary>The NPC an event needs friendship, dating or marriage with, if any.</summary>

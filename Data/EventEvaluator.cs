@@ -154,6 +154,10 @@ namespace StardewEventTracker.Data
                     progressUnmet = true;
             }
 
+            // the hearts the door needs are this NPC's heart-event requirement (Caroline's Sunroom)
+            if (door is { HeartsOk: false } residentDoor && evt.IsHeartEvent && residentDoor.Door.Npc == evt.Owner)
+                locked = true;
+
             // the door's hours, unless the Town Key opens it any time
             (int Open, int Close)? doorHours = door is { AllDay: false } d ? (d.Open, d.Close) : null;
             bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(evt.Window?.End ?? 2600, hours.Close);

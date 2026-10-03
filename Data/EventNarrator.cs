@@ -300,7 +300,7 @@ namespace StardewEventTracker.Data
                 });
             }
 
-            if (eval.Door is { MailOk: false } letterDoor && letterDoor.Door.RequiredMail is { } letter)
+            if (eval.Door is { MailOk: false } letterDoor && letterDoor.Door.RequiredMail?.Split('|')[0] is { } letter)
                 return (index != null ? PreconditionFormatter.ExplainFlag(letter, index, forStep: true) : null) ?? I18n.Get("step.door-letter");
 
             for (int i = 0; i < evt.Conditions.Count; i++)
