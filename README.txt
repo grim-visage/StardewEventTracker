@@ -316,6 +316,21 @@ Type these in the SMAPI console window:
       Re-read event data.
 
 
+COMPATIBILITY
+-------------
+  * Data Layers also uses F2 (and Ctrl to switch layers), so pressing F2
+    opens both. Rebind one of them in Generic Mod Config Menu.
+  * NPC Map Locations and World Maps: map hearts work with both.
+  * Event Lookup does a similar job (on the N key). They can run together.
+  * Expanded Preconditions Utility and other mods that add event
+    requirements: those requirements are still checked, but may be shown as
+    raw code.
+  * Time mods such as It's Stardew Time: walk estimates follow the actual
+    clock speed.
+  * Content packs that add NPCs, locations or events are picked up
+    automatically.
+
+
 KNOWN LIMITATIONS
 -----------------
   * Some mods add an event only after a story flag or quest is done. Those
