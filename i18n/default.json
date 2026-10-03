@@ -323,5 +323,11 @@
   "friendship.more-point": "{{count}} more friendship point",
   "friendship.more-points": "{{count}} more friendship points",
   "cond.friendship-to-go": "{{requirement}} ({{more}} to go)",
-  "menu.next.more": "{{more}} to go"
+  "menu.next.more": "{{more}} to go",
+  "hud.compact": "{{head}} - {{stage}}",
+  "hud.overflow": "+{{count}} more pinned ({{key}} to see all)",
+  "config.hud-order": "HUD order",
+  "config.hud-order.tip": "By urgency puts what needs doing soonest at the top, so it's never cut off. Alphabetical lists NPCs A-Z, then story events.",
+  "config.hud-order.urgency": "By urgency",
+  "config.hud-order.alphabetical": "Alphabetical"
 }

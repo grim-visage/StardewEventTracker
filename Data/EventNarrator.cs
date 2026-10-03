@@ -112,8 +112,20 @@ namespace StardewEventTracker.Data
             };
         }
 
-        /// <summary>How urgent the HUD should make an event look.</summary>
-        public enum HudTone { Go, Soon, Normal }
+        /// <summary>How urgent the HUD should make an event look, most urgent first.</summary>
+        public enum HudTone
+        {
+            /// <summary>It can happen right now.</summary>
+            Go,
+
+            /// <summary>Time to set off: "Leave now" or "Head out soon".</summary>
+            Urgent,
+
+            /// <summary>Coming up later today: "Get ready".</summary>
+            Soon,
+
+            Normal
+        }
 
         /// <summary>The short second HUD line, e.g. "Head out soon - starts 9:00 am (in 45m)".</summary>
         /// <param name="reminderMinutes">The player's reminder intervals, which set the "Get ready" and "Head out soon" stages.</param>
@@ -135,14 +147,14 @@ namespace StardewEventTracker.Data
                     int minutes = eval.MinutesUntilStart ?? 0;
                     string start = StartTime(evt, eval);
                     if (travelMinutes > 0 && minutes <= travelMinutes + travelBuffer)
-                        return (I18n.Get("hud.leave-now", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value), start }), HudTone.Soon);
+                        return (I18n.Get("hud.leave-now", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value), start }), HudTone.Urgent);
 
                     string when = I18n.Get("hud.starts", new { start, duration = PreconditionFormatter.FormatDuration(minutes) }) + away;
                     var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
                     if (stages.Count == 0)
                         stages = new List<int> { 60, 120 };
                     if (minutes <= stages[0])
-                        return (I18n.Get("hud.head-out", new { when }), HudTone.Soon);
+                        return (I18n.Get("hud.head-out", new { when }), HudTone.Urgent);
                     if (minutes <= stages[^1])
                         return (I18n.Get("hud.get-ready", new { when }), HudTone.Soon);
                     return (I18n.Get("hud.later-today", new { when }), HudTone.Normal);

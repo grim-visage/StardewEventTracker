@@ -196,6 +196,17 @@ Statuses held up by the day add "(tomorrow works!)" when the forecast says
 tomorrow is fine. If more events are waiting, the first line ends in
 "(+N more)".
 
+Entries are sorted by urgency: things you can do now first, then time to set
+off, later today, not today, and finally locked or caught-up entries. Within
+each group, whatever starts soonest comes first. Entries with nothing to do
+today take a single line. Prefer a fixed list? Set "HUD order" to
+Alphabetical (NPCs A-Z, then story events).
+
+The HUD shows up to 5 entries (HudMaxNpcs), and fewer if they wouldn't fit on
+screen. Anything left over is summed up in a last line, e.g. "+2 more pinned
+(F2 to see all)", which turns green if one of them can happen now or it's
+time to set off.
+
 Hold Shift and drag the box to move it.
 
 
@@ -297,6 +308,8 @@ launch:
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
   HudX / HudY            16 / 120         HUD position on screen, in pixels
+  HudSortOrder           urgency          HUD order: "urgency" or
+                                          "alphabetical"
   HudMaxNpcs             5                Most entries (NPCs and story
                                           events) shown on the HUD
 

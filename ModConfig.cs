@@ -31,6 +31,14 @@ namespace StardewEventTracker
 
         public static string[] SoundCues => AllowedSounds.Keys.ToArray();
 
+        /// <summary>HUD entries sorted with what needs doing soonest first.</summary>
+        public const string HudOrderUrgency = "urgency";
+
+        /// <summary>HUD entries sorted by name: NPCs A-Z, then story events by location.</summary>
+        public const string HudOrderAlphabetical = "alphabetical";
+
+        public static readonly string[] HudOrders = { HudOrderUrgency, HudOrderAlphabetical };
+
         /// <summary>Opens or closes the tracker menu.</summary>
         public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
 
@@ -94,7 +102,10 @@ namespace StardewEventTracker
         /// <summary>HUD tracker position from the top edge of the screen, in UI pixels.</summary>
         public int HudY { get; set; } = 120;
 
-        /// <summary>Maximum number of pinned NPCs listed in the HUD tracker.</summary>
+        /// <summary>How the HUD tracker orders its entries: <see cref="HudOrderUrgency"/> or <see cref="HudOrderAlphabetical"/>.</summary>
+        public string HudSortOrder { get; set; } = HudOrderUrgency;
+
+        /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
 
         /// <summary>The pre-release alert toggle, read once to migrate to <see cref="AlertWhenAvailable"/>.</summary>

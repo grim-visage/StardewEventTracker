@@ -218,6 +218,8 @@ namespace StardewEventTracker
             gmcm.AddKeybindList(m, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => I18n.Get("config.drag-key"), () => I18n.Get("config.drag-key.tip"));
             gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
+            gmcm.AddTextOption(m, () => this.Config.HudSortOrder, v => this.Config.HudSortOrder = v, () => I18n.Get("config.hud-order"), () => I18n.Get("config.hud-order.tip"),
+                allowedValues: ModConfig.HudOrders, formatAllowedValue: v => I18n.Get($"config.hud-order.{v}"));
             gmcm.AddNumberOption(m, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => I18n.Get("config.hud-max"), min: 1, max: 15);
         }
 
@@ -584,6 +586,12 @@ namespace StardewEventTracker
             if (this.Config.ToggleHudKey.ToString() is "F9" or "F4")
             {
                 this.Config.ToggleHudKey = KeybindList.Parse("LeftShift + F2");
+                changed = true;
+            }
+
+            if (!ModConfig.HudOrders.Contains(this.Config.HudSortOrder))
+            {
+                this.Config.HudSortOrder = ModConfig.HudOrderUrgency;
                 changed = true;
             }
 
