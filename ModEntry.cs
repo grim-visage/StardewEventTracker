@@ -35,7 +35,7 @@ namespace NpcEventTracker
         /// <summary>The game tick a pop-up sound last played on, so several pop-ups at once only play one sound.</summary>
         private int lastSoundTick = -1;
 
-        /// <summary>Pins are per player: the main player keeps the 1.0 path, other local players get their own file.</summary>
+        /// <summary>Pins are per player: the main player keeps the original path, other local players get their own file.</summary>
         private string PinDataPath => Context.IsMainPlayer
             ? $"data/{Constants.SaveFolderName}.json"
             : $"data/{Constants.SaveFolderName}-{Game1.player.UniqueMultiplayerID}.json";
@@ -539,7 +539,7 @@ namespace NpcEventTracker
 
         private static string SoundLabel(string cue) => I18n.GetOr($"sound.{cue}", ModConfig.AllowedSounds.TryGetValue(cue, out string? label) ? label : cue);
 
-        /// <summary>Migrates 1.0 settings and cleans up the reminder list.</summary>
+        /// <summary>Migrates settings from pre-release builds and cleans up the reminder list.</summary>
         private void NormalizeConfig()
         {
             bool changed = false;
@@ -550,13 +550,13 @@ namespace NpcEventTracker
                 changed = true;
             }
 
-            // 1.0 defaulted to F8/F9, which UI Info Suite 2 also uses
+            // pre-release builds defaulted to F8/F9, which UI Info Suite 2 also uses
             if (this.Config.OpenMenuKey.ToString() == "F8")
             {
                 this.Config.OpenMenuKey = KeybindList.Parse("F2");
                 changed = true;
             }
-            // F9 was the 1.0 default; F4 (an early 1.1 default) opens the game's screenshot mode
+            // F9 and F4 were pre-release defaults; F4 opens the game's screenshot mode
             if (this.Config.ToggleHudKey.ToString() is "F9" or "F4")
             {
                 this.Config.ToggleHudKey = KeybindList.Parse("LeftShift + F2");

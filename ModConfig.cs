@@ -94,7 +94,7 @@ namespace NpcEventTracker
         /// <summary>Maximum number of pinned NPCs listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
 
-        /// <summary>The 1.0 alert toggle, read once to migrate to <see cref="AlertWhenAvailable"/>.</summary>
+        /// <summary>The pre-release alert toggle, read once to migrate to <see cref="AlertWhenAvailable"/>.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public bool? ShowAlerts { get; set; }
     }
