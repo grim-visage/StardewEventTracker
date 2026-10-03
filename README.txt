@@ -70,7 +70,8 @@ Tracker menu (F2)
   * Pinned     Pending heart events for the NPCs you've pinned, your pinned
                story events, and a "Today's messages" list of every
                reminder from today.
-  * Hearts     Every NPC with heart events. Click a name to expand it.
+  * Hearts     Every NPC with heart events, with their hearts shown like on
+               the game's Social tab. Click a name to expand it.
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
   * Completed  Events you've already seen. Switch between Hearts and Story

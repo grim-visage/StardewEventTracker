@@ -30,6 +30,9 @@ namespace StardewEventTracker.UI
             /// <summary>A second button, drawn to the left of <see cref="Button"/>.</summary>
             public string? Button2;
             public Action? OnButton2;
+
+            /// <summary>Drawn after the text, e.g. an NPC's hearts; given where the text ends and the row's vertical centre.</summary>
+            public Action<SpriteBatch, Vector2, int>? DrawAfter;
         }
 
         /// <summary>A toggle button in the toolbar next to the search box.</summary>
@@ -430,8 +433,10 @@ namespace StardewEventTracker.UI
             int later = pending.Count(EventStatus.LaterToday);
             int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
 
-            string hearts = "  " + HeartsLabel(owner);
-            string counts = I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
+            bool canBefriend = CanBefriend(owner);
+            bool met = Game1.player.friendshipData.ContainsKey(owner);
+            string counts = (canBefriend && !met ? I18n.Get("menu.npc.not-met") + "  |  " : "")
+                + I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
                 + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
                 + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : "")
                 + (pending.LockedEvents.Count > 0 ? I18n.Get("menu.count.locked", new { count = pending.LockedEvents.Count }) : "")
@@ -440,37 +445,57 @@ namespace StardewEventTracker.UI
 
             bool isPinned = this.mod.PinnedNpcs.Contains(owner);
             this.AddRow(
-                prefix + name + hearts,
+                prefix + name,
                 now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                 font: Game1.dialogueFont,
                 onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.IsActive) : null,
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
+            if (canBefriend)
+                this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, at, maxRight);
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
         }
 
-        /// <summary>
-        /// "3 hearts", or "not met yet" before you've introduced yourself (the game has no friendship with them until
-        /// then). Blank for NPCs you can't befriend.
-        /// </summary>
-        private static string HeartsLabel(string npc)
+        /// <summary>Whether the NPC has a friendship to show (some can never be befriended).</summary>
+        private static bool CanBefriend(string npc)
         {
             if (Game1.player.friendshipData.ContainsKey(npc))
-            {
-                int hearts = Game1.player.getFriendshipHeartLevelForNPC(npc);
-                return I18n.Get(hearts == 1 ? "menu.npc.hearts.1" : "menu.npc.hearts", new { hearts });
-            }
-
-            bool canSocialize;
+                return true;
             try
             {
-                canSocialize = !Game1.characterData.TryGetValue(npc, out var data) || GameStateQuery.CheckConditions(data.CanSocialize);
+                return !Game1.characterData.TryGetValue(npc, out var data) || GameStateQuery.CheckConditions(data.CanSocialize);
             }
             catch
             {
-                canSocialize = true;
+                return true;
             }
-            return canSocialize ? I18n.Get("menu.npc.not-met") : "";
+        }
+
+        /// <summary>
+        /// A row of hearts like the game's Social tab: red up to the current level, empty after, and darkened past 8 for
+        /// someone you could date but aren't dating yet.
+        /// </summary>
+        private static void DrawHearts(SpriteBatch b, string npc, Vector2 at, int maxRight)
+        {
+            Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship);
+            int level = (friendship?.Points ?? 0) / NPC.friendshipPointsPerHeartLevel;
+            bool dating = friendship?.IsDating() == true;
+            bool married = friendship?.IsMarried() == true || friendship?.IsRoommate() == true;
+            bool datable = Game1.characterData.TryGetValue(npc, out var data) && data.CanBeRomanced;
+            NPC? character = Game1.getCharacterFromName(npc);
+            int max = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
+
+            // the game's 7x6 heart sprite; smaller if a long name leaves less room
+            float scale = at.X + max * 8 * 4 <= maxRight ? 4f : 3f;
+            int step = (int)(8 * scale);
+            for (int i = 0; i < max; i++)
+            {
+                bool locked = datable && !dating && !married && i >= 8;
+                int sourceX = i < level || locked ? 211 : 218;
+                Color color = locked && i < 10 ? Color.Black * 0.35f : Color.White;
+                var position = new Vector2(at.X + i * step, at.Y - 3 * scale);
+                b.Draw(Game1.mouseCursors, position, new Rectangle(sourceX, 428, 7, 6), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.88f);
+            }
         }
 
         private void AddEventList(PendingEvents pending, List<(EventInfo Event, EventEvaluation Eval)> visible, int indent, bool showLocation)
@@ -886,8 +911,11 @@ namespace StardewEventTracker.UI
                         this.hitAreas.Add((rowArea, row.OnClick));
                     }
 
-                    int textY = y + (row.Button != null || row.Button2 != null ? (row.Height - (int)row.Font.MeasureString(row.Text).Y) / 2 : 0);
+                    Vector2 textSize = row.Font.MeasureString(row.Text);
+                    int textY = y + (row.Button != null || row.Button2 != null ? (row.Height - (int)textSize.Y) / 2 : 0);
                     Utility.drawTextWithShadow(b, row.Text, row.Font, new Vector2(content.X + row.Indent, textY), row.Color, shadowIntensity: 0.25f);
+                    int buttonsWidth = ((row.Button != null ? 1 : 0) + (row.Button2 != null ? 1 : 0)) * (ButtonWidth + 16);
+                    row.DrawAfter?.Invoke(b, new Vector2(content.X + row.Indent + textSize.X + 24, textY + textSize.Y / 2), content.Right - buttonsWidth);
 
                     int buttonRight = content.Right;
                     foreach ((string? label, Action? action) in new[] { (row.Button, row.OnButton), (row.Button2, row.OnButton2) })

@@ -202,8 +202,6 @@
   "menu.completed.none-hearts": "You haven't seen any tracked heart events yet.",
   "menu.completed.none-story": "You haven't seen any tracked story events yet.",
   "menu.event-at": "{{title}} at {{location}}",
-  "menu.npc.hearts": "{{hearts}} hearts",
-  "menu.npc.hearts.1": "1 heart",
   "menu.npc.not-met": "not met yet",
   "menu.count.pending": "{{count}} pending",
   "menu.count.unseen": "{{count}} unseen",
