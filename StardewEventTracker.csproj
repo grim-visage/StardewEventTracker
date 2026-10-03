@@ -22,6 +22,7 @@
   <ItemGroup>
     <None Update="README.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="LICENSE" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="assets/hints.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

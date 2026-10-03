@@ -1,0 +1,24 @@
+{
+  "$comment": "Hints for story flags that nothing in the game data explains. Keyed by flag ID. Write hints in your own words (don't copy wiki text) and name where the information came from. Contributions welcome.",
+  "Flags": {
+    "jade_ironbar2": {
+      "Text": "Complete Jade's quest \"Iron Bar for Jade\"",
+      "Source": "East Scarp wiki",
+      "Url": "https://eastscarp.wiki.gg/wiki/Jade"
+    },
+    "DuskspireDefeated": {
+      "Text": "Defeat the Duskspire Behemoth at the bottom of the Deep Dark (Sword & Sorcery's final encounter)",
+      "Source": "Sword & Sorcery handbook",
+      "Url": "https://eastscarp.wiki.gg/wiki/Sword_and_Sorcery"
+    },
+    "Dale_DinnerDate": {
+      "Text": "Not available yet: East Scarp doesn't set this, and Dale's dating content is planned for a later update",
+      "Source": "East Scarp wiki",
+      "Url": "https://eastscarp.wiki.gg/wiki/Dale"
+    },
+    "Corwin_dateInvite": {
+      "Text": "May not be available yet: East Scarp doesn't set this flag, so this date can't start in the current version",
+      "Source": "East Scarp data"
+    }
+  }
+}

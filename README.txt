@@ -167,8 +167,13 @@ explains them instead of showing an internal ID:
   * a cooldown:        Wait 4 days after Cirrus's 1-heart event
   * another event:     See Corwin's 6-heart event
 
-Flags nothing explains are shown as words, e.g. "Story flag: Corwin date
-invite"; the mod's wiki is the best place to look those up.
+A few flags aren't set by anything in the game's data (a mod's own code, quest
+rewards, or content that isn't finished yet). For those, assets/hints.json has
+short hand-written hints researched from mod wikis and handbooks, e.g.
+"Complete Jade's quest 'Iron Bar for Jade' (from the East Scarp wiki)". Any
+flag still unexplained is shown as words, e.g. "Story flag: Duskspire
+defeated". Hint contributions are welcome on GitHub: keep them short, in your
+own words, and say where the information came from.
 
 Some mods (Ridgeside Village, for example) start certain events from their own
 code and give them a requirement that can never be met, so the game won't

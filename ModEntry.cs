@@ -46,6 +46,7 @@ namespace StardewEventTracker
         public override void Entry(IModHelper helper)
         {
             I18n.Init(helper.Translation);
+            Hints.Load(helper, this.Monitor);
             this.Config = helper.ReadConfig<ModConfig>();
             this.NormalizeConfig();
             this.screen = new PerScreen<PlayerState>(() => new PlayerState(this.Monitor));

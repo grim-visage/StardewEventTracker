@@ -388,5 +388,6 @@
   "step.topic-wait.0": "wait until the day after {{event}}",
   "step.topic-wait.1": "wait 1 day after {{event}}",
   "step.topic-within.0": "on the same day as {{event}}",
-  "step.topic-within.1": "within 1 day after {{event}}"
+  "step.topic-within.1": "within 1 day after {{event}}",
+  "flag.hint-source": "{{hint}} (from the {{source}})"
 }
