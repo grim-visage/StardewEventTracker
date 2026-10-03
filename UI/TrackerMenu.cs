@@ -455,23 +455,28 @@ namespace StardewEventTracker.UI
 
         /// <summary>
         /// A row of hearts like the game's Social tab: red up to the current level, empty after, and darkened past 8 for
-        /// someone you could date but aren't dating yet. Followed by "not met yet" until you've introduced yourself
-        /// (the game has no friendship with them until then).
+        /// someone you could date but aren't dating yet. "Not met" instead until you've introduced yourself.
         /// </summary>
         private static void DrawHearts(SpriteBatch b, string npc, Vector2 at, int maxRight)
         {
-            Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship);
-            int level = (friendship?.Points ?? 0) / NPC.friendshipPointsPerHeartLevel;
-            bool dating = friendship?.IsDating() == true;
-            bool married = friendship?.IsMarried() == true || friendship?.IsRoommate() == true;
+            // no friendship until you've introduced yourself: say so instead of an empty bar
+            if (!Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship))
+            {
+                string notMet = I18n.Get("menu.npc.not-met");
+                Vector2 size = Game1.smallFont.MeasureString(notMet);
+                Utility.drawTextWithShadow(b, notMet, Game1.smallFont, new Vector2(at.X, at.Y - size.Y / 2), MutedColor, shadowIntensity: 0f);
+                return;
+            }
+
+            int level = friendship.Points / NPC.friendshipPointsPerHeartLevel;
+            bool dating = friendship.IsDating();
+            bool married = friendship.IsMarried() || friendship.IsRoommate();
             bool datable = Game1.characterData.TryGetValue(npc, out var data) && data.CanBeRomanced;
             NPC? character = Game1.getCharacterFromName(npc);
             int max = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
 
             // the game's 7x6 heart sprite; smaller if a long name leaves less room
-            string? notMet = friendship == null ? I18n.Get("menu.npc.not-met") : null;
-            int labelWidth = notMet != null ? (int)Game1.smallFont.MeasureString(notMet).X + 12 : 0;
-            float scale = at.X + max * 8 * 4 + labelWidth <= maxRight ? 4f : 3f;
+            float scale = at.X + max * 8 * 4 <= maxRight ? 4f : 3f;
             int step = (int)(8 * scale);
             for (int i = 0; i < max; i++)
             {
@@ -480,14 +485,6 @@ namespace StardewEventTracker.UI
                 Color color = locked && i < 10 ? Color.Black * 0.35f : Color.White;
                 var position = new Vector2(at.X + i * step, at.Y - 3 * scale);
                 b.Draw(Game1.mouseCursors, position, new Rectangle(sourceX, 428, 7, 6), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.88f);
-            }
-
-            if (notMet != null)
-            {
-                Vector2 size = Game1.smallFont.MeasureString(notMet);
-                var position = new Vector2(at.X + max * step + 12, at.Y - size.Y / 2);
-                if (position.X + size.X <= maxRight)
-                    Utility.drawTextWithShadow(b, notMet, Game1.smallFont, position, MutedColor, shadowIntensity: 0f);
             }
         }
 
