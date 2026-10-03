@@ -61,6 +61,11 @@ namespace StardewEventTracker.UI
         private static readonly PerScreen<HashSet<string>> ExpandedPerScreen = new(() => new HashSet<string>());
         private static HashSet<string> Expanded => ExpandedPerScreen.Value;
 
+        /// <summary>Groups closed by hand while a search or filter has them open, and the filters that applied to.</summary>
+        private static readonly PerScreen<HashSet<string>> CollapsedPerScreen = new(() => new HashSet<string>());
+        private static readonly PerScreen<string> CollapsedFor = new(() => "");
+        private static HashSet<string> Collapsed => CollapsedPerScreen.Value;
+
         private readonly ModEntry mod;
         private readonly List<Row> rows = new();
         private readonly List<(Rectangle Area, Action Action)> hitAreas = new();
@@ -263,11 +268,11 @@ namespace StardewEventTracker.UI
                 return;
 
             const string key = "messages";
-            bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
+            bool expanded = IsExpanded(key, EventFilter.HasSearch);
             this.AddRow(
                 $"{(expanded ? "v" : ">")} {I18n.Get("menu.messages", new { count = messages.Count })}",
                 Game1.textColor,
-                onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
+                onClick: () => ToggleExpanded(key, EventFilter.HasSearch));
             if (expanded)
             {
                 foreach ((int time, string text) in messages)
@@ -294,7 +299,7 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = "hearts:" + owner;
-                bool expanded = EventFilter.IsActive || Expanded.Contains(key);
+                bool expanded = IsExpanded(key, EventFilter.IsActive);
                 this.AddNpcHeader(owner, pending, expandable: true, expanded, key);
                 if (expanded)
                 {
@@ -326,7 +331,7 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = "story:" + location;
-                bool expanded = EventFilter.IsActive || Expanded.Contains(key);
+                bool expanded = IsExpanded(key, EventFilter.IsActive);
                 int now = pending.Count(EventStatus.AvailableNow);
                 int later = pending.Count(EventStatus.LaterToday);
 
@@ -334,7 +339,7 @@ namespace StardewEventTracker.UI
                     $"{(expanded ? "v" : ">")} {name}",
                     now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                     font: Game1.dialogueFont,
-                    onClick: EventFilter.IsActive ? null : () => ToggleExpanded(key));
+                    onClick: () => ToggleExpanded(key, EventFilter.IsActive));
                 this.AddRow(
                     I18n.Get("menu.count.unseen", new { count = pending.Pending.Count })
                         + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
@@ -374,12 +379,12 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = (story ? "done-story:" : "done:") + groupKey;
-                bool expanded = EventFilter.HasSearch || Expanded.Contains(key);
+                bool expanded = IsExpanded(key, EventFilter.HasSearch);
                 this.AddRow(
                     $"{(expanded ? "v" : ">")} {name}   {I18n.Get("menu.completed.count", new { seen = seen.Count, total })}",
                     Game1.textColor,
                     font: Game1.dialogueFont,
-                    onClick: EventFilter.HasSearch ? null : () => ToggleExpanded(key));
+                    onClick: () => ToggleExpanded(key, EventFilter.HasSearch));
 
                 if (!expanded)
                     continue;
@@ -436,7 +441,7 @@ namespace StardewEventTracker.UI
                 prefix + name + hearts,
                 now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                 font: Game1.dialogueFont,
-                onClick: expandable && key != null && !EventFilter.IsActive ? () => ToggleExpanded(key) : null,
+                onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.IsActive) : null,
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
@@ -629,10 +634,28 @@ namespace StardewEventTracker.UI
 
         private void AddSpacer(int height) => this.rows.Add(new Row { Height = height });
 
-        private static void ToggleExpanded(string key)
+        /// <summary>
+        /// Whether a group is open. While a search or filter is on, matching groups open by themselves but can still be
+        /// closed; that's forgotten when the search or filters change.
+        /// </summary>
+        private static bool IsExpanded(string key, bool autoExpand)
         {
-            if (!Expanded.Remove(key))
-                Expanded.Add(key);
+            if (!autoExpand)
+                return Expanded.Contains(key);
+
+            if (CollapsedFor.Value != EventFilter.Signature)
+            {
+                CollapsedFor.Value = EventFilter.Signature;
+                Collapsed.Clear();
+            }
+            return !Collapsed.Contains(key);
+        }
+
+        private static void ToggleExpanded(string key, bool autoExpand)
+        {
+            HashSet<string> set = autoExpand ? Collapsed : Expanded;
+            if (!set.Remove(key))
+                set.Add(key);
         }
 
         /****
