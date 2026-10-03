@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using StardewModdingAPI.Utilities;
 
-namespace NpcEventTracker
+namespace StardewEventTracker
 {
     internal sealed class ModConfig
     {

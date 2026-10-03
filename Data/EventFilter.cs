@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using StardewModdingAPI.Utilities;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>The menu's search text and filter toggles, shared by all tabs for the rest of the session.</summary>
     internal static class EventFilter

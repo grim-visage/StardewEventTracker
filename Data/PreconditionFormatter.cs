@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using StardewValley;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>Turns event preconditions into readable text.</summary>
     internal static class PreconditionFormatter

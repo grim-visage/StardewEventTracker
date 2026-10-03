@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NpcEventTracker.Data;
-using NpcEventTracker.Integrations;
-using NpcEventTracker.UI;
+using StardewEventTracker.Data;
+using StardewEventTracker.Integrations;
+using StardewEventTracker.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Menus;
 
-namespace NpcEventTracker
+namespace StardewEventTracker
 {
     public sealed class ModEntry : Mod
     {
@@ -72,9 +72,9 @@ namespace NpcEventTracker
             };
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
-            helper.ConsoleCommands.Add("net_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: net_dump <npc or location name>", this.OnDumpCommand);
-            helper.ConsoleCommands.Add("net_export", "Writes every indexed event and its current status to exports/events.json in the mod folder.\n\nUsage: net_export", this.OnExportCommand);
-            helper.ConsoleCommands.Add("net_travel", "Estimates the walk from you to a location, in in-game minutes.\n\nUsage: net_travel <location name>", (_, args) =>
+            helper.ConsoleCommands.Add("tracker_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: tracker_dump <npc or location name>", this.OnDumpCommand);
+            helper.ConsoleCommands.Add("tracker_export", "Writes every indexed event and its current status to exports/events.json in the mod folder.\n\nUsage: tracker_export", this.OnExportCommand);
+            helper.ConsoleCommands.Add("tracker_travel", "Estimates the walk from you to a location, in in-game minutes.\n\nUsage: tracker_travel <location name>", (_, args) =>
             {
                 if (!Context.IsWorldReady || args.Length == 0)
                     return;
@@ -85,7 +85,7 @@ namespace NpcEventTracker
                     + $"(clock measured at {this.State.Travel.RealMsPerGameMinute:0} real ms per in-game minute).",
                     LogLevel.Info);
             });
-            helper.ConsoleCommands.Add("net_reindex", "Re-reads all event data.\n\nUsage: net_reindex", (_, _) =>
+            helper.ConsoleCommands.Add("tracker_reindex", "Re-reads all event data.\n\nUsage: tracker_reindex", (_, _) =>
             {
                 if (Context.IsWorldReady)
                     this.Index.Rebuild();

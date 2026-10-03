@@ -2,7 +2,7 @@ using System;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
 
-namespace NpcEventTracker.Integrations
+namespace StardewEventTracker.Integrations
 {
     /// <summary>The subset of Generic Mod Config Menu's API this mod uses.</summary>
     public interface IGenericModConfigMenuApi

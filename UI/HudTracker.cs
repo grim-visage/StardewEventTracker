@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using NpcEventTracker.Data;
+using StardewEventTracker.Data;
 using StardewValley;
 using StardewValley.Menus;
 
-namespace NpcEventTracker.UI
+namespace StardewEventTracker.UI
 {
     /// <summary>A compact always-on box listing each pinned NPC's next event.</summary>
     internal sealed class HudTracker

@@ -4,7 +4,7 @@ using System.Linq;
 using StardewValley;
 using StardewValley.GameData.Characters;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>Builds the player-facing, in-world wording for events: menu tags, HUD lines and reminders.</summary>
     internal static class EventNarrator

@@ -4,7 +4,7 @@ using System.Linq;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     internal enum ConditionState
     {

@@ -4,7 +4,7 @@ using System.Linq;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>A festival's location and hours on a given day.</summary>
     internal readonly record struct FestivalInfo(string LocationName, int Start, int End);

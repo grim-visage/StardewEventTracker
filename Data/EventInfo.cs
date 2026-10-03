@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using StardewValley;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     internal enum ConditionCategory
     {

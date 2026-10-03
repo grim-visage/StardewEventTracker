@@ -1,5 +1,5 @@
 ================================================================================
-                               NPC EVENT TRACKER
+                             STARDEW EVENT TRACKER
 ================================================================================
 
 A SMAPI mod for Stardew Valley 1.6 that tracks heart events and story events.
@@ -25,7 +25,7 @@ INSTALLATION
 ------------
   1. Install SMAPI if you haven't already.
   2. Unzip this archive into your "Stardew Valley/Mods" folder. You should end
-     up with "Mods/NpcEventTracker/".
+     up with "Mods/StardewEventTracker/".
   3. Launch the game through SMAPI.
 
 There's nothing to enable: SMAPI loads every mod in the Mods folder.
@@ -304,13 +304,16 @@ CONSOLE COMMANDS
 ----------------
 Type these in the SMAPI console window:
 
-  net_dump <name>       Print every heart event for an NPC (or story event
-                        for a location), with each requirement's status and
-                        raw code
-  net_travel <location> Estimate the walk from you to a location
-  net_export            Write every event and its status to
-                        exports/events.json in the mod folder
-  net_reindex           Re-read event data
+  tracker_dump <name>
+      Print every heart event for an NPC (or story event for a location),
+      with each requirement's status and raw code.
+  tracker_travel <location>
+      Estimate the walk from you to a location.
+  tracker_export
+      Write every event and its status to exports/events.json in the mod
+      folder.
+  tracker_reindex
+      Re-read event data.
 
 
 KNOWN LIMITATIONS
@@ -325,6 +328,20 @@ KNOWN LIMITATIONS
   * Reminders, the HUD and map markers only cover what you've pinned.
   * Walking estimates count walking and riding only, not minecarts, the bus,
     boats or totems.
+
+
+ABOUT THIS MOD
+--------------
+This mod was built with the help of an AI coding assistant (Claude, by
+Anthropic). The design, testing in a real modded playthrough, and ongoing
+maintenance are mine. If something doesn't work, please report it on GitHub:
+https://github.com/grim-visage/StardewEventTracker/issues
+
+
+LICENSE
+-------
+MIT License. See the LICENSE file. Source code:
+https://github.com/grim-visage/StardewEventTracker
 
 
 BUILDING FROM SOURCE

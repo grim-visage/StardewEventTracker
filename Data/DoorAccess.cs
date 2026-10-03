@@ -9,7 +9,7 @@ using xTile.Layers;
 using xTile.ObjectModel;
 using xTile.Tiles;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>A locked door leading into a location (a map's <c>LockedDoorWarp</c> action).</summary>
     internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship);

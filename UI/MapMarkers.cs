@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using NpcEventTracker.Data;
+using StardewEventTracker.Data;
 using StardewValley;
 using StardewValley.Menus;
 using StardewValley.WorldMaps;
 
-namespace NpcEventTracker.UI
+namespace StardewEventTracker.UI
 {
     /// <summary>
     /// Draws a heart on the map page where pinned NPCs' events can happen today. Works with any MapPage, including

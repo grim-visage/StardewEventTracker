@@ -1,6 +1,6 @@
 using StardewModdingAPI;
 
-namespace NpcEventTracker
+namespace StardewEventTracker
 {
     /// <summary>Player-facing text from the <c>i18n</c> folder, so the mod can be translated.</summary>
     internal static class I18n

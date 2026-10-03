@@ -6,7 +6,7 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.TokenizableStrings;
 
-namespace NpcEventTracker.Data
+namespace StardewEventTracker.Data
 {
     /// <summary>A group's unseen events, split into what can still happen and what's locked.</summary>
     internal sealed class PendingEvents

@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <AssemblyName>NpcEventTracker</AssemblyName>
-    <RootNamespace>NpcEventTracker</RootNamespace>
+    <AssemblyName>StardewEventTracker</AssemblyName>
+    <RootNamespace>StardewEventTracker</RootNamespace>
     <Version>1.0.0</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -20,8 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="PLAN.md" />
     <None Update="README.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="LICENSE" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

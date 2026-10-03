@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using NpcEventTracker.Data;
+using StardewEventTracker.Data;
 using StardewModdingAPI;
 
-namespace NpcEventTracker
+namespace StardewEventTracker
 {
     /// <summary>Per-save data for one player: which NPCs they're tracking.</summary>
     internal sealed class PinData

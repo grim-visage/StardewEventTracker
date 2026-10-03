@@ -1,10 +1,10 @@
 {
-  "Name": "NPC Event Tracker",
-  "Author": "grim",
+  "Name": "Stardew Event Tracker",
+  "Author": "grim-visage",
   "Version": "1.0.0",
-  "Description": "Tracks pending NPC heart and story events, what each one needs to trigger, and NPCs you pin.",
-  "UniqueID": "grim.NpcEventTracker",
-  "EntryDll": "NpcEventTracker.dll",
+  "Description": "Tracks heart and story events: what's pending, where and when each can happen, what you still need, and reminders for what you pin.",
+  "UniqueID": "grim-visage.StardewEventTracker",
+  "EntryDll": "StardewEventTracker.dll",
   "MinimumApiVersion": "4.0.0",
-  "UpdateKeys": []
+  "UpdateKeys": [ "GitHub:grim-visage/StardewEventTracker" ]
 }

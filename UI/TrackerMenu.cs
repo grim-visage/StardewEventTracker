@@ -4,12 +4,12 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using NpcEventTracker.Data;
+using StardewEventTracker.Data;
 using StardewValley;
 using StardewModdingAPI.Utilities;
 using StardewValley.Menus;
 
-namespace NpcEventTracker.UI
+namespace StardewEventTracker.UI
 {
     /// <summary>The hotkey menu: pinned NPCs, heart events by NPC, story events by location, and completed events.</summary>
     internal sealed class TrackerMenu : IClickableMenu
