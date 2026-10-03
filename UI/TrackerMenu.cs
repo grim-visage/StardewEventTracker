@@ -197,7 +197,8 @@ namespace StardewEventTracker.UI
 
             var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).ToList();
             var pinnedStory = this.mod.GetPinnedStoryEvents();
-            if (pinned.Count == 0 && pinnedStory.Count == 0)
+            var missingStory = EventFilter.IsActive ? new List<string>() : this.mod.GetMissingStoryPins();
+            if (pinned.Count == 0 && pinnedStory.Count == 0 && missingStory.Count == 0)
             {
                 this.AddRow(I18n.Get("menu.pinned.none"), MutedColor);
                 this.AddRow(I18n.Get("menu.pinned.how", new { key = this.mod.Config.PinKey }), MutedColor);
@@ -222,12 +223,26 @@ namespace StardewEventTracker.UI
             var storyVisible = pinnedStory
                 .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && EventFilter.MatchesSearch(p.Event, this.Index, this.mod.HidesDetails(p.Eval)))
                 .ToList();
-            if (storyVisible.Count > 0)
+            if (storyVisible.Count > 0 || missingStory.Count > 0)
             {
                 any = true;
                 this.AddRow(I18n.Get("menu.pinned.story"), Game1.textColor, font: Game1.dialogueFont);
                 foreach ((EventInfo evt, EventEvaluation eval) in storyVisible)
                     this.AddEventDetail(evt, eval, indent: 16, showLocation: true);
+
+                // pins whose event isn't in today's data can still be removed
+                foreach (string key in missingStory)
+                {
+                    int split = key.IndexOf('|');
+                    string location = split > 0 ? EventIndex.GetLocationDisplayName(key[..split]) : key;
+                    string id = split > 0 ? key[(split + 1)..] : key;
+                    this.AddRow(
+                        I18n.Get("menu.pinned.missing", new { id, location }),
+                        MutedColor,
+                        indent: 16,
+                        button: I18n.Get("menu.button.unpin"),
+                        onButton: () => this.mod.UnpinStoryKey(key));
+                }
             }
 
             if (!any)

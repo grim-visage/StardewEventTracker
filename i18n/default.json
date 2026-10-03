@@ -345,5 +345,6 @@
   "step.year": "wait until year {{year}}",
   "step.house-upgrade": "upgrade your farmhouse to level {{level}}",
   "status.on-entry": "No requirements: plays when you next go there, once you can reach it",
-  "hud.on-entry": "Plays when you next go there"
+  "hud.on-entry": "Plays when you next go there",
+  "menu.pinned.missing": "Pinned event #{{id}} at {{location}} isn't in today's data. Its mod may add it only on some days, or the mod was removed."
 }

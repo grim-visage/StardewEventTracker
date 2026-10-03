@@ -127,6 +127,20 @@ namespace StardewEventTracker
             this.RunReminders();
         }
 
+        /// <summary>Removes a story pin by key, e.g. one whose event no longer exists.</summary>
+        internal void UnpinStoryKey(string key)
+        {
+            if (this.State.PinnedStoryEvents.Remove(key))
+            {
+                this.SavePins();
+                this.Index.Invalidate();
+            }
+        }
+
+        /// <summary>Pinned story event keys with no matching event today (it may only exist on some days, or its mod was removed).</summary>
+        internal List<string> GetMissingStoryPins() =>
+            this.State.PinnedStoryEvents.Where(key => this.Index.FindByKey(key) == null).OrderBy(key => key).ToList();
+
         /// <summary>The pinned story events that haven't been seen yet, ordered by status and location.</summary>
         internal List<(EventInfo Event, EventEvaluation Eval)> GetPinnedStoryEvents()
         {

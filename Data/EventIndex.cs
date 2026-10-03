@@ -431,7 +431,7 @@ namespace StardewEventTracker.Data
             return actors.ToArray();
         }
 
-        private static string GetLocationDisplayName(string name)
+        internal static string GetLocationDisplayName(string name)
         {
             try
             {
