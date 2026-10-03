@@ -185,11 +185,12 @@ explains them instead of showing an internal ID:
 A few flags aren't set by anything in the game's data (the game's or a mod's
 own code, or content that isn't finished yet). For those, assets/hints.json
 has short hand-written hints researched from the game code, mod wikis and
-handbooks, e.g.
-"Complete Jade's quest 'Iron Bar for Jade' (from the East Scarp wiki)". A
-hint is also used when the data's explanation is unclear, and always wins. Any
-flag still unexplained is shown as words, e.g. "Story flag: Duskspire
-defeated". Hint contributions are welcome on GitHub: keep them short, in your
+handbooks, e.g. "Complete Jade's quest 'Iron Bar for Jade' (from the East
+Scarp wiki)". A hint is also used when the data's explanation is unclear, and
+always wins. Any flag still unexplained is shown as words, e.g. "Story flag:
+Duskspire defeated". The same file explains requirements that other mods add
+to the game, e.g. Ridgeside's "Arrive riding your horse"; ones it doesn't
+know read "Other requirement: ...". Hint contributions are welcome on GitHub: keep them short, in your
 own words, and say where the information came from.
 
 Some mods (Ridgeside Village, for example) start certain events from their own

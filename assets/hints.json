@@ -148,5 +148,11 @@
       "Source": "Stardew Valley Wiki",
       "Url": "https://stardewvalleywiki.com/Island_South"
     }
+  },
+  "Preconditions": {
+    "rsvRidingHorse": {
+      "Text": "Arrive riding your horse",
+      "Source": "Ridgeside Village code"
+    }
   }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using StardewModdingAPI;
 
@@ -18,6 +19,9 @@ namespace StardewEventTracker.Data
 
         /// <summary>What starts a conversation topic, phrased to follow "after", e.g. "the bus is repaired".</summary>
         public Dictionary<string, Hint> Topics { get; set; } = new();
+
+        /// <summary>Event requirements other mods register with the game, by name, e.g. Ridgeside's "rsvRidingHorse".</summary>
+        public Dictionary<string, Hint> Preconditions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -31,11 +35,15 @@ namespace StardewEventTracker.Data
         public static void Load(IModHelper helper, IMonitor monitor)
         {
             file = helper.Data.ReadJsonFile<HintFile>("assets/hints.json") ?? new HintFile();
-            monitor.Log($"Loaded {file.Flags.Count} flag hints and {file.Topics.Count} topic hints.", LogLevel.Trace);
+            file.Preconditions = new Dictionary<string, Hint>(file.Preconditions, StringComparer.OrdinalIgnoreCase);
+            monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints and {file.Preconditions.Count} requirement hints.", LogLevel.Trace);
         }
 
         public static Hint? ForTopic(string topic) =>
             file.Topics.TryGetValue(topic, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
+
+        public static Hint? ForPrecondition(string name) =>
+            file.Preconditions.TryGetValue(name, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
 
         public static Hint? ForFlag(string flag) =>
             file.Flags.TryGetValue(flag, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;

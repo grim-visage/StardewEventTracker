@@ -71,7 +71,7 @@ namespace StardewEventTracker.Data
 
             // e.g. a requirement another mod registered with the game
             if (text == null)
-                return I18n.Get("cond.other", new { raw = c.Raw });
+                return Hints.ForPrecondition(c.Name) is { } hint ? hint.Text : I18n.Get("cond.other", new { raw = c.Raw });
 
             // conditions whose text above doesn't already reflect negation
             bool handlesNegation = c.Name.ToLowerInvariant() is "dayofweek" or "dayofmonth" or "season" or "sawevent"
