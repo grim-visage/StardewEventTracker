@@ -5,8 +5,8 @@
 A SMAPI mod for Stardew Valley 1.6 that tracks heart events and story events.
 For each NPC it shows which events you haven't seen, where and when each one
 triggers, and what you still need: hearts, time of day, weather, day of the
-week, earlier events, and so on. Pin the NPCs you care about and it reminds
-you in time to get there.
+week, earlier events, and so on. Pin the NPCs and story events you care about
+and it reminds you in time to get there.
 
 It reads the game's live event data, so events added by mods like Stardew
 Valley Expanded, Ridgeside Village, East Scarp, and custom NPC mods are
@@ -42,8 +42,8 @@ HOW TO USE IT
   Shift + drag        Move the HUD tracker with the mouse
 
 
-Pinning NPCs
-~~~~~~~~~~~~
+Pinning
+~~~~~~~
 Pin the NPCs and story events you want to follow. Reminders, the HUD tracker
 and map markers cover what you've pinned. You can pin someone by:
 
@@ -71,11 +71,15 @@ Tracker menu (F2)
   * Completed  Events you've already seen. Switch between Hearts and Story
                at the top.
 
+Each NPC's events are listed in story order, followed by a "Next up" line for
+the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (needs 4
+hearts, you have 3)" or "(marry Leah first)".
+
 Each event also shows:
   * how far away it is on foot, when it can happen today
   * what seeing it leads to ("Leads to: ..."), for event chains
   * a Snooze button, for pinned events: no reminders for that event until
-    tomorrow, and the HUD moves on to the next one
+    tomorrow, and the HUD moves on to the next one. Click Wake to undo it.
 
 
 Search and filters
@@ -112,11 +116,15 @@ Each event shows where it stands right now:
   Green Rain
   Festival here today   A festival is on at that location; events there
                         can't start during festival hours
+  Doors are locked for  On festival days every shop and house in the
+  today's festival      valley is locked all day
   Missed today          Today's time window has passed
-  Not yet               Something still needs doing first
+  Not yet: ...          Something still needs doing first. Names the first
+                        thing, e.g. "see Leah's 4-heart event first"
   Special trigger       Started by the game or a mod some other way, not
                         by visiting the location
-  Locked                Needs more hearts, or to be dating or married
+  Locked: ...           Needs more hearts, or to be dating or married.
+                        Names what's needed, e.g. "marry Leah first"
 
 When only the day is in the way, the status also checks tomorrow's weather
 forecast and date: "(tomorrow works!)" or "(not tomorrow either)".
@@ -139,6 +147,11 @@ letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
 when every shop and house in the valley is locked. These show as "Door" lines
 under the event.
 
+Some mods (Ridgeside Village, for example) start certain events from their own
+code and give them a requirement that can never be met, so the game won't
+also start them on its own. The tracker recognizes these and marks them
+"special trigger" instead of showing that requirement as missing.
+
 Events only start when you arrive at a location. If you're already there
 when one becomes available, step out and come back in.
 
@@ -146,7 +159,8 @@ when one becomes available, step out and come back in.
 HUD tracker (Shift + F2)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 A small box showing each pinned NPC's next event and each pinned story event,
-where it happens, and a short status:
+where it happens, and a short status. For an NPC, "next" means an event you
+can act on today if there is one, otherwise the earliest one in their story.
 
   Status              Meaning
   ------------------  -----------------------------------------------------
@@ -158,10 +172,23 @@ where it happens, and a short status:
                       default)
   Later today         It starts later today
   Wait for ...        Needs a different day, e.g. "a sunny day"
+  Green Rain today    No events today because of Green Rain
+  Festival here       A festival blocks it today (or every shop and house
+  today               is locked for one)
   Missed today        Today's time window has passed
   Not yet - ...       The first thing you still need, e.g. "needs 2 hearts
                       with Leah to get in (you: 1)" or "see Leah's 4-heart
                       event first", plus how many more
+  next at N hearts    The next event is locked; also "next - marry Leah
+                      first" for dating and marriage events
+  snoozed until       You snoozed the NPC's events for today
+  tomorrow
+  all caught up       You've seen all of the NPC's events
+
+Events that can happen today also show how far away they are ("40m away").
+Statuses held up by the day add "(tomorrow works!)" when the forecast says
+tomorrow is fine. If more events are waiting, the first line ends in
+"(+N more)".
 
 Hold Shift and drag the box to move it.
 
@@ -191,6 +218,16 @@ have time to get there:
                        visit Robin at her home, the Carpenter's Shop.").
   * Evening look-ahead From 6:00 pm, events that couldn't happen today but
                        should work tomorrow ("Tomorrow looks rainy...").
+
+Messages fit the situation: they use the NPC's name and pronouns, mention
+their home when the event is there, and change with rain and the time of day
+("On a rainy day like this, Abigail might be at the Mountain.").
+
+The leave-now estimate follows the map's real routes. The mod measures how
+fast the in-game clock is actually running, so mods that slow time down or
+speed it up (like It's Stardew Time) are accounted for. If your clock runs at
+different speeds indoors and outdoors, the estimate follows where you've been
+recently, so it's approximate.
 
 Each reminder is sent once per day, plays a sound, and stays on screen for
 10 seconds. You can pick the sounds (or turn them off) and the duration in the
@@ -230,7 +267,7 @@ launch:
   ShowHud                true             Whether the HUD tracker is visible
   HudDragKey             LeftShift        Hold to drag the HUD tracker
   ShowMapMarkers         true             Hearts on the map for pinned
-                                          NPCs' events
+                                          events
   StoryReminders         true             Reminders for pinned story events
   MorningHeadsUp         true             Day-start message about today's
                                           events
