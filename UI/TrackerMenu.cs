@@ -430,9 +430,7 @@ namespace StardewEventTracker.UI
             int later = pending.Count(EventStatus.LaterToday);
             int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
 
-            string hearts = Game1.player.friendshipData.ContainsKey(owner)
-                ? "  " + I18n.Get("menu.npc.hearts", new { hearts = Game1.player.getFriendshipHeartLevelForNPC(owner) })
-                : "";
+            string hearts = "  " + HeartsLabel(owner);
             string counts = I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
                 + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
                 + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : "")
@@ -449,6 +447,30 @@ namespace StardewEventTracker.UI
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
+        }
+
+        /// <summary>
+        /// "3 hearts", or "not met yet" before you've introduced yourself (the game has no friendship with them until
+        /// then). Blank for NPCs you can't befriend.
+        /// </summary>
+        private static string HeartsLabel(string npc)
+        {
+            if (Game1.player.friendshipData.ContainsKey(npc))
+            {
+                int hearts = Game1.player.getFriendshipHeartLevelForNPC(npc);
+                return I18n.Get(hearts == 1 ? "menu.npc.hearts.1" : "menu.npc.hearts", new { hearts });
+            }
+
+            bool canSocialize;
+            try
+            {
+                canSocialize = !Game1.characterData.TryGetValue(npc, out var data) || GameStateQuery.CheckConditions(data.CanSocialize);
+            }
+            catch
+            {
+                canSocialize = true;
+            }
+            return canSocialize ? I18n.Get("menu.npc.not-met") : "";
         }
 
         private void AddEventList(PendingEvents pending, List<(EventInfo Event, EventEvaluation Eval)> visible, int indent, bool showLocation)
