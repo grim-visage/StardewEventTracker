@@ -65,6 +65,13 @@ namespace StardewEventTracker.Data
 
         private readonly IMonitor monitor;
         private readonly Dictionary<string, EventEvaluation> evaluations = new();
+
+        /// <summary>Each group's pending events, until the next <see cref="Invalidate"/>; the HUD, map, reminders and menu all ask for them.</summary>
+        private readonly Dictionary<string, PendingEvents> pending = new();
+
+        /// <summary>Everything the menu's search looks at for each event, until the next <see cref="Invalidate"/>.</summary>
+        private readonly Dictionary<string, string[]> searchText = new();
+
         private Dictionary<string, List<EventInfo>> byOwner = new();
         private Dictionary<string, List<EventInfo>> storyByLocation = new();
         private Dictionary<string, EventInfo> byId = new();
@@ -107,7 +114,7 @@ namespace StardewEventTracker.Data
             var timer = System.Diagnostics.Stopwatch.StartNew();
             NpcNameCache.Clear();
             CalendarInfo.Clear();
-            DoorAccess.Rebuild(this.monitor);
+            DoorAccess.EnsureScanned(this.monitor);
             this.Flags.Rebuild(this.monitor);
             var locationNames = new HashSet<string>(Game1.locationData.Keys);
             Utility.ForEachLocation(location =>
@@ -230,6 +237,8 @@ namespace StardewEventTracker.Data
         public void Invalidate()
         {
             this.evaluations.Clear();
+            this.pending.Clear();
+            this.searchText.Clear();
             this.Version++;
         }
 
@@ -274,9 +283,31 @@ namespace StardewEventTracker.Data
         public string GetLocationName(string location) =>
             this.GetStoryEvents(location).FirstOrDefault()?.LocationDisplayName ?? location;
 
-        public PendingEvents GetPending(string owner) => this.Collect(this.GetEvents(owner));
+        public PendingEvents GetPending(string owner) => this.CollectCached("hearts:" + owner, this.GetEvents(owner));
 
-        public PendingEvents GetStoryPending(string location) => this.Collect(this.GetStoryEvents(location));
+        public PendingEvents GetStoryPending(string location) => this.CollectCached("story:" + location, this.GetStoryEvents(location));
+
+        /// <summary>The event's ID, title, location, NPCs and requirements as text, for the menu's search.</summary>
+        public IReadOnlyList<string> GetSearchText(EventInfo evt)
+        {
+            if (!this.searchText.TryGetValue(evt.EntryKey, out string[]? text))
+            {
+                IEnumerable<string> parts = new[] { evt.Id, evt.Title, evt.LocationDisplayName, evt.LocationName }
+                    .Concat(evt.Actors.Select(GetNpcDisplayName))
+                    .Concat(evt.Conditions.Select(c => PreconditionFormatter.Describe(c, this)));
+                if (evt.IsHeartEvent)
+                    parts = parts.Append(GetNpcDisplayName(evt.Owner));
+                this.searchText[evt.EntryKey] = text = parts.ToArray();
+            }
+            return text;
+        }
+
+        private PendingEvents CollectCached(string key, IEnumerable<EventInfo> events)
+        {
+            if (!this.pending.TryGetValue(key, out PendingEvents? result))
+                this.pending[key] = result = this.Collect(events);
+            return result;
+        }
 
         private PendingEvents Collect(IEnumerable<EventInfo> events)
         {

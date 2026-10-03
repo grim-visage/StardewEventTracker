@@ -61,13 +61,8 @@ namespace StardewEventTracker.Data
             if (detailsHidden)
                 return MatchesText(evt.Title) || (evt.IsHeartEvent && MatchesText(EventIndex.GetNpcDisplayName(evt.Owner)));
 
-            IEnumerable<string> haystack = new[] { evt.Id, evt.Title, evt.LocationDisplayName, evt.LocationName }
-                .Concat(evt.Actors.Select(EventIndex.GetNpcDisplayName))
-                .Concat(evt.Conditions.Select(c => PreconditionFormatter.Describe(c, index)));
-            if (evt.IsHeartEvent)
-                haystack = haystack.Append(EventIndex.GetNpcDisplayName(evt.Owner));
-
-            return haystack.Any(MatchesText);
+            // worked out once per event, not again on every key typed
+            return index.GetSearchText(evt).Any(MatchesText);
         }
     }
 }

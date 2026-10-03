@@ -20,7 +20,8 @@ namespace StardewEventTracker.Data
         /// <summary>Stops the search on huge modded maps; far enough for any real route.</summary>
         private const int MaxSteps = 20000;
 
-        private readonly Dictionary<string, int?> cache = new();
+        /// <summary>The search from the player's position, resumed for each location asked about until <see cref="Invalidate"/>.</summary>
+        private Search? search;
 
         /// <summary>Measured real milliseconds per in-game minute, since mods like It's Stardew Time change the clock speed.</summary>
         private double realMsPerGameMinute = 700;
@@ -32,7 +33,7 @@ namespace StardewEventTracker.Data
         private double runningMs;
 
         /// <summary>Forgets cached estimates, e.g. after the player moves or time passes.</summary>
-        public void Invalidate() => this.cache.Clear();
+        public void Invalidate() => this.search = null;
 
         /// <summary>Counts real time while the clock is running. Call every update tick.</summary>
         public void OnUpdateTicked()
@@ -62,62 +63,96 @@ namespace StardewEventTracker.Data
             // events that can start anywhere need no walk
             if (from.NameOrUniqueName == targetLocation || targetLocation == EventIndex.AnywhereKey)
                 return 0;
-            if (this.cache.TryGetValue(targetLocation, out int? cached))
-                return cached;
 
-            int? result = null;
             try
             {
-                float? minutes = this.Search(from, Game1.player!.TilePoint, targetLocation);
-                if (minutes != null)
-                    result = (int)Math.Ceiling(minutes.Value);
+                if (this.search == null || this.search.Origin != from.NameOrUniqueName)
+                    this.search = new Search(from.NameOrUniqueName, Game1.player!.TilePoint, this.MinutesPerTile());
+                float? minutes = this.search.MinutesTo(targetLocation);
+                return minutes != null ? (int)Math.Ceiling(minutes.Value) : null;
             }
             catch (Exception)
             {
                 // a broken modded map shouldn't break reminders
+                return null;
             }
-            return this.cache[targetLocation] = result;
         }
 
-        /// <summary>Dijkstra over (location, arrival tile) states, with walking cost between warps.</summary>
-        private float? Search(GameLocation start, Point startTile, string target)
+        /// <summary>
+        /// Dijkstra over (location, arrival tile) states, with walking cost between warps. It stops once it reaches the
+        /// location asked about and carries on from there for the next one, so every route from one spot is one search.
+        /// </summary>
+        private sealed class Search
         {
-            float minutesPerTile = this.MinutesPerTile();
-            var queue = new PriorityQueue<(string Location, Point Tile), float>();
-            var best = new Dictionary<(string, Point), float>();
-            queue.Enqueue((start.NameOrUniqueName, startTile), 0);
-            best[(start.NameOrUniqueName, startTile)] = 0;
+            private readonly PriorityQueue<(string Location, Point Tile), float> queue = new();
+            private readonly Dictionary<(string, Point), float> best = new();
 
-            for (int steps = 0; steps < MaxSteps && queue.TryDequeue(out var state, out float cost); steps++)
+            /// <summary>The shortest walk to each location reached so far.</summary>
+            private readonly Dictionary<string, float> reached = new();
+
+            /// <summary>Where each door puts the player, by target and the location the door is in.</summary>
+            private readonly Dictionary<(string, string), Point> arrivals = new();
+
+            private readonly float minutesPerTile;
+
+            /// <summary>The location the search starts from.</summary>
+            public string Origin { get; }
+
+            public Search(string origin, Point startTile, float minutesPerTile)
             {
-                if (state.Location == target)
-                    return cost;
-                if (best.TryGetValue(state, out float known) && known < cost)
-                    continue;
-
-                GameLocation? location = Game1.getLocationFromName(state.Location);
-                if (location == null)
-                    continue;
-
-                void Visit(Point exit, string next, Point arrival)
-                {
-                    float total = cost + Distance(state.Tile, exit) * minutesPerTile + WarpMinutes;
-                    var key = (next, arrival);
-                    if (!best.TryGetValue(key, out float old) || total < old)
-                    {
-                        best[key] = total;
-                        queue.Enqueue(key, total);
-                    }
-                }
-
-                foreach (Warp warp in location.warps)
-                    Visit(new Point(warp.X, warp.Y), warp.TargetName, new Point(warp.TargetX, warp.TargetY));
-
-                foreach (KeyValuePair<Point, string> door in location.doors.Pairs)
-                    Visit(door.Key, door.Value, ArrivalTile(door.Value, location.NameOrUniqueName));
+                this.Origin = origin;
+                this.minutesPerTile = minutesPerTile;
+                this.queue.Enqueue((origin, startTile), 0);
+                this.best[(origin, startTile)] = 0;
             }
 
-            return null;
+            public float? MinutesTo(string target)
+            {
+                for (int steps = 0; !this.reached.ContainsKey(target) && steps < MaxSteps && this.queue.TryDequeue(out var state, out float cost); steps++)
+                {
+                    if (this.best.TryGetValue(state, out float known) && known < cost)
+                        continue;
+                    this.reached.TryAdd(state.Location, cost);
+                    this.Expand(state.Location, state.Tile, cost);
+                }
+                return this.reached.TryGetValue(target, out float minutes) ? minutes : null;
+            }
+
+            private void Expand(string locationName, Point tile, float cost)
+            {
+                GameLocation? location = Game1.getLocationFromName(locationName);
+                if (location == null)
+                    return;
+
+                try
+                {
+                    foreach (Warp warp in location.warps)
+                        this.Visit(tile, cost, new Point(warp.X, warp.Y), warp.TargetName, new Point(warp.TargetX, warp.TargetY));
+
+                    foreach (KeyValuePair<Point, string> door in location.doors.Pairs)
+                    {
+                        var key = (door.Value, location.NameOrUniqueName);
+                        if (!this.arrivals.TryGetValue(key, out Point arrival))
+                            this.arrivals[key] = arrival = ArrivalTile(door.Value, location.NameOrUniqueName);
+                        this.Visit(tile, cost, door.Key, door.Value, arrival);
+                    }
+                }
+                catch (Exception)
+                {
+                    // a broken modded map: route around it
+                }
+            }
+
+            private void Visit(Point from, float cost, Point exit, string next, Point arrival)
+            {
+                float total = cost + Distance(from, exit) * this.minutesPerTile + WarpMinutes;
+                var key = (next, arrival);
+                if (!this.best.TryGetValue(key, out float old) || total < old)
+                {
+                    this.best[key] = total;
+                    this.queue.Enqueue(key, total);
+                }
+            }
         }
 
         /// <summary>Where a door into a location puts the player: next to the warp leading back out, or the map's middle.</summary>

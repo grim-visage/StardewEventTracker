@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewEventTracker.Data;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
 using StardewValley.WorldMaps;
@@ -23,6 +24,17 @@ namespace StardewEventTracker.UI
 
         private readonly ModEntry mod;
 
+        /// <summary>The markers last worked out, and for which map region and evaluations.</summary>
+        private sealed class Cache
+        {
+            public List<(Vector2 Pixel, bool Now, string Label)> Markers = new();
+            public int Version = -1;
+            public string? Region;
+        }
+
+        // each split-screen player has their own pins and events
+        private readonly PerScreen<Cache> cache = new(() => new Cache());
+
         public MapMarkers(ModEntry mod)
         {
             this.mod = mod;
@@ -39,26 +51,35 @@ namespace StardewEventTracker.UI
             if (page == null)
                 return;
 
+            // statuses only change when the index does, so this isn't worked out again every frame
+            Cache cache = this.cache.Value;
+            if (cache.Version != this.mod.Index.Version || cache.Region != page.mapRegion.Id)
+            {
+                cache.Markers.Clear();
+                foreach ((EventInfo evt, EventEvaluation eval, string label) in this.GetMarkers())
+                {
+                    if (GetMapPixel(evt.LocationName, page) is { } markerPixel)
+                        cache.Markers.Add((markerPixel, eval.Status == EventStatus.AvailableNow, label));
+                }
+                cache.Version = this.mod.Index.Version;
+                cache.Region = page.mapRegion.Id;
+            }
+
             var hovered = new List<string>();
             int mouseX = Game1.getMouseX(), mouseY = Game1.getMouseY();
             var stacked = new Dictionary<Point, int>();
             float bob = (float)Math.Sin(Game1.currentGameTime.TotalGameTime.TotalMilliseconds / 250.0) * 3f;
 
-            foreach ((EventInfo evt, EventEvaluation eval, string label) in this.GetMarkers())
+            foreach ((Vector2 pixel, bool now, string label) in cache.Markers)
             {
-                Vector2? pixel = GetMapPixel(evt.LocationName, page);
-                if (pixel == null)
-                    continue;
-
                 // several events at one spot sit side by side
-                Point spot = new((int)pixel.Value.X, (int)pixel.Value.Y);
+                Point spot = new((int)pixel.X, (int)pixel.Y);
                 stacked.TryGetValue(spot, out int count);
                 stacked[spot] = count + 1;
 
-                bool now = eval.Status == EventStatus.AvailableNow;
                 var position = new Vector2(
-                    page.mapBounds.X + pixel.Value.X - HeartSprite.Width * Scale / 2 + count * 30,
-                    page.mapBounds.Y + pixel.Value.Y - HeartSprite.Height * Scale - 8 + (now ? bob : 0));
+                    page.mapBounds.X + pixel.X - HeartSprite.Width * Scale / 2 + count * 30,
+                    page.mapBounds.Y + pixel.Y - HeartSprite.Height * Scale - 8 + (now ? bob : 0));
                 var area = new Rectangle((int)position.X, (int)position.Y, (int)(HeartSprite.Width * Scale), (int)(HeartSprite.Height * Scale));
 
                 b.Draw(Game1.mouseCursors, position + new Vector2(2, 2), HeartSprite, Color.Black * 0.35f, 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);

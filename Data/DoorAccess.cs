@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using StardewModdingAPI;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Locations;
 using xTile.Layers;
@@ -33,7 +34,27 @@ namespace StardewEventTracker.Data
         /// <summary>How many doors deep an inner door's outer door is followed, so doors that lead into each other can't loop.</summary>
         private const int MaxInnerDepth = 8;
 
-        public static void Rebuild(IMonitor monitor)
+        /// <summary>The day the maps were last scanned, or null to scan them again.</summary>
+        private static int? scannedDay;
+
+        /// <summary>Scans the maps again next time, e.g. after a map changes or another save loads.</summary>
+        public static void Invalidate() => scannedDay = null;
+
+        /// <summary>
+        /// Scans the maps unless they've already been scanned today. Scanning reads every tile of every map, and maps
+        /// rarely change mid-day (<see cref="Invalidate"/> covers that), so event data changes and other split-screen
+        /// players don't each need their own scan.
+        /// </summary>
+        public static void EnsureScanned(IMonitor monitor)
+        {
+            int today = SDate.Now().DaysSinceStart;
+            if (scannedDay == today)
+                return;
+            Rebuild(monitor);
+            scannedDay = today;
+        }
+
+        private static void Rebuild(IMonitor monitor)
         {
             var timer = Stopwatch.StartNew();
             var lockedInto = new Dictionary<string, List<DoorLock>>();

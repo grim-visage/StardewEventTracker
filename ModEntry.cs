@@ -251,6 +251,7 @@ namespace StardewEventTracker
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
         {
             this.dataChangedTick.Value = null;
+            DoorAccess.Invalidate();
             this.State.Reset();
             PinData? data = this.Helper.Data.ReadJsonFile<PinData>(this.PinDataPath);
             if (data != null)
@@ -285,7 +286,14 @@ namespace StardewEventTracker
         /// </summary>
         private void OnAssetsInvalidated(object? sender, AssetsInvalidatedEventArgs e)
         {
-            if (!Context.IsWorldReady || !e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
+            if (!Context.IsWorldReady)
+                return;
+
+            // doors come from the maps, which are only scanned again when one changes
+            bool mapsChanged = e.NamesWithoutLocale.Any(name => name.StartsWith("Maps/"));
+            if (mapsChanged)
+                DoorAccess.Invalidate();
+            if (!mapsChanged && !e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
                 return;
 
             // each split-screen player has their own index
