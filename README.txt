@@ -116,9 +116,10 @@ Each event shows where it stands right now:
   --------------------  ------------------------------------------------
   Available now         Walk into the location and it plays
   Later today           Everything is met; it can start later today
-  Plays when you go     A story event with no requirements: it plays the
-  there                 next time you enter that place, once you can get
-                        there (often the first visit to a new area)
+  Plays when you go     A story event with no requirements (other than
+  there                 "hasn't seen ..." ones): it plays the next time
+                        you enter that place, once you can get there
+                        (often the first visit to a new area)
   Wait for ...          Needs a different day, e.g. "a sunny day"
   No events during      Green Rain stops every location event that day
   Green Rain
@@ -152,8 +153,9 @@ Each requirement has a mark showing whether it's met right now:
 Events inside shops and houses also account for the door: its opening hours
 (the Town Key opens it any time), any hearts the resident requires before
 letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
-when every shop and house in the valley is locked. These show as "Door" lines
-under the event.
+when every shop and house in the valley is locked. Willy's back room (the Boat
+Tunnel) stays locked until his invitation letter arrives. These show as "Door"
+lines under the event.
 
 Many events (especially in mods) depend on hidden "story flags" and
 conversation topics. Where the game's data says how they're set, the tracker

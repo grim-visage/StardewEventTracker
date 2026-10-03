@@ -557,6 +557,12 @@ namespace StardewEventTracker.UI
         /// <summary>Rows for the locked door into the event's location: its hours, friendship rule and festival closure.</summary>
         private void AddDoorRows(DoorState door, EventEvaluation eval, int indent)
         {
+            if (door.Door.RequiredMail is { } letter)
+            {
+                string what = PreconditionFormatter.ExplainFlag(letter, this.Index, forStep: true) ?? I18n.Get("door.letter-flag", new { flag = PreconditionFormatter.HumanizeFlag(letter) });
+                this.AddRow(door.MailOk ? "+ " + I18n.Get("door.letter.ok") : "x " + I18n.Get("door.letter", new { what }), door.MailOk ? MetColor : UnmetColor, indent);
+            }
+
             if (door.FestivalClosed)
                 this.AddRow("x " + I18n.Get("door.festival"), UnmetColor, indent);
 

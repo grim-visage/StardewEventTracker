@@ -20,6 +20,11 @@
       "Text": "May not be available yet: East Scarp doesn't set this flag, so this date can't start in the current version",
       "Source": "East Scarp data"
     },
+    "willyBackRoomInvitation": {
+      "Text": "Finish the Community Center (or Joja's development projects), then Willy invites you to his back room",
+      "Source": "Stardew Valley Wiki",
+      "Url": "https://stardewvalleywiki.com/Ginger_Island"
+    },
     "ccPantry": {
       "Text": "Complete the Pantry bundles in the Community Center",
       "Source": "Stardew Valley Wiki",

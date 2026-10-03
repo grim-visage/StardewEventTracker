@@ -165,7 +165,7 @@ namespace StardewEventTracker.Data
                 status = EventStatus.Special;
             else if (locked)
                 status = EventStatus.Locked;
-            else if (progressUnmet || door is { HeartsOk: false } || doorNeverOpen)
+            else if (progressUnmet || door is { HeartsOk: false } or { MailOk: false } || doorNeverOpen)
                 status = EventStatus.NotYet;
             else if (calendarUnmet)
                 status = EventStatus.WrongDay;
@@ -177,7 +177,7 @@ namespace StardewEventTracker.Data
                 (status, untilStart, startTime) = WithFestival(evt, festival, doorHours, timeOpen, untilStart);
 
             if (status == EventStatus.AvailableNow && evt.IsStory && evt.Conditions.All(c =>
-                    c.Category is ConditionCategory.Time or ConditionCategory.Calendar || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
+                    c.Category is ConditionCategory.Time or ConditionCategory.Calendar || IsExclusion(c) || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
                 status = EventStatus.OnEntry;
 
             // only worth predicting once nothing but the day is in the way
@@ -224,6 +224,12 @@ namespace StardewEventTracker.Data
                 return (EventStatus.LaterToday, minutes, start);
             return (EventStatus.MissedToday, untilStart, start);
         }
+
+        /// <summary>
+        /// A "hasn't seen/received/done X" requirement. It's true from the start and only rules the event out later, so
+        /// on its own it doesn't stop a first-visit event from playing when you arrive.
+        /// </summary>
+        private static bool IsExclusion(Precondition condition) => condition.Negated && condition.Category == ConditionCategory.Progress;
 
         private static bool SafeIsGreenRaining(GameLocation location)
         {

@@ -11,11 +11,14 @@ using xTile.Tiles;
 
 namespace StardewEventTracker.Data
 {
-    /// <summary>A locked door leading into a location (a map's <c>LockedDoorWarp</c> action).</summary>
-    internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship);
+    /// <summary>
+    /// A locked door leading into a location: a map's <c>LockedDoorWarp</c> action, or a door the game's code only
+    /// opens once you've received a letter (<see cref="RequiredMail"/>).
+    /// </summary>
+    internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship, string? RequiredMail = null);
 
     /// <summary>Whether the player can get through a locked door right now, mirroring <c>GameLocation.lockedDoorWarp</c>.</summary>
-    internal readonly record struct DoorState(DoorLock Door, bool HeartsOk, bool FestivalClosed, int Open, int Close, bool AllDay);
+    internal readonly record struct DoorState(DoorLock Door, bool HeartsOk, bool FestivalClosed, int Open, int Close, bool AllDay, bool MailOk = true);
 
     /// <summary>
     /// Finds locations that can only be entered through locked doors (shops and houses with opening hours, or doors
@@ -77,12 +80,22 @@ namespace StardewEventTracker.Data
             return tomorrowsFestival is { } f && f.Start < 1900 && from?.InValleyContext() == true;
         }
 
-        private static int Rank(DoorState s) => (s.HeartsOk ? 4 : 0) + (s.FestivalClosed ? 0 : 2) + (s.AllDay ? 1 : 0);
+        private static int Rank(DoorState s) => (s.MailOk ? 8 : 0) + (s.HeartsOk ? 4 : 0) + (s.FestivalClosed ? 0 : 2) + (s.AllDay ? 1 : 0);
 
         /// <summary>Applies the game's lockedDoorWarp rules to one door.</summary>
         private static DoorState Evaluate(DoorLock door)
         {
             GameLocation? from = Game1.getLocationFromName(door.FromLocation);
+
+            // a door that opens with a letter is inside another location, so that location's own door decides the hours
+            if (door.RequiredMail != null)
+            {
+                bool mailOk = Game1.player.mailReceived.Contains(door.RequiredMail);
+                return GetState(door.FromLocation) is { } outer
+                    ? outer with { Door = door, MailOk = mailOk }
+                    : new DoorState(door, HeartsOk: true, FestivalClosed: false, door.Open, door.Close, AllDay: true, mailOk);
+            }
+
             bool valley = from?.InValleyContext() ?? true;
 
             // the Town Key opens valley doors at any hour (not the night market's)
@@ -136,6 +149,15 @@ namespace StardewEventTracker.Data
                     if (!lockedInto.TryGetValue(args[3], out List<DoorLock>? list))
                         lockedInto[args[3]] = list = new List<DoorLock>();
                     list.Add(new DoorLock(location.NameOrUniqueName, args[3], open, close, npc, min));
+                    break;
+                }
+
+                // Willy's back room: FishShop.performAction only opens it after his invitation
+                case "WarpBoatTunnel":
+                {
+                    if (!lockedInto.TryGetValue("BoatTunnel", out List<DoorLock>? list))
+                        lockedInto["BoatTunnel"] = list = new List<DoorLock>();
+                    list.Add(new DoorLock(location.NameOrUniqueName, "BoatTunnel", 600, 2600, null, 0, RequiredMail: "willyBackRoomInvitation"));
                     break;
                 }
 
