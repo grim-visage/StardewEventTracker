@@ -59,7 +59,8 @@ namespace StardewEventTracker.Data
             GameLocation? from = Game1.player?.currentLocation;
             if (from == null)
                 return null;
-            if (from.NameOrUniqueName == targetLocation)
+            // events that can start anywhere need no walk
+            if (from.NameOrUniqueName == targetLocation || targetLocation == EventIndex.AnywhereKey)
                 return 0;
             if (this.cache.TryGetValue(targetLocation, out int? cached))
                 return cached;

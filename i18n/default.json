@@ -329,5 +329,6 @@
   "config.hud-order": "HUD order",
   "config.hud-order.tip": "By urgency puts what needs doing soonest at the top, so it's never cut off. Alphabetical lists NPCs A-Z, then story events.",
   "config.hud-order.urgency": "By urgency",
-  "config.hud-order.alphabetical": "Alphabetical"
+  "config.hud-order.alphabetical": "Alphabetical",
+  "location.anywhere": "any location"
 }

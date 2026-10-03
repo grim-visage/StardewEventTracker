@@ -627,6 +627,7 @@ namespace StardewEventTracker
 
             this.Index.Invalidate();
             var rows = this.Index.ByOwner.Values
+                .Concat(this.Index.StoryByLocation.Values)
                 .SelectMany(list => list)
                 .Select(evt =>
                 {
@@ -637,17 +638,48 @@ namespace StardewEventTracker
                         evt.LocationName,
                         Location = evt.LocationDisplayName,
                         evt.Owner,
+                        OwnerName = evt.IsHeartEvent ? EventIndex.GetNpcDisplayName(evt.Owner) : null,
                         evt.IsHeartEvent,
-                        evt.Actors,
                         evt.Title,
+                        evt.Relationship,
+                        evt.RequiredPoints,
+                        evt.ProgressRank,
+                        evt.IsSpecial,
+                        Window = evt.Window is { } w ? $"{w.Start}-{w.End}" : null,
+                        evt.Actors,
                         Status = eval.Status.ToString(),
-                        Conditions = evt.Conditions.Select((c, i) => $"{eval.States[i]}: {c.Raw}").ToArray()
+                        Tag = EventNarrator.StatusTag(evt, eval, this.Index),
+                        Hud = EventNarrator.HudLine(evt, eval, this.Config.ReminderMinutesBefore, null, 0, this.Index).Text,
+                        eval.MinutesUntilStart,
+                        eval.StartTime,
+                        eval.WorksTomorrow,
+                        Festival = eval.Festival?.ToString(),
+                        Door = eval.Door?.ToString(),
+                        eval.DoorNeverOpen,
+                        Unlocks = this.Index.GetUnlocks(evt.Id).Select(u => u.Key).ToArray(),
+                        Conditions = evt.Conditions.Select((c, i) => new
+                        {
+                            c.Raw,
+                            c.Name,
+                            c.Negated,
+                            Category = c.Category.ToString(),
+                            State = eval.States[i].ToString(),
+                            Text = PreconditionFormatter.Describe(c, this.Index)
+                        }).ToArray()
                     };
                 })
                 .ToList();
 
             const string path = "exports/events.json";
-            this.Helper.Data.WriteJsonFile(path, rows);
+            this.Helper.Data.WriteJsonFile(path, new
+            {
+                Exported = $"{Game1.currentSeason} {Game1.dayOfMonth}, year {Game1.year}, {Game1.getTimeOfDayString(Game1.timeOfDay)}",
+                Location = Game1.currentLocation?.NameOrUniqueName,
+                Weather = Game1.currentLocation?.GetWeather()?.Weather,
+                Pinned = this.PinnedNpcs.OrderBy(p => p).ToArray(),
+                PinnedStory = this.State.PinnedStoryEvents.OrderBy(p => p).ToArray(),
+                Events = rows
+            });
             this.Monitor.Log($"Exported {rows.Count} events to {System.IO.Path.Combine(this.Helper.DirectoryPath, path)}.", LogLevel.Info);
         }
 

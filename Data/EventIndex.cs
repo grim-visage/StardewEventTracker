@@ -54,6 +54,15 @@ namespace StardewEventTracker.Data
         /// <summary>Owner of story events, which aren't tied to one NPC.</summary>
         public const string OtherKey = "";
 
+        /// <summary>Location key for events that can start in any location.</summary>
+        public const string AnywhereKey = "*";
+
+        /// <summary>
+        /// Farmhouse events the game copies into every location's event list (GameLocation.TryGetLocationEvents),
+        /// so they can start anywhere. They're indexed once, as "any location".
+        /// </summary>
+        private static bool IsGlobalEvent(string key) => key.StartsWith("558291/") || key.StartsWith("558292/");
+
         private readonly IMonitor monitor;
         private readonly Dictionary<string, EventEvaluation> evaluations = new();
         private Dictionary<string, List<EventInfo>> byOwner = new();
@@ -101,6 +110,9 @@ namespace StardewEventTracker.Data
             });
 
             var seenAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // the same event (ID and script) listed under two locations, e.g. Pam's trailer before and after its upgrade
+            var seenEvents = new HashSet<string>();
             var all = new List<EventInfo>();
             int locationCount = 0;
 
@@ -133,21 +145,33 @@ namespace StardewEventTracker.Data
                 if (events == null || !seenAssets.Add(assetName))
                     continue;
 
-                locationCount++;
+                bool isFarmHouseAsset = assetName.Equals("Data\\Events\\FarmHouse", StringComparison.OrdinalIgnoreCase);
                 string displayName = GetLocationDisplayName(name);
+                bool any = false;
                 foreach ((string key, string script) in events)
                 {
+                    bool global = IsGlobalEvent(key);
+                    if (global && !isFarmHouseAsset)
+                        continue;
+
                     try
                     {
-                        EventInfo? info = Parse(name, displayName, key, script);
-                        if (info != null)
+                        EventInfo? info = global
+                            ? Parse(AnywhereKey, I18n.Get("location.anywhere"), key, script)
+                            : Parse(name, displayName, key, script);
+                        if (info != null && seenEvents.Add(info.Id + "\n" + script))
+                        {
                             all.Add(info);
+                            any = true;
+                        }
                     }
                     catch (Exception ex)
                     {
                         this.monitor.Log($"Skipped event '{key}' in {name}: {ex.Message}", LogLevel.Trace);
                     }
                 }
+                if (any)
+                    locationCount++;
             }
 
             this.byOwner = all
