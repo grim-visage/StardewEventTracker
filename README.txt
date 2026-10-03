@@ -155,6 +155,21 @@ letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
 when every shop and house in the valley is locked. These show as "Door" lines
 under the event.
 
+Many events (especially in mods) depend on hidden "story flags" and
+conversation topics. Where the game's data says how they're set, the tracker
+explains them instead of showing an internal ID:
+
+  * a letter:          Get the letter 'Invitation from Jade' (sent once you
+                       have 10 hearts with Jade and are dating Jade)
+  * a special order:   Complete the special order 'Luma's Slime Eggs': Deliver
+                       10 Slime Eggs to the fridge in the Orchard House
+  * an automatic rule: Once you have Cherry Pit
+  * a cooldown:        Wait 4 days after Cirrus's 1-heart event
+  * another event:     See Corwin's 6-heart event
+
+Flags nothing explains are shown as words, e.g. "Story flag: Corwin date
+invite"; the mod's wiki is the best place to look those up.
+
 Some mods (Ridgeside Village, for example) start certain events from their own
 code and give them a requirement that can never be met, so the game won't
 also start them on its own. The tracker recognizes these and marks them

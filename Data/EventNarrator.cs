@@ -322,7 +322,9 @@ namespace StardewEventTracker.Data
                     "sawevent" when !c.Negated => index?.FindById(first) != null
                         ? I18n.Get("step.see-event", new { @event = index.DescribeEventShort(first) })
                         : I18n.Get("step.story-progress"),
-                    "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated => I18n.Get("step.story-progress"),
+                    "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated =>
+                        (index != null ? PreconditionFormatter.ExplainFlag(first, index, forStep: true) : null) ?? I18n.Get("step.story-progress"),
+                    "activedialogueevent" when index != null && PreconditionFormatter.ExplainTopic(first, c.Negated, index, forStep: true) is { } wait => wait,
                     "year" when !c.Negated && first != "1" => I18n.Get("step.year", new { year = first }),
                     "inupgradedhouse" => I18n.Get("step.house-upgrade", new { level = c.Args.Length > 0 ? first : "1" }),
                     "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),

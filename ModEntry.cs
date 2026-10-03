@@ -21,6 +21,9 @@ namespace StardewEventTracker
         private PerScreen<PlayerState> screen = null!;
         private PerScreen<HudTracker> hud = null!;
 
+        /// <summary>Whether to open the tracker menu on the next tick, e.g. after answering the spoiler question.</summary>
+        private readonly PerScreen<bool> openMenuNextTick = new();
+
         /// <summary>While dragging the HUD, the cursor's offset from its top-left corner.</summary>
         private readonly PerScreen<Point?> hudDragOffset = new();
 
@@ -58,6 +61,11 @@ namespace StardewEventTracker
                     return;
                 this.State.Travel.OnUpdateTicked();
                 this.UpdateHudDrag();
+                if (this.openMenuNextTick.Value && Game1.activeClickableMenu == null && !Game1.dialogueUp)
+                {
+                    this.openMenuNextTick.Value = false;
+                    Game1.activeClickableMenu = new TrackerMenu(this);
+                }
             };
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
@@ -375,18 +383,26 @@ namespace StardewEventTracker
             this.Config.SpoilerPromptShown = true;
             this.Helper.WriteConfig(this.Config);
 
-            // both answers continue into the menu; the dialog doesn't close itself
-            string text = Game1.parseText(I18n.Get("spoiler-prompt"), Game1.dialogueFont, Math.Min(900, Game1.uiViewport.Width - 200));
-            Game1.activeClickableMenu = new ConfirmationDialog(
-                text,
-                onConfirm: _ =>
+            // the game's question box, so each answer is spelled out; either one continues into the menu
+            Game1.currentLocation.createQuestionDialogue(
+                I18n.Get("spoiler-prompt"),
+                new[]
                 {
-                    this.Config.SpoilerFree = true;
-                    this.Helper.WriteConfig(this.Config);
-                    this.Index.Invalidate();
-                    Game1.activeClickableMenu = new TrackerMenu(this);
+                    new Response("on", I18n.Get("spoiler-prompt.on")),
+                    new Response("off", I18n.Get("spoiler-prompt.off"))
                 },
-                onCancel: _ => Game1.activeClickableMenu = new TrackerMenu(this));
+                (_, answer) =>
+                {
+                    if (answer == "on")
+                    {
+                        this.Config.SpoilerFree = true;
+                        this.Helper.WriteConfig(this.Config);
+                        this.Index.Invalidate();
+                    }
+
+                    // open once the question box has closed
+                    this.openMenuNextTick.Value = true;
+                });
         }
 
         /// <summary>Pins the NPC hovered on the Social tab, or standing under the cursor in the world.</summary>

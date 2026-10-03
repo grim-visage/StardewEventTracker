@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using StardewValley;
 
 namespace StardewEventTracker.Data
@@ -32,12 +33,15 @@ namespace StardewEventTracker.Data
                 "dating" => I18n.Get("cond.dating", new { name = Npc(a) }),
                 "spouse" => I18n.Get("cond.spouse" + neg, new { name = Npc(a) }),
                 "roommate" => I18n.Get("cond.roommate" + neg, new { name = Npc(a) }),
+                "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated && a.Length > 0 =>
+                    ExplainFlag(a[0], index, forStep: false) ?? I18n.Get("cond.flag", new { flag = HumanizeFlag(a[0]) }),
                 "hostmail" or "hostorlocalmail" or "localmail" => I18n.Get("cond.mail" + neg, new { flag = all }),
                 "worldstate" => I18n.Get("cond.world-state" + neg, new { flag = all }),
                 "hasmoney" => I18n.Get("cond.has-money", new { amount = all }),
                 "freeinventoryslots" => I18n.Get("cond.free-slots", new { count = all }),
                 "spousebed" => I18n.Get("cond.spouse-bed"),
-                "activedialogueevent" => I18n.Get("cond.conversation-topic" + neg, new { topic = all }),
+                "activedialogueevent" => (a.Length > 0 ? ExplainTopic(a[0], c.Negated, index, forStep: false) : null)
+                    ?? I18n.Get("cond.conversation-topic" + neg, new { topic = all }),
                 "skill" when a.Length >= 2 => I18n.Get("cond.skill" + neg, new { skill = a[0], level = a[1] }),
                 "tile" => a.Length >= 2 ? I18n.Get("cond.tile", new { x = a[0], y = a[1] }) : I18n.Get("cond.tile-any"),
                 "ishost" => I18n.Get("cond.is-host"),
@@ -74,6 +78,104 @@ namespace StardewEventTracker.Data
                 or "spouse" or "roommate" or "hostmail" or "hostorlocalmail" or "localmail" or "festivalday" or "upcomingfestival"
                 or "worldstate" or "activedialogueevent" or "skill" or "communitycenterorwarehousedone";
             return c.Negated && !handlesNegation ? I18n.Get("cond.negated", new { text }) : text;
+        }
+
+        /// <summary>
+        /// What a mail flag means, from the game's own data: a letter to receive, a special order to complete, a
+        /// trigger condition to meet, or an event that sets it. Null if nothing explains it.
+        /// </summary>
+        /// <param name="forStep">Use the short lower-case form for "Not yet: ..." lines.</param>
+        public static string? ExplainFlag(string flag, EventIndex index, bool forStep, int depth = 0)
+        {
+            FlagSource? source = index.Flags.GetFlag(flag);
+            if (source == null)
+                return null;
+
+            string prefix = forStep ? "step" : "flag";
+            if (source.SpecialOrderName != null)
+            {
+                return source.SpecialOrderObjective != null
+                    ? I18n.Get($"{prefix}.special-order-objective", new { name = source.SpecialOrderName, objective = source.SpecialOrderObjective })
+                    : I18n.Get($"{prefix}.special-order", new { name = source.SpecialOrderName });
+            }
+
+            string? when = source.TriggerCondition != null && depth == 0 ? DescribeCondition(source.TriggerCondition, index) : null;
+            if (source.LetterTitle != null)
+            {
+                return when != null
+                    ? I18n.Get($"{prefix}.letter-when", new { title = source.LetterTitle, when })
+                    : I18n.Get($"{prefix}.letter", new { title = source.LetterTitle });
+            }
+            if (when != null)
+                return I18n.Get($"{prefix}.trigger", new { when });
+            if (source.EventKey != null && index.FindByKey(source.EventKey) is { } evt)
+                return I18n.Get($"{prefix}.from-event", new { @event = index.DescribeEventShort(evt.Id) });
+            return null;
+        }
+
+        /// <summary>A conversation-topic requirement as a wait: "Wait 4 days after Cirrus's 1-heart event". Null if unknown.</summary>
+        public static string? ExplainTopic(string topic, bool negated, EventIndex index, bool forStep)
+        {
+            if (index.Flags.GetTopic(topic) is not { } source)
+                return null;
+
+            string? after = source.EventKey != null && index.FindByKey(source.EventKey) is { } evt
+                ? index.DescribeEventShort(evt.Id)
+                : source.LetterTitle != null ? I18n.Get("topic.letter", new { title = source.LetterTitle }) : null;
+            if (after == null)
+                return null;
+
+            string prefix = forStep ? "step" : "topic";
+            return I18n.Get(negated ? $"{prefix}.topic-wait" : $"{prefix}.topic-within", new { days = source.Days, @event = after });
+        }
+
+        /// <summary>
+        /// Turns a game state query (from a trigger action) into readable clauses, e.g. "have Cherry Pit" or "have 8
+        /// hearts with Dale and have seen Dale's 6-heart event". Unrecognized clauses are left out; null if none remain.
+        /// </summary>
+        public static string? DescribeCondition(string condition, EventIndex index)
+        {
+            var clauses = new List<string>();
+            foreach (string rawClause in condition.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                bool negated = rawClause.StartsWith('!');
+                string[] t = ArgUtility.SplitBySpaceQuoteAware(negated ? rawClause[1..] : rawClause);
+                if (t.Length == 0)
+                    continue;
+
+                string neg = negated ? ".not" : "";
+                string? clause = t[0].ToUpperInvariant() switch
+                {
+                    "PLAYER_HAS_ITEM" when t.Length >= 3 => I18n.Get("gsq.has-item" + neg, new { item = ItemName(t[2]) }),
+                    "PLAYER_FRIENDSHIP_POINTS" when !negated && t.Length >= 4 && int.TryParse(t[3], out int points) =>
+                        points % NPC.friendshipPointsPerHeartLevel == 0
+                            ? I18n.Get("gsq.hearts", new { hearts = points / NPC.friendshipPointsPerHeartLevel, name = EventIndex.GetNpcDisplayName(t[2]) })
+                            : I18n.Get("gsq.points", new { points, name = EventIndex.GetNpcDisplayName(t[2]) }),
+                    "PLAYER_HEARTS" when !negated && t.Length >= 4 => I18n.Get("gsq.hearts", new { hearts = t[3], name = EventIndex.GetNpcDisplayName(t[2]) }),
+                    "PLAYER_HAS_SEEN_EVENT" when !negated && t.Length >= 3 => index.FindById(t[2]) != null
+                        ? I18n.Get("gsq.seen-event", new { @event = index.DescribeEventShort(t[2]) })
+                        : null,
+                    "PLAYER_HAS_MAIL" when !negated && t.Length >= 3 => ExplainFlag(t[2], index, forStep: true, depth: 1),
+                    "PLAYER_NPC_RELATIONSHIP" when !negated && t.Length >= 4 => I18n.Get("gsq.relationship", new
+                    {
+                        types = string.Join(I18n.Get("join.or"), t.Skip(3).Select(type => I18n.GetOr($"relationship.{type.ToLowerInvariant()}", type.ToLowerInvariant()))),
+                        name = EventIndex.GetNpcDisplayName(t[2])
+                    }),
+                    "SEASON" when t.Length >= 2 => I18n.Get("gsq.season" + neg, new { seasons = string.Join(I18n.Get("join.or"), t.Skip(1).Select(SeasonName)) }),
+                    _ => null
+                };
+                if (clause != null)
+                    clauses.Add(clause);
+            }
+            return clauses.Count > 0 ? string.Join(I18n.Get("join.and"), clauses) : null;
+        }
+
+        /// <summary>A flag ID as words: "HasCherryPitInInventory" -> "Has cherry pit in inventory".</summary>
+        public static string HumanizeFlag(string flag)
+        {
+            string words = Regex.Replace(flag.Replace('_', ' ').Replace('.', ' '), "(?<=[a-z0-9])(?=[A-Z])", " ").Trim();
+            words = Regex.Replace(words, @"\s+", " ");
+            return words.Length > 0 ? char.ToUpperInvariant(words[0]) + words[1..].ToLowerInvariant() : flag;
         }
 
         /// <summary>The time window as a schedule, e.g. "9:00 am-12:00 pm, starts in 1h 20m".</summary>

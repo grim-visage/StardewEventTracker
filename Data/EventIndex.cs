@@ -73,6 +73,9 @@ namespace StardewEventTracker.Data
         /// <summary>Events that require having seen a given event ID.</summary>
         private Dictionary<string, List<EventInfo>> unlockedBy = new();
 
+        /// <summary>Where mail flags and conversation topics in event requirements come from.</summary>
+        public FlagSources Flags { get; } = new();
+
         /// <summary>Increments whenever data or evaluations change, so UI can rebuild.</summary>
         public int Version { get; private set; }
 
@@ -102,6 +105,7 @@ namespace StardewEventTracker.Data
             NpcNameCache.Clear();
             CalendarInfo.Clear();
             DoorAccess.Rebuild(this.monitor);
+            this.Flags.Rebuild(this.monitor);
             var locationNames = new HashSet<string>(Game1.locationData.Keys);
             Utility.ForEachLocation(location =>
             {
@@ -162,6 +166,7 @@ namespace StardewEventTracker.Data
                         if (info != null && seenEvents.Add(info.Id + "\n" + script))
                         {
                             all.Add(info);
+                            this.Flags.ScanScript(info, script);
                             any = true;
                         }
                     }
