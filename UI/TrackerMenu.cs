@@ -433,10 +433,7 @@ namespace StardewEventTracker.UI
             int later = pending.Count(EventStatus.LaterToday);
             int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
 
-            bool canBefriend = CanBefriend(owner);
-            bool met = Game1.player.friendshipData.ContainsKey(owner);
-            string counts = (canBefriend && !met ? I18n.Get("menu.npc.not-met") + "  |  " : "")
-                + I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
+            string counts = I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
                 + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
                 + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : "")
                 + (pending.LockedEvents.Count > 0 ? I18n.Get("menu.count.locked", new { count = pending.LockedEvents.Count }) : "")
@@ -451,29 +448,15 @@ namespace StardewEventTracker.UI
                 onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.IsActive) : null,
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
-            if (canBefriend)
-                this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, at, maxRight);
+            // everyone listed here has heart events, so show hearts even before they can be befriended
+            this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, at, maxRight);
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
-        }
-
-        /// <summary>Whether the NPC has a friendship to show (some can never be befriended).</summary>
-        private static bool CanBefriend(string npc)
-        {
-            if (Game1.player.friendshipData.ContainsKey(npc))
-                return true;
-            try
-            {
-                return !Game1.characterData.TryGetValue(npc, out var data) || GameStateQuery.CheckConditions(data.CanSocialize);
-            }
-            catch
-            {
-                return true;
-            }
         }
 
         /// <summary>
         /// A row of hearts like the game's Social tab: red up to the current level, empty after, and darkened past 8 for
-        /// someone you could date but aren't dating yet.
+        /// someone you could date but aren't dating yet. Followed by "not met yet" until you've introduced yourself
+        /// (the game has no friendship with them until then).
         /// </summary>
         private static void DrawHearts(SpriteBatch b, string npc, Vector2 at, int maxRight)
         {
@@ -486,7 +469,9 @@ namespace StardewEventTracker.UI
             int max = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
 
             // the game's 7x6 heart sprite; smaller if a long name leaves less room
-            float scale = at.X + max * 8 * 4 <= maxRight ? 4f : 3f;
+            string? notMet = friendship == null ? I18n.Get("menu.npc.not-met") : null;
+            int labelWidth = notMet != null ? (int)Game1.smallFont.MeasureString(notMet).X + 12 : 0;
+            float scale = at.X + max * 8 * 4 + labelWidth <= maxRight ? 4f : 3f;
             int step = (int)(8 * scale);
             for (int i = 0; i < max; i++)
             {
@@ -495,6 +480,14 @@ namespace StardewEventTracker.UI
                 Color color = locked && i < 10 ? Color.Black * 0.35f : Color.White;
                 var position = new Vector2(at.X + i * step, at.Y - 3 * scale);
                 b.Draw(Game1.mouseCursors, position, new Rectangle(sourceX, 428, 7, 6), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.88f);
+            }
+
+            if (notMet != null)
+            {
+                Vector2 size = Game1.smallFont.MeasureString(notMet);
+                var position = new Vector2(at.X + max * step + 12, at.Y - size.Y / 2);
+                if (position.X + size.X <= maxRight)
+                    Utility.drawTextWithShadow(b, notMet, Game1.smallFont, position, MutedColor, shadowIntensity: 0f);
             }
         }
 
