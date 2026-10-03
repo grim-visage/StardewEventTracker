@@ -76,9 +76,11 @@ Tracker menu (F2)
   * Completed  Events you've already seen. Switch between Hearts and Story
                at the top.
 
-Each NPC's events are listed in story order, followed by a "Next up" line for
-the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
-heart to go)" or "(marry Leah first)".
+Each NPC's events are listed in story order (when two need the same hearts,
+the one with fewer requirements left comes first), followed by a "Next up" line
+for the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
+heart to go)" or "(marry Leah first)". Only the event to follow next shows its
+details; click any event's heading to open or close it.
 
 Each event also shows:
   * how far away it is on foot, when it can happen today

@@ -42,7 +42,7 @@ namespace StardewEventTracker.Data
             if (this.NextLocked is { } locked)
                 candidates.Add(locked);
             if (candidates.Count > 0)
-                return candidates.OrderBy(p => p.Event.ProgressRank).ThenBy(p => p.Eval.Status).First();
+                return candidates.OrderBy(p => p.Event.ProgressRank).ThenBy(p => p.Eval.Status).ThenBy(p => p.Eval.UnmetCount).First();
 
             return awake.Count > 0 ? awake[0] : null;
         }
@@ -301,13 +301,20 @@ namespace StardewEventTracker.Data
                 }
             }
 
-            // most actionable first, then by heart requirement
-            result.Pending.Sort((a, b) =>
-            {
-                int byStatus = a.Eval.Status.CompareTo(b.Eval.Status);
-                return byStatus != 0 ? byStatus : a.Event.ProgressRank.CompareTo(b.Event.ProgressRank);
-            });
-            result.LockedEvents.Sort((a, b) => a.Event.ProgressRank.CompareTo(b.Event.ProgressRank));
+            // most actionable first, then by heart requirement, then whichever needs the fewest things done
+            var pending = result.Pending
+                .OrderBy(p => p.Eval.Status)
+                .ThenBy(p => p.Event.ProgressRank)
+                .ThenBy(p => p.Eval.UnmetCount)
+                .ToList();
+            var locked = result.LockedEvents
+                .OrderBy(p => p.Event.ProgressRank)
+                .ThenBy(p => p.Eval.UnmetCount)
+                .ToList();
+            result.Pending.Clear();
+            result.Pending.AddRange(pending);
+            result.LockedEvents.Clear();
+            result.LockedEvents.AddRange(locked);
             return result;
         }
 

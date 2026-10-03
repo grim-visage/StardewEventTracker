@@ -61,6 +61,10 @@ namespace StardewEventTracker.UI
         private static readonly PerScreen<HashSet<string>> ExpandedPerScreen = new(() => new HashSet<string>());
         private static HashSet<string> Expanded => ExpandedPerScreen.Value;
 
+        /// <summary>Events the player opened or closed by hand, overriding which one starts open.</summary>
+        private static readonly PerScreen<Dictionary<string, bool>> EventOpenPerScreen = new(() => new Dictionary<string, bool>());
+        private static Dictionary<string, bool> EventOpen => EventOpenPerScreen.Value;
+
         /// <summary>Groups closed by hand while a search or filter has them open, and the filters that applied to.</summary>
         private static readonly PerScreen<HashSet<string>> CollapsedPerScreen = new(() => new HashSet<string>());
         private static readonly PerScreen<string> CollapsedFor = new(() => "");
@@ -452,8 +456,11 @@ namespace StardewEventTracker.UI
             if (visible.Count == 0 && !EventFilter.IsActive)
                 this.AddRow(I18n.Get(pending.NextLocked == null ? "menu.caught-up" : "menu.nothing-unlocked"), MutedColor, indent);
 
+            // only the event to follow next starts open; the rest show just their heading
+            var follow = pending.GetNext(this.mod.IsSnoozed);
+            string? openKey = follow is { } n && visible.Any(v => v.Event == n.Event) ? n.Event.EntryKey : visible.FirstOrDefault().Event?.EntryKey;
             foreach ((EventInfo evt, EventEvaluation eval) in visible)
-                this.AddEventDetail(evt, eval, indent, showLocation);
+                this.AddEventDetail(evt, eval, indent, showLocation, defaultOpen: evt.EntryKey == openKey);
 
             if (EventFilter.IsActive)
                 return;
@@ -474,8 +481,10 @@ namespace StardewEventTracker.UI
                 this.AddRow(I18n.Get("menu.unreachable", new { count = pending.Unreachable }), MutedColor, indent);
         }
 
-        private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation)
+        private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation, bool defaultOpen = true)
         {
+            string openKey = "event:" + evt.EntryKey;
+            bool open = EventOpen.TryGetValue(openKey, out bool chosen) ? chosen : defaultOpen;
             bool hidden = this.mod.HidesDetails(eval);
             string title = showLocation && !hidden ? I18n.Get("menu.event-at", new { title = evt.Title, location = evt.LocationDisplayName }) : evt.Title;
             bool snoozed = this.mod.IsSnoozed(evt);
@@ -486,15 +495,21 @@ namespace StardewEventTracker.UI
             string? pinLabel = evt.IsStory && !hidden ? I18n.Get(tracked ? "menu.button.unpin" : "menu.button.pin") : null;
             string? snoozeLabel = canSnooze ? I18n.Get(snoozed ? "menu.button.wake" : "menu.button.snooze") : null;
             this.AddRow(
-                $"{title}  [{(hidden ? I18n.Get("status.hidden") : EventNarrator.StatusTag(evt, eval, this.Index))}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
+                $"{(open ? "v" : ">")} {title}  [{(hidden ? I18n.Get("status.hidden") : EventNarrator.StatusTag(evt, eval, this.Index))}]{(snoozed ? "  " + I18n.Get("menu.snoozed") : "")}",
                 snoozed ? MutedColor : StatusColor(eval.Status),
                 indent,
+                onClick: () => EventOpen[openKey] = !open,
                 button: pinLabel ?? snoozeLabel,
                 onButton: pinLabel != null ? () => this.mod.ToggleStoryPin(evt) : () => this.mod.ToggleSnooze(evt),
                 button2: pinLabel != null ? snoozeLabel : null,
                 onButton2: () => this.mod.ToggleSnooze(evt));
 
             int inner = indent + 28;
+            if (!open)
+            {
+                this.AddSpacer(4);
+                return;
+            }
             if (hidden)
             {
                 this.AddRow(I18n.Get("menu.hidden"), MutedColor, inner);

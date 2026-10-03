@@ -105,7 +105,7 @@ namespace StardewEventTracker.Data
         /// <summary>Requirements that aren't met, not counting the time window.</summary>
         public int UnmetCount =>
             this.States.Count(s => s is ConditionState.Unmet or ConditionState.Unknown)
-            + (this.Door is { HeartsOk: false } ? 1 : 0)
+            + (this.Door is { HeartsOk: false } or { MailOk: false } ? 1 : 0)
             + (this.DoorNeverOpen ? 1 : 0);
     }
 
