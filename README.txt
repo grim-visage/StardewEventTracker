@@ -190,8 +190,8 @@ Scarp wiki)". A hint is also used when the data's explanation is unclear, and
 always wins. Any flag still unexplained is shown as words, e.g. "Story flag:
 Duskspire defeated". The same file explains requirements that other mods add
 to the game, e.g. Ridgeside's "Arrive riding your horse"; ones it doesn't
-know read "Other requirement: ...". Hint contributions are welcome on GitHub: keep them short, in your
-own words, and say where the information came from.
+know read "Other requirement: ...". Hint contributions are welcome on GitHub:
+keep them short, in your own words, and say where the information came from.
 
 Some mods (Ridgeside Village, for example) start certain events from their own
 code and give them a requirement that can never be met, so the game won't
