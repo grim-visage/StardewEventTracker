@@ -9,20 +9,38 @@ using StardewValley.BellsAndWhistles;
 namespace StardewEventTracker.UI.Themes
 {
     /// <summary>
-    /// A Joja product, in dark mode: the Joja logo and the title on the blue-metal banner the game uses for Joja's own
-    /// text, over a box in Joja's Community Development form colours, darkened: a Joja-blue frame around deep navy,
-    /// with the form's light-blue rule under the text. The logo's sunburst sparkles ray by ray, and a row of status
+    /// A Joja product, in dark mode: the Joja logo and the title on the game's metal banner, recoloured in the blues of
+    /// a Joja Cola can, over a box in the same colours: a Joja-blue frame around deep Joja navy, with a light-blue rule
+    /// under the text. The logo's sunburst sparkles ray by ray, and a row of status
     /// lights on the box blinks like an office computer's (the green one flashes when an event can happen now).
     /// </summary>
     internal sealed class JojaTheme : HudTheme
     {
         /// <summary>The Joja logo and sunburst on the Community Development form (down to the j's tail), in the English texture.</summary>
-        private static readonly Rectangle LogoSource = new(15, 6, 62, 30);
+        private static readonly Rectangle LogoSource = new(15, 6, 62, 31);
 
-        /// <summary>The blue-metal banner's left end, middle (stretched) and right end, from SpriteText's scroll style 3.</summary>
-        private static readonly Rectangle BannerLeft = new(86, 145, 3, 17);
-        private static readonly Rectangle BannerMiddle = new(89, 145, 1, 17);
-        private static readonly Rectangle BannerRight = new(92, 145, 3, 17);
+        /// <summary>The second j's tail in the logo's bottom row, from its left; the rest of that row is the form's own text.</summary>
+        private const int TailLeft = 21, TailRight = 30;
+
+        /// <summary>The metal banner (SpriteText's scroll style 3) in the game's texture: its left end, middle and right end side by side.</summary>
+        private static readonly Rectangle BannerSource = new(86, 145, 9, 17);
+
+        /// <summary>The banner's left end, middle (stretched) and right end, in the recoloured banner.</summary>
+        private static readonly Rectangle BannerLeft = new(0, 0, 3, 17);
+        private static readonly Rectangle BannerMiddle = new(3, 0, 1, 17);
+        private static readonly Rectangle BannerRight = new(6, 0, 3, 17);
+
+        /// <summary>The Joja Cola can's blues, from the darkest: navy, deep blue, Joja blue and light blue.</summary>
+        private static readonly Color Navy = new(12, 10, 96), DeepBlue = new(26, 35, 216), JojaBlue = new(0, 113, 255), LightBlue = new(102, 193, 255);
+
+        /// <summary>The banner's grey metal shades, darkest first, and the Joja blues each becomes.</summary>
+        private static readonly Dictionary<Color, Color> BannerColors = new()
+        {
+            [new Color(26, 26, 43)] = Navy,
+            [new Color(81, 81, 112)] = DeepBlue,
+            [new Color(106, 106, 130)] = JojaBlue,
+            [new Color(149, 135, 150)] = LightBlue
+        };
 
         /// <summary>The banner's scale: the game's 4x across, and 5x tall so the whole logo fits inside its dark middle.</summary>
         private static readonly Vector2 BannerScale = new(4, 5);
@@ -38,8 +56,8 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>How far the banner's top sits above the box; it overlaps the box's frame below that.</summary>
         private const int BannerAbove = 66;
 
-        /// <summary>The box's colours: the form's Joja-blue frame and light-blue rule, around deep navy.</summary>
-        private static readonly Color Frame = new(93, 90, 158), Paper = new(32, 31, 56), Rule = new(137, 182, 255);
+        /// <summary>The box's colours: a Joja-blue frame and light-blue rule around a navy a shade darker than the banner's.</summary>
+        private static readonly Color Frame = JojaBlue, Paper = new(10, 12, 62), Rule = LightBlue;
 
         /// <summary>Where the sunburst starts in the logo (left of it is the word "Joja").</summary>
         private const int SunburstLeft = 44;
@@ -50,10 +68,10 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The status lights: colour, how long each blink lasts, and how often it's on, in percent.</summary>
         private static readonly (Color Color, double PeriodMs, int OnPercent)[] Lights =
         {
-            (new Color(137, 182, 255), 2400, 85),   // power: on, with the odd blink
+            (LightBlue, 2400, 85),                  // power: on, with the odd blink
             (new Color(130, 225, 140), 380, 45),    // activity: a busy flicker
             (new Color(255, 185, 80), 1300, 35),
-            (new Color(137, 182, 255), 900, 55)
+            (LightBlue, 900, 55)
         };
 
         /// <summary>A status light's size, and the space between lights, in pixels.</summary>
@@ -68,12 +86,18 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>Whether making the logo failed, so it isn't tried again every frame.</summary>
         private bool logoFailed;
 
+        /// <summary>The banner recoloured in Joja's blues, made from the game's texture on first use.</summary>
+        private Texture2D? banner;
+
+        /// <summary>Whether making the banner failed, so the game's own is drawn instead.</summary>
+        private bool bannerFailed;
+
         public override string Id => "joja";
 
         public override string Title => I18n.Get("hud.title.joja");
 
         /// <summary>Light text for the dark box.</summary>
-        public override HudPalette Palette { get; } = new(new Color(225, 230, 255), new Color(130, 225, 140), new Color(255, 185, 80), new Color(160, 168, 210));
+        public override HudPalette Palette { get; } = new(new Color(230, 238, 255), new Color(130, 225, 140), new Color(255, 185, 80), new Color(150, 180, 235));
 
         public override int TitleAbove => BannerAbove;
 
@@ -109,12 +133,15 @@ namespace StardewEventTracker.UI.Themes
             int x = box.X + BannerInset;
             int top = box.Y - BannerAbove;
             int inner = this.BannerInnerWidth;
-            Texture2D sheet = Game1.mouseCursors_1_6;
+            Texture2D? recoloured = this.GetBanner();
+            Texture2D sheet = recoloured ?? Game1.mouseCursors_1_6;
+            Point offset = recoloured == null ? BannerSource.Location : Point.Zero;
+            Rectangle Part(Rectangle part) => new(part.X + offset.X, part.Y + offset.Y, part.Width, part.Height);
 
-            // the game's banner (SpriteText scroll style 3), drawn taller than the game draws it
-            b.Draw(sheet, new Vector2(x - 16, top), BannerLeft, Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x - 4, top), BannerMiddle, Fade(Color.White), 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x - 4 + inner, top), BannerRight, Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
+            // the banner, drawn taller than the game draws it
+            b.Draw(sheet, new Vector2(x - 16, top), Part(BannerLeft), Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - 4, top), Part(BannerMiddle), Fade(Color.White), 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - 4 + inner, top), Part(BannerRight), Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
 
             // centred in the banner's dark middle (rows 2-14 of 17)
             int logoX = x + BannerMargin;
@@ -199,7 +226,9 @@ namespace StardewEventTracker.UI.Themes
                 form.GetData(0, LogoSource, pixels, 0, pixels.Length);
                 for (int i = 0; i < pixels.Length; i++)
                 {
-                    if (pixels[i].R > 240 && pixels[i].G > 240 && pixels[i].B > 240)
+                    int x = i % LogoSource.Width;
+                    bool formText = i / LogoSource.Width == LogoSource.Height - 1 && (x < TailLeft || x > TailRight);
+                    if (formText || (pixels[i].R > 240 && pixels[i].G > 240 && pixels[i].B > 240))
                         pixels[i] = Color.Transparent;
                 }
 
@@ -212,6 +241,46 @@ namespace StardewEventTracker.UI.Themes
             {
                 // draw the banner without it
                 this.logoFailed = true;
+                return null;
+            }
+        }
+
+        /// <summary>The banner in Joja's blues, or null to draw the game's own (e.g. a mod retextured it, or it couldn't be read).</summary>
+        private Texture2D? GetBanner()
+        {
+            if (this.banner is { IsDisposed: false })
+                return this.banner;
+            if (this.bannerFailed)
+                return null;
+
+            try
+            {
+                var pixels = new Color[BannerSource.Width * BannerSource.Height];
+                Game1.mouseCursors_1_6.GetData(0, BannerSource, pixels, 0, pixels.Length);
+                int recoloured = 0;
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    if (BannerColors.TryGetValue(pixels[i], out Color blue))
+                    {
+                        pixels[i] = blue;
+                        recoloured++;
+                    }
+                }
+
+                // mostly other colours: a retexture, which is better drawn as it is
+                if (recoloured < pixels.Length / 2)
+                {
+                    this.bannerFailed = true;
+                    return null;
+                }
+
+                var texture = new Texture2D(Game1.graphics.GraphicsDevice, BannerSource.Width, BannerSource.Height);
+                texture.SetData(pixels);
+                return this.banner = texture;
+            }
+            catch (Exception)
+            {
+                this.bannerFailed = true;
                 return null;
             }
         }
