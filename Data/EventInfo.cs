@@ -12,7 +12,7 @@ namespace StardewEventTracker.Data
         /// <summary>Hearts, earlier events, mail flags, items: something the player has to do.</summary>
         Progress,
 
-        /// <summary>Weather, day of week/month, season: may be fine on another day.</summary>
+        /// <summary>Weather, day of week/month, season, an NPC being there: may be fine on another day.</summary>
         Calendar,
 
         /// <summary>The time-of-day window: the player only has to show up at the right time.</summary>
@@ -56,6 +56,8 @@ namespace StardewEventTracker.Data
         public ConditionCategory Category =>
             this.Is("Time") ? ConditionCategory.Time
             : this.Is("Weather") || this.Is("DayOfWeek") || this.Is("DayOfMonth") || this.Is("Season") || this.Is("FestivalDay") || this.Is("UpcomingFestival")
+                // the NPC being there is a matter of their schedule: wait for a day (or time) they're around
+                || (this.Is("NpcVisibleHere") && !this.Negated)
                 ? ConditionCategory.Calendar
             : ConditionCategory.Progress;
 

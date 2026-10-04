@@ -296,7 +296,7 @@ namespace StardewEventTracker.Data
             {
                 IEnumerable<string> parts = new[] { evt.Id, evt.Title, evt.LocationDisplayName, evt.LocationName }
                     .Concat(evt.Actors.Select(GetNpcDisplayName))
-                    .Concat(evt.Conditions.Select(c => PreconditionFormatter.Describe(c, this)));
+                    .Concat(evt.Conditions.Select(c => PreconditionFormatter.Describe(c, this, evt)));
                 if (evt.IsHeartEvent)
                     parts = parts.Append(GetNpcDisplayName(evt.Owner));
                 this.searchText[evt.EntryKey] = text = parts.ToArray();

@@ -237,6 +237,9 @@ namespace StardewEventTracker.Data
                     case "upcomingfestival" when unmet:
                         parts.Add(I18n.Get("wait.upcoming-festival" + neg));
                         break;
+                    case "npcvisiblehere" when unmet:
+                        parts.Add(I18n.Get("wait.npc-here", new { name = c.Args.Length > 0 ? EventIndex.GetNpcDisplayName(c.Args[0]) : I18n.Get("someone"), place = Place(evt) }));
+                        break;
                     default:
                         if (unmet)
                             parts.Add(c.Raw);
@@ -345,7 +348,7 @@ namespace StardewEventTracker.Data
                     "inupgradedhouse" => I18n.Get("step.house-upgrade", new { level = c.Args.Length > 0 ? first : "1" }),
                     "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
                     "spouse" when !c.Negated => I18n.Get("step.spouse", new { name = EventIndex.GetNpcDisplayName(first) }),
-                    _ => index != null ? PreconditionFormatter.Describe(c, index) : c.Raw
+                    _ => index != null ? PreconditionFormatter.Describe(c, index, evt) : c.Raw
                 };
             }
 

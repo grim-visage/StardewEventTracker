@@ -919,7 +919,7 @@ namespace StardewEventTracker
                             c.Negated,
                             Category = c.Category.ToString(),
                             State = eval.States[i].ToString(),
-                            Text = PreconditionFormatter.Describe(c, this.Index)
+                            Text = PreconditionFormatter.Describe(c, this.Index, evt)
                         }).ToArray()
                     };
                 })
@@ -1006,7 +1006,7 @@ namespace StardewEventTracker
                 EventEvaluation eval = this.Index.Evaluate(evt);
                 this.Monitor.Log($"[{eval.Status}] {evt.Title} at {evt.LocationDisplayName} ({evt.LocationName}) #{evt.Id}  {EventNarrator.StatusTag(evt, eval, this.Index)}", LogLevel.Info);
                 for (int i = 0; i < evt.Conditions.Count; i++)
-                    this.Monitor.Log($"    {eval.States[i],-7} {PreconditionFormatter.Describe(evt.Conditions[i], this.Index)}   <{evt.Conditions[i].Raw}>", LogLevel.Info);
+                    this.Monitor.Log($"    {eval.States[i],-7} {PreconditionFormatter.Describe(evt.Conditions[i], this.Index, evt)}   <{evt.Conditions[i].Raw}>", LogLevel.Info);
             }
         }
     }

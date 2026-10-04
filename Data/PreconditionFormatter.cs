@@ -10,7 +10,8 @@ namespace StardewEventTracker.Data
     /// <summary>Turns event preconditions into readable text.</summary>
     internal static class PreconditionFormatter
     {
-        public static string Describe(Precondition c, EventIndex index)
+        /// <param name="evt">The event the condition belongs to, to name its location where that reads better than "this location".</param>
+        public static string Describe(Precondition c, EventIndex index, EventInfo? evt = null)
         {
             if (c.IsNeverTrue)
                 return I18n.Get("cond.never-true");
@@ -62,7 +63,9 @@ namespace StardewEventTracker.Data
                 "communitycenterorwarehousedone" => I18n.Get("cond.cc-or-joja-done" + neg),
                 "jojabundlesdone" => I18n.Get("cond.joja-done"),
                 "inupgradedhouse" => I18n.Get("cond.house-upgrade", new { level = a.Length > 0 ? all : "1" }),
-                "npcvisiblehere" => I18n.Get("cond.npc-here", new { name = Npc(a) }),
+                "npcvisiblehere" => evt != null
+                    ? I18n.Get("cond.npc-at", new { name = Npc(a), place = EventNarrator.WithArticle(evt.LocationDisplayName) })
+                    : I18n.Get("cond.npc-here", new { name = Npc(a) }),
                 "npcvisible" => I18n.Get("cond.npc-around", new { name = Npc(a) }),
                 "sawsecretnote" => I18n.Get("cond.secret-note", new { note = all }),
                 "chosedialogueanswers" => I18n.Get("cond.dialogue-answer", new { answer = all }),

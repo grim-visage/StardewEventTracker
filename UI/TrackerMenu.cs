@@ -620,7 +620,7 @@ namespace StardewEventTracker.UI
                     continue;
                 }
 
-                string text = PreconditionFormatter.Describe(evt.Conditions[i], this.Index);
+                string text = PreconditionFormatter.Describe(evt.Conditions[i], this.Index, evt);
                 (string mark, Color color) = eval.States[i] switch
                 {
                     ConditionState.Met => ("+", MetColor),

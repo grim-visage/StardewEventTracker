@@ -192,7 +192,7 @@ namespace StardewEventTracker.Data
                 (status, untilStart, startTime) = WithFestival(evt, festival, doorHours, timeOpen, untilStart);
 
             if (status == EventStatus.AvailableNow && evt.IsStory && evt.Conditions.All(c =>
-                    c.Category is ConditionCategory.Time or ConditionCategory.Calendar || IsExclusion(c) || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
+                    (c.Category is ConditionCategory.Time or ConditionCategory.Calendar && !c.Is("NpcVisibleHere")) || IsExclusion(c) || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
                 status = EventStatus.OnEntry;
 
             // only worth predicting once nothing but the day is in the way
