@@ -10,7 +10,8 @@ namespace StardewEventTracker.UI.Themes
 {
     /// <summary>
     /// A dark theme for Spirit's Eve: the box in night purple with light text, and the title in pumpkin orange on the
-    /// game's dark-metal banner, between two flickering jack-o'-lanterns.
+    /// game's dark-metal banner, between two flickering jack-o'-lanterns. A ghost floats over the box's edge and two
+    /// bats circle its top-right corner.
     /// </summary>
     internal sealed class SpiritsEveTheme : HudTheme
     {
@@ -38,6 +39,12 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>Where the banner's content sits relative to the box's top edge; the banner itself starts 12px higher.</summary>
         private const int TextAbove = 40;
 
+        /// <summary>The bat's and ghost's frames are 16x24 pixels; their first row is the animation used here.</summary>
+        private const int MonsterWidth = 16, MonsterHeight = 24, MonsterScale = 3;
+
+        /// <summary>The space between the banner and the ghost.</summary>
+        private const int GhostGap = 20;
+
         public override string Id => "spirits-eve";
 
         public override string Title => I18n.Get("hud.title");
@@ -45,16 +52,18 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>Light text for the dark box: pale lavender, with green and pumpkin orange for what's happening.</summary>
         public override HudPalette Palette { get; } = new(new Color(235, 225, 240), new Color(140, 230, 110), new Color(255, 165, 60), new Color(190, 175, 205));
 
-        public override int TitleAbove => TextAbove + 12;
+        /// <summary>The banner starts 52px above the box; the bats fly up to about 70px above it.</summary>
+        public override int TitleAbove => 70;
 
-        public override int MinBoxWidth => BannerInset + this.BannerInnerWidth + 40;
+        /// <summary>Room for the banner, then the ghost floating over the box's edge.</summary>
+        public override int MinBoxWidth => BannerInset + this.BannerInnerWidth + 16 + GhostGap + MonsterWidth * MonsterScale + 40;
 
         private static int LanternSize => 16 * LanternScale;
 
         private int BannerInnerWidth => LanternSize * 2 + LanternGap * 2 + SpriteText.getWidthOfString(this.Title);
 
         public override Rectangle TitleArea(Rectangle box) =>
-            new(box.X + BannerInset - 12, box.Y - this.TitleAbove, this.BannerInnerWidth + 28, BannerMiddle.Height * 4);
+            new(box.X + BannerInset - 12, box.Y - TextAbove - 12, this.BannerInnerWidth + 28, BannerMiddle.Height * 4);
 
         public override void DrawBox(SpriteBatch b, Rectangle box, bool dragging)
         {
@@ -88,6 +97,33 @@ namespace StardewEventTracker.UI.Themes
 
             string title = this.Title;
             SpriteText.drawString(b, title, x + LanternSize + LanternGap, y, width: SpriteText.getWidthOfString(title) + 16, color: TitleColor);
+
+            double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
+            DrawGhost(b, x + inner + 16 + GhostGap, box.Y - 58, now);
+            DrawBat(b, new Vector2(box.Right - 10, box.Y - 46), now, phase: 0);
+            DrawBat(b, new Vector2(box.Right - 10, box.Y - 46), now, phase: Math.PI);
+        }
+
+        /// <summary>A ghost floating gently up and down, slightly see-through, at (x, y).</summary>
+        private static void DrawGhost(SpriteBatch b, int x, int y, double now)
+        {
+            int frame = (int)(now / 220) % 4;
+            float bob = (float)Math.Sin(now / 600) * 5f;
+            var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
+            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Ghost"), new Vector2(x, y + bob), source, Color.White * 0.85f, 0f, Vector2.Zero, MonsterScale, SpriteEffects.None, 1f);
+        }
+
+        /// <summary>A bat flapping along a slow figure-eight around <paramref name="center"/>, facing the way it flies.</summary>
+        private static void DrawBat(SpriteBatch b, Vector2 center, double now, double phase)
+        {
+            double angle = now / 1400 + phase;
+            var offset = new Vector2((float)Math.Cos(angle) * 46f, (float)Math.Sin(angle * 2) * 16f);
+            bool movingLeft = Math.Sin(angle) > 0;
+
+            int frame = (int)((now + phase * 100) / 90) % 4;
+            var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
+            var origin = new Vector2(MonsterWidth / 2f, MonsterHeight / 2f);
+            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Bat"), center + offset, source, Color.White, 0f, origin, MonsterScale, movingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
         }
 
         /// <summary>A candle glow behind a jack-o'-lantern whose top-left is at (x, y), flickering out of step with the other.</summary>
