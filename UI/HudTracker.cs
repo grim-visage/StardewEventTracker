@@ -4,20 +4,14 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewEventTracker.Data;
+using StardewEventTracker.UI.Themes;
 using StardewValley;
-using StardewValley.Menus;
 
 namespace StardewEventTracker.UI
 {
     /// <summary>A compact always-on box listing each pinned NPC's next event and each pinned story event.</summary>
     internal sealed class HudTracker
     {
-        private static readonly Color ReadyColor = new(20, 130, 40);
-        private static readonly Color MutedColor = new(110, 100, 90);
-        private static readonly Color SoonColor = new(185, 105, 0);
-
-        private const int Padding = 20;
-
         /// <summary>How soon something needs doing; entries sort by this when the HUD is ordered by urgency.</summary>
         private enum Urgency
         {
@@ -46,9 +40,13 @@ namespace StardewEventTracker.UI
         private int pinCount = -1;
         private int builtForHeight = -1;
         private int builtForY = -1;
+        private HudTheme? builtForTheme;
 
         /// <summary>Where the box was last drawn, in UI pixels; empty if it's hidden.</summary>
         public Rectangle Bounds { get; private set; }
+
+        /// <summary>Where the box itself (not its title) was last drawn, in UI pixels.</summary>
+        public Point BoxPosition { get; private set; }
 
         /// <summary>Whether the player is dragging the box, which highlights it.</summary>
         public bool Dragging { get; set; }
@@ -64,23 +62,39 @@ namespace StardewEventTracker.UI
             if (!this.mod.Config.ShowHud || !this.mod.State.HasPins || Game1.eventUp || Game1.activeClickableMenu != null || !Game1.displayHUD)
                 return;
 
-            // what fits depends on the screen height and where the box sits
-            if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.PinCount
+            // what fits depends on the screen height, where the box sits and the theme's title
+            HudTheme theme = this.Theme;
+            if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.PinCount || this.builtForTheme != theme
                 || this.builtForHeight != Game1.uiViewport.Height || (!this.Dragging && this.builtForY != this.mod.Config.HudY))
                 this.Rebuild();
 
             SpriteFont font = Game1.smallFont;
             int lineHeight = LineHeight;
-            int width = (int)this.lines.Max(l => font.MeasureString(l.Text).X) + Padding * 2;
-            int height = this.lines.Count * lineHeight + Padding * 2;
-            int x = Math.Clamp(this.mod.Config.HudX, 0, Math.Max(0, Game1.uiViewport.Width - width));
-            int y = Math.Clamp(this.mod.Config.HudY, 0, Math.Max(0, Game1.uiViewport.Height - height));
+            int padding = theme.Padding;
+            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => font.MeasureString(l.Text).X) : 0;
+            int width = Math.Max(textWidth + padding * 2, theme.MinBoxWidth);
+            int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2;
 
-            this.Bounds = new Rectangle(x, y, width, height);
-            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), x, y, width, height, this.Dragging ? Color.Wheat : Color.White * 0.9f, 4f, drawShadow: false);
+            // a title drawn above the box stays on screen too
+            int x = Math.Clamp(this.mod.Config.HudX, 0, Math.Max(0, Game1.uiViewport.Width - width));
+            int y = Math.Clamp(this.mod.Config.HudY, theme.TitleAbove, Math.Max(theme.TitleAbove, Game1.uiViewport.Height - height));
+
+            var box = new Rectangle(x, y, width, height);
+            Rectangle title = theme.TitleArea(box);
+            this.BoxPosition = box.Location;
+            this.Bounds = title.IsEmpty ? box : Rectangle.Union(box, title);
+
+            theme.DrawBox(b, box, this.Dragging);
+            int top = y + padding + theme.TitleInside;
             for (int i = 0; i < this.lines.Count; i++)
-                Utility.drawTextWithShadow(b, this.lines[i].Text, font, new Vector2(x + Padding, y + Padding + i * lineHeight), this.lines[i].Color, shadowIntensity: 0.25f);
+                theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
+            theme.DrawTitle(b, box);
         }
+
+        /// <summary>The theme the player picked in the config.</summary>
+        private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme);
+
+        private HudPalette Palette => this.Theme.Palette;
 
         private static int LineHeight => (int)Game1.smallFont.MeasureString("Ag").Y;
 
@@ -99,9 +113,11 @@ namespace StardewEventTracker.UI
                 : entries.OrderBy(e => e.Urgency).ThenBy(e => e.Minutes).ThenBy(e => e.SortName, StringComparer.CurrentCultureIgnoreCase).ToList();
 
             // fit as many entries as the setting allows and the screen has room for, keeping a line for the overflow note
-            var lines = new List<(string, Color)> { (I18n.Get("hud.title"), Game1.textColor) };
+            HudTheme theme = this.Theme;
+            var lines = new List<(string, Color)>();
             int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
-            int maxLines = Math.Max(3, (Game1.uiViewport.Height - Math.Max(0, this.mod.Config.HudY) - Padding * 2) / LineHeight);
+            int boxY = Math.Max(theme.TitleAbove, this.mod.Config.HudY);
+            int maxLines = Math.Max(2, (Game1.uiViewport.Height - boxY - theme.Padding * 2 - theme.TitleInside) / LineHeight);
             int shown = 0;
             foreach (Entry entry in entries)
             {
@@ -118,7 +134,7 @@ namespace StardewEventTracker.UI
             {
                 // highlight the note if something you could act on soon didn't fit
                 bool urgentHidden = hidden.Any(e => e.Urgency <= Urgency.SetOff);
-                lines.Add((I18n.Get("hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? ReadyColor : MutedColor));
+                lines.Add((I18n.Get("hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted));
             }
 
             this.lines = lines;
@@ -126,6 +142,7 @@ namespace StardewEventTracker.UI
             this.pinCount = this.PinCount;
             this.builtForHeight = Game1.uiViewport.Height;
             this.builtForY = this.mod.Config.HudY;
+            this.builtForTheme = theme;
         }
 
         private Entry BuildNpcEntry(string npc)
@@ -195,34 +212,34 @@ namespace StardewEventTracker.UI
             if (urgency >= Urgency.NotToday)
             {
                 string line = I18n.Get("hud.compact", new { head = shortHead + more, stage });
-                return new Entry(urgency, minutes, sortName, isStory, new List<(string, Color)> { (line, MutedColor) });
+                return new Entry(urgency, minutes, sortName, isStory, new List<(string, Color)> { (line, this.Palette.Muted) });
             }
 
             var lines = new List<(string, Color)>
             {
                 (fullHead + more, color),
-                ($"   {stage}", tone == EventNarrator.HudTone.Normal ? MutedColor : color)
+                ($"   {stage}", tone == EventNarrator.HudTone.Normal ? this.Palette.Muted : color)
             };
             return new Entry(urgency, minutes, sortName, isStory, lines);
         }
 
-        private static Entry OneLine(string sortName, string text, bool isStory = false) =>
-            new(Urgency.Nothing, 0, sortName, isStory, new List<(string, Color)> { (text, MutedColor) });
+        private Entry OneLine(string sortName, string text, bool isStory = false) =>
+            new(Urgency.Nothing, 0, sortName, isStory, new List<(string, Color)> { (text, this.Palette.Muted) });
 
         /// <summary>The coloured status line for an event, from <see cref="EventNarrator.HudLine"/>.</summary>
         private (string Stage, Color Color, EventNarrator.HudTone Tone) Status(EventInfo evt, EventEvaluation eval)
         {
             // spoiler-free mode doesn't say what's still needed
             if (this.mod.HidesDetails(eval))
-                return (I18n.Get("status.hidden"), MutedColor, EventNarrator.HudTone.Normal);
+                return (I18n.Get("status.hidden"), this.Palette.Muted, EventNarrator.HudTone.Normal);
 
             int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
             (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes, this.mod.Index);
             Color color = tone switch
             {
-                EventNarrator.HudTone.Go => ReadyColor,
-                EventNarrator.HudTone.Urgent or EventNarrator.HudTone.Soon => SoonColor,
-                _ => Game1.textColor
+                EventNarrator.HudTone.Go => this.Palette.Ready,
+                EventNarrator.HudTone.Urgent or EventNarrator.HudTone.Soon => this.Palette.Soon,
+                _ => this.Palette.Text
             };
             return (stage, color, tone);
         }

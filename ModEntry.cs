@@ -4,6 +4,7 @@ using System.Linq;
 using StardewEventTracker.Data;
 using StardewEventTracker.Integrations;
 using StardewEventTracker.UI;
+using StardewEventTracker.UI.Themes;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
@@ -245,6 +246,8 @@ namespace StardewEventTracker
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
             gmcm.AddTextOption(m, () => this.Config.HudSortOrder, v => this.Config.HudSortOrder = v, () => I18n.Get("config.hud-order"), () => I18n.Get("config.hud-order.tip"),
                 allowedValues: ModConfig.HudOrders, formatAllowedValue: v => I18n.Get($"config.hud-order.{v}"));
+            gmcm.AddTextOption(m, () => this.Config.HudTheme, v => this.Config.HudTheme = v, () => I18n.Get("config.hud-theme"), () => I18n.Get("config.hud-theme.tip"),
+                allowedValues: HudTheme.Ids, formatAllowedValue: v => I18n.GetOr($"config.hud-theme.{v}", v));
             gmcm.AddNumberOption(m, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => I18n.Get("config.hud-max"), min: 1, max: 15);
         }
 
@@ -360,13 +363,13 @@ namespace StardewEventTracker
                 return;
 
             Vector2 cursor = e.Cursor.GetScaledScreenPixels();
-            Rectangle bounds = this.hud.Value.Bounds;
-            if (!bounds.Contains((int)cursor.X, (int)cursor.Y))
+            if (!this.hud.Value.Bounds.Contains((int)cursor.X, (int)cursor.Y))
                 return;
 
-            // don't swing a tool at whatever's under the box
+            // don't swing a tool at whatever's under the box; the offset is from the box, so its title can be dragged too
             this.Helper.Input.Suppress(SButton.MouseLeft);
-            this.hudDragOffset.Value = new Point((int)cursor.X - bounds.X, (int)cursor.Y - bounds.Y);
+            Point box = this.hud.Value.BoxPosition;
+            this.hudDragOffset.Value = new Point((int)cursor.X - box.X, (int)cursor.Y - box.Y);
             this.hud.Value.Dragging = true;
         }
 
@@ -682,7 +685,8 @@ namespace StardewEventTracker
             // a hand-edited config.json can set a value to null; put the default back
             ModConfig defaults = new();
             if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null || this.Config.HudDragKey is null
-                || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null)
+                || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null
+                || this.Config.HudTheme is null)
             {
                 this.Config.OpenMenuKey ??= defaults.OpenMenuKey;
                 this.Config.ToggleHudKey ??= defaults.ToggleHudKey;
@@ -691,6 +695,7 @@ namespace StardewEventTracker
                 this.Config.ReminderMinutesBefore ??= defaults.ReminderMinutesBefore;
                 this.Config.ReminderSound ??= defaults.ReminderSound;
                 this.Config.AvailableSound ??= defaults.AvailableSound;
+                this.Config.HudTheme ??= defaults.HudTheme;
                 changed = true;
             }
 
@@ -711,6 +716,12 @@ namespace StardewEventTracker
             if (this.Config.ToggleHudKey.ToString() is "F9" or "F4")
             {
                 this.Config.ToggleHudKey = KeybindList.Parse("LeftShift + F2");
+                changed = true;
+            }
+
+            if (!HudTheme.Ids.Contains(this.Config.HudTheme, StringComparer.OrdinalIgnoreCase))
+            {
+                this.Config.HudTheme = HudTheme.Default.Id;
                 changed = true;
             }
 
