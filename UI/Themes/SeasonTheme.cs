@@ -16,7 +16,7 @@ namespace StardewEventTracker.UI.Themes
     /// </summary>
     internal sealed class SeasonTheme : HudTheme
     {
-        /// <summary>The colours for one season in one mode.</summary>
+        /// <summary>The colours for one season in one mode. Light-mode titles are dark enough for about 5:1 contrast on the parchment scroll.</summary>
         private readonly record struct Look(Color Paper, Color Frame, Color Title);
 
         private readonly Season season;
@@ -46,13 +46,13 @@ namespace StardewEventTracker.UI.Themes
             this.dark = dark;
             this.look = (season, dark) switch
             {
-                (Season.Spring, false) => new(new Color(242, 250, 234), new Color(108, 168, 88), new Color(70, 140, 60)),
+                (Season.Spring, false) => new(new Color(242, 250, 234), new Color(108, 168, 88), new Color(38, 108, 40)),
                 (Season.Spring, true) => new(new Color(30, 52, 38), new Color(96, 150, 92), new Color(255, 175, 215)),
-                (Season.Summer, false) => new(new Color(255, 248, 222), new Color(222, 160, 40), new Color(205, 120, 0)),
+                (Season.Summer, false) => new(new Color(255, 248, 222), new Color(222, 160, 40), new Color(140, 64, 0)),
                 (Season.Summer, true) => new(new Color(24, 38, 66), new Color(70, 110, 170), new Color(255, 222, 100)),
-                (Season.Fall, false) => new(new Color(253, 238, 220), new Color(196, 104, 44), new Color(185, 75, 20)),
+                (Season.Fall, false) => new(new Color(253, 238, 220), new Color(196, 104, 44), new Color(150, 52, 12)),
                 (Season.Fall, true) => new(new Color(60, 32, 26), new Color(160, 84, 44), new Color(255, 155, 65)),
-                (Season.Winter, false) => new(new Color(238, 245, 255), new Color(112, 152, 204), new Color(55, 105, 175)),
+                (Season.Winter, false) => new(new Color(238, 245, 255), new Color(112, 152, 204), new Color(36, 82, 150)),
                 _ => new(new Color(28, 36, 64), new Color(110, 140, 196), new Color(195, 228, 255))
             };
 
