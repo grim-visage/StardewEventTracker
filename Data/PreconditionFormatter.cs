@@ -102,6 +102,10 @@ namespace StardewEventTracker.Data
             if (source == null)
                 return null;
 
+            // the flag's event was seen, but a different answer or branch was taken
+            if (source.EventKey != null && index.Flags.IsMissedChoice(flag, Game1.player) && index.FindByKey(source.EventKey) is { } chosen)
+                return I18n.Get($"{prefix}.missed-choice", new { @event = index.DescribeEventShort(chosen.Id) });
+
             if (source.SpecialOrderName != null)
             {
                 return source.SpecialOrderObjective != null

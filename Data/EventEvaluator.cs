@@ -117,7 +117,7 @@ namespace StardewEventTracker.Data
 
     internal static class EventEvaluator
     {
-        public static EventEvaluation Evaluate(EventInfo evt)
+        public static EventEvaluation Evaluate(EventInfo evt, FlagSources flags)
         {
             int? untilStart = evt.Window?.MinutesUntilStart(Game1.timeOfDay);
             if (evt.Seen)
@@ -153,6 +153,8 @@ namespace StardewEventTracker.Data
                 else if (condition.Is("SawEvent") && condition.Negated)
                     unreachable = true;
                 else if (condition.Is("Year") && !condition.Negated && condition.Args.FirstOrDefault() == "1")
+                    unreachable = true;
+                else if (IsMissedChoice(condition, flags))
                     unreachable = true;
                 else if (condition.Category == ConditionCategory.Calendar)
                     calendarUnmet = true;
@@ -236,6 +238,15 @@ namespace StardewEventTracker.Data
             if (minutes > 0 && start < end)
                 return (EventStatus.LaterToday, minutes, start);
             return (EventStatus.MissedToday, untilStart, start);
+        }
+
+        /// <summary>A mail flag requirement that an earlier event only sets on a path the player didn't take, e.g. another answer to Leah's question.</summary>
+        private static bool IsMissedChoice(Precondition condition, FlagSources flags)
+        {
+            if (condition.Negated || condition.Args.Length == 0)
+                return false;
+            Farmer? player = condition.Is("LocalMail") ? Game1.player : condition.Is("HostMail") ? Game1.MasterPlayer : null;
+            return player != null && condition.Args.All(flag => flags.IsMissedChoice(flag, player));
         }
 
         /// <summary>

@@ -58,7 +58,8 @@ namespace StardewEventTracker.Data
         private readonly Dictionary<string, string> letterTitles = new();
         private readonly Dictionary<string, (string Name, string? Objective)> specialOrders = new();
         private readonly Dictionary<string, string> triggerConditions = new();
-        private readonly Dictionary<string, string> flagEvents = new();
+        /// <summary>The event that sets each flag, and whether only a branch of it does (one answer to a question, or a conditional fork).</summary>
+        private readonly Dictionary<string, (string EventKey, bool BranchOnly)> flagEvents = new();
         private readonly Dictionary<string, string> questFlags = new();
         private readonly Dictionary<string, string> dialogueFlags = new();
         private readonly Dictionary<string, TopicSource> topics = new();
@@ -187,16 +188,25 @@ namespace StardewEventTracker.Data
                     if (!done.Contains((location, key)) && this.forkParents.TryGetValue((location, key), out string? parent))
                     {
                         done.Add((location, key));
-                        this.ScanScript(parent, location, script);
+                        this.ScanScript(parent, location, script, branch: true);
                     }
                 }
             }
         }
 
-        private void ScanScript(string eventKey, string location, string script)
+        private void ScanScript(string eventKey, string location, string script, bool branch = false)
         {
+            // after a fork, the rest of the script only runs if the event didn't switch to the branch (e.g. the other answer)
+            int firstFork = ForkCommand.Match(script) is { Success: true } fork ? fork.Index : int.MaxValue;
+
+            // an event that always sets the flag explains it better than one that only sets it on some paths
             foreach (Match match in MailCommand.Matches(script))
-                this.flagEvents.TryAdd(match.Groups[1].Value, eventKey);
+            {
+                string flag = match.Groups[1].Value;
+                bool onePath = branch || match.Index > firstFork;
+                if (!this.flagEvents.TryGetValue(flag, out var known) || (known.BranchOnly && !onePath))
+                    this.flagEvents[flag] = (eventKey, onePath);
+            }
             foreach (Match match in TopicCommand.Matches(script))
             {
                 int days = match.Groups[2].Success && int.TryParse(match.Groups[2].Value, out int d) ? d : 4;
@@ -219,7 +229,7 @@ namespace StardewEventTracker.Data
         {
             this.letterTitles.TryGetValue(flag, out string? title);
             this.triggerConditions.TryGetValue(flag, out string? condition);
-            this.flagEvents.TryGetValue(flag, out string? eventKey);
+            string? eventKey = this.flagEvents.TryGetValue(flag, out var fromEvent) ? fromEvent.EventKey : null;
             this.questFlags.TryGetValue(flag, out string? quest);
             this.dialogueFlags.TryGetValue(flag, out string? npc);
             bool hasOrder = this.specialOrders.TryGetValue(flag, out var order);
@@ -227,6 +237,28 @@ namespace StardewEventTracker.Data
             if (title == null && condition == null && eventKey == null && quest == null && npc == null && !hasOrder)
                 return null;
             return new FlagSource(flag, title, hasOrder ? order.Name : null, hasOrder ? order.Objective : null, condition, eventKey, quest, npc);
+        }
+
+        /// <summary>
+        /// Whether a flag can no longer be received: only one path through an event sets it (an answer to a question,
+        /// or a conditional branch), the player has seen that event without getting the flag, and nothing else sets it.
+        /// Events only play once, so the other path was taken for good.
+        /// </summary>
+        public bool IsMissedChoice(string flag, Farmer player)
+        {
+            if (!this.flagEvents.TryGetValue(flag, out var source) || !source.BranchOnly || player.mailReceived.Contains(flag))
+                return false;
+
+            // the event's "mail" command sends a letter, which sets the flag once it's read
+            if (player.mailbox.Contains(flag) || player.mailForTomorrow.Any(m => m == flag || m.StartsWith(flag + "%&NL&%")))
+                return false;
+            if (this.letterTitles.ContainsKey(flag) || this.triggerConditions.ContainsKey(flag) || this.questFlags.ContainsKey(flag)
+                || this.dialogueFlags.ContainsKey(flag) || this.specialOrders.ContainsKey(flag) || Hints.ForFlag(flag) != null)
+                return false;
+
+            // event keys are "<location>|<event ID>"
+            string eventId = source.EventKey[(source.EventKey.IndexOf('|') + 1)..];
+            return player.eventsSeen.Contains(eventId);
         }
 
         public TopicSource? GetTopic(string topic) => this.topics.TryGetValue(topic, out TopicSource? source) ? source : null;
