@@ -62,10 +62,7 @@ namespace StardewEventTracker.UI.Themes
             int y = box.Y - TextAbove;
             int inner = this.BannerInnerWidth;
 
-            // the banner, laid out like SpriteText.drawString lays out scroll style 3 around its text
-            b.Draw(Game1.mouseCursors_1_6, new Vector2(x - 12, y - 12), BannerLeft, Color.White, 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
-            b.Draw(Game1.mouseCursors_1_6, new Vector2(x, y - 12), BannerMiddle, Color.White, 0f, Vector2.Zero, new Vector2(inner + 4, BannerScale), SpriteEffects.None, 1f);
-            b.Draw(Game1.mouseCursors_1_6, new Vector2(x + inner + 4, y - 12), BannerRight, Color.White, 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
+            DrawBanner(b, Game1.mouseCursors_1_6, BannerLeft, BannerMiddle, BannerRight, x, y, inner);
 
             if (this.GetLogo() is { } logo)
                 b.Draw(logo, new Vector2(x, y - 6), null, Color.White, 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);

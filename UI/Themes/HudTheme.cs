@@ -26,7 +26,7 @@ namespace StardewEventTracker.UI.Themes
         public static readonly HudTheme Default = new CommunityCenterTheme();
 
         /// <summary>Every theme players can choose, in the order the config menu lists them.</summary>
-        public static readonly IReadOnlyList<HudTheme> All = new HudTheme[] { Default, new JojaTheme() };
+        public static readonly IReadOnlyList<HudTheme> All = new HudTheme[] { Default, new JojaTheme(), new SpiritsEveTheme() };
 
         public static string[] Ids => All.Select(t => t.Id).ToArray();
 
@@ -66,6 +66,18 @@ namespace StardewEventTracker.UI.Themes
 
         /// <summary>Draws the title, after the box so it can overlap it.</summary>
         public abstract void DrawTitle(SpriteBatch b, Rectangle box, HudState state);
+
+        /// <summary>
+        /// Draws one of the game's title banners (SpriteText's scroll styles) around <paramref name="innerWidth"/> pixels
+        /// of content whose top-left is at (<paramref name="x"/>, <paramref name="y"/>), laid out the way
+        /// SpriteText.drawString lays them out around its text: the ends are 3 pixels wide and the middle stretches.
+        /// </summary>
+        protected static void DrawBanner(SpriteBatch b, Texture2D texture, Rectangle left, Rectangle middle, Rectangle right, int x, int y, int innerWidth)
+        {
+            b.Draw(texture, new Vector2(x - 12, y - 12), left, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(x, y - 12), middle, Color.White, 0f, Vector2.Zero, new Vector2(innerWidth + 4, 4f), SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(x + innerWidth + 4, y - 12), right, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+        }
 
         /// <summary>Draws one line of an entry in the HUD's font.</summary>
         public virtual void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)

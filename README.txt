@@ -263,6 +263,8 @@ Pick a look with the "HUD theme" setting:
                       can happen right now. (The default.)
   * Joja              Joja's "Social Planner", on the blue-metal banner Joja
                       uses in the game, floating above the box
+  * Spirit's Eve      A dark mode: a night-purple box with light text, and
+                      the title between two flickering jack-o'-lanterns
 
 
 Map markers
@@ -365,8 +367,8 @@ launch:
   HudX / HudY            16 / 120         HUD position on screen, in pixels
   HudSortOrder           urgency          HUD order: "urgency" or
                                           "alphabetical"
-  HudTheme               community-center HUD look: "community-center" or
-                                          "joja"
+  HudTheme               community-center HUD look: "community-center",
+                                          "joja" or "spirits-eve"
   HudMaxNpcs             5                Most entries (NPCs and story
                                           events) shown on the HUD
 
