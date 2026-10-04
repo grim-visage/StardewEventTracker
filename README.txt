@@ -271,8 +271,8 @@ Pick a look with the "HUD theme" setting:
                       title between two flickering jack-o'-lanterns, a
                       floating ghost and two bats by the box
   * Seasonal          Follows the calendar: Spring, Summer, Fall or Winter
-  * Spring            Blossoms along the border, butterflies on the title
-  * Summer            A leafy vine with yellow flowers, sunflowers
+  * Spring            A frame of vines and blossoms, butterflies on the title
+  * Summer            A frame of vines and yellow flowers, sunflowers
   * Fall              Fallen leaves piled on top, pumpkins on the title
   * Winter            Snow on top, icicles underneath, crystal fruit
 

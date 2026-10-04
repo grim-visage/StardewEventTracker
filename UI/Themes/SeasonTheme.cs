@@ -9,10 +9,10 @@ namespace StardewEventTracker.UI.Themes
 {
     /// <summary>
     /// A season's look, light or dark: a box in the season's colours with a seasonal border, and the title on a banner
-    /// (the parchment scroll in light mode, dark metal in dark mode) with the season's companions at both ends: blossoms
-    /// along the frame and butterflies in spring, a leafy vine with yellow flowers and sunflowers in summer, fallen
-    /// leaves piled on top and pumpkins in fall, snow on top, icicles underneath and crystal fruit in winter. The border
-    /// keeps to the box's edges, so it never covers the text.
+    /// (the parchment scroll in light mode, dark metal in dark mode) with the season's companions at both ends: a frame
+    /// of vines with blossoms and butterflies in spring, a frame of vines with yellow flowers and sunflowers in summer,
+    /// fallen leaves piled on top and pumpkins in fall, snow on top, icicles underneath and crystal fruit in winter. The
+    /// border keeps to the box's edges, so it never covers the text.
     /// </summary>
     internal sealed class SeasonTheme : HudTheme
     {
@@ -89,7 +89,11 @@ namespace StardewEventTracker.UI.Themes
         {
             Texture2D pixel = Game1.staminaRect;
             b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width, box.Height), Color.Black * 0.24f);
-            b.Draw(pixel, box, dragging ? Color.Lerp(this.look.Frame, Color.White, 0.4f) : this.look.Frame);
+
+            // spring and summer frame the box with vines instead
+            bool vines = this.season is Season.Spring or Season.Summer;
+            if (!vines || dragging)
+                b.Draw(pixel, box, dragging ? Color.Lerp(this.look.Frame, Color.White, 0.4f) : this.look.Frame);
             b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), this.look.Paper * 0.96f);
 
             switch (this.season)
@@ -195,49 +199,85 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The game's pixels are 4 screen pixels at the HUD's scale; the borders are drawn in those.</summary>
         private const int Px = 4;
 
-        private static readonly Color BlossomPink = new(255, 168, 204), BlossomPinkLight = new(255, 214, 232), BlossomCorner = new(240, 120, 170), BlossomCornerLight = new(255, 190, 215);
+        private static readonly Color BlossomPink = new(255, 168, 204), BlossomPinkLight = new(255, 214, 232);
         private static readonly Color BlossomWhite = new(255, 240, 246), BlossomCenter = new(255, 214, 80);
-        private static readonly Color LeafGreen = new(96, 170, 70), LeafShade = new(60, 125, 50);
-        private static readonly Color VineDark = new(44, 96, 34), VineLight = new(86, 160, 60), VineLeaf = new(120, 196, 72), VineLeafShade = new(40, 92, 30), VineLeafVein = new(170, 220, 110);
+        private static readonly Color VineDark = new(44, 96, 34), VineLight = new(98, 172, 66), VineKnot = new(68, 134, 48), VineLeaf = new(120, 196, 72), VineLeafShade = new(40, 92, 30), VineLeafVein = new(170, 220, 110);
         private static readonly Color SummerPetal = new(255, 206, 50), SummerPetalLight = new(255, 236, 140), SummerCenter = new(150, 86, 36);
         private static readonly Color Snow = new(250, 252, 255), SnowShade = new(205, 222, 242), Ice = new(225, 240, 255), IceTip = new(160, 200, 245), IceTop = new(240, 248, 255);
 
-        /// <summary>Spring: blossoms with leaves along the top and bottom of the frame, and a deeper pink one in each corner.</summary>
+        /// <summary>Spring: a frame of vines, with leaves and pink and white blossoms growing out of it.</summary>
         private static void DrawSpringBorder(SpriteBatch b, Rectangle box)
         {
-            foreach (int y in new[] { box.Y + 2, box.Bottom - 2 })
+            DrawVineFrame(b, box, (x, y, n) =>
             {
-                int k = 0;
-                for (int x = box.X + 28; x < box.Right - 16; x += 46, k++)
-                {
-                    DrawSprigLeaf(b, x - 18, y + 2, flip: false);
-                    DrawSprigLeaf(b, x + 14, y + 2, flip: true);
-                    if (k % 2 == 0)
-                        DrawBlossom(b, x, y, BlossomPink, BlossomPinkLight, BlossomCenter);
-                    else
-                        DrawBlossom(b, x, y, BlossomWhite, Color.White, BlossomCenter);
-                }
-            }
-            foreach (Point corner in new[] { new Point(box.X + 2, box.Y + 2), new Point(box.Right - 2, box.Y + 2), new Point(box.X + 2, box.Bottom - 2), new Point(box.Right - 2, box.Bottom - 2) })
-                DrawBlossom(b, corner.X, corner.Y, BlossomCorner, BlossomCornerLight, BlossomCenter);
+                if (n % 2 == 0)
+                    DrawBlossom(b, x, y, BlossomPink, BlossomPinkLight, BlossomCenter);
+                else
+                    DrawBlossom(b, x, y, BlossomWhite, Color.White, BlossomCenter);
+            });
         }
 
-        /// <summary>Summer: a vine along the top and bottom of the frame, its leaves and yellow flowers pointing out of the box.</summary>
+        /// <summary>Summer: a frame of vines, with leaves and yellow flowers growing out of it.</summary>
         private static void DrawSummerBorder(SpriteBatch b, Rectangle box)
         {
+            DrawVineFrame(b, box, (x, y, _) => DrawBlossom(b, x, y, SummerPetal, SummerPetalLight, SummerCenter));
+        }
+
+        /// <summary>
+        /// A braided vine all the way around the box, in place of its frame (light and dark strands swapping every
+        /// 12px), with leaves and flowers growing outward from it on every side.
+        /// </summary>
+        /// <param name="drawFlower">Draws a flower centred near (x, y); the third value counts the flowers, e.g. to alternate colours.</param>
+        private static void DrawVineFrame(SpriteBatch b, Rectangle box, Action<int, int, int> drawFlower)
+        {
+            // the strands, along the top and bottom, then down the sides
+            foreach (int y in new[] { box.Y - 2, box.Bottom - 6 })
+            {
+                for (int x = box.X - 2; x < box.Right + 2; x += Px)
+                    DrawStrand(b, x, y, (x - box.X) / 12 % 2 == 1, (x - box.X) % 12 == 8, across: true);
+            }
+            foreach (int x in new[] { box.X - 2, box.Right - 6 })
+            {
+                for (int y = box.Y - 2; y < box.Bottom + 2; y += Px)
+                    DrawStrand(b, x, y, (y - box.Y) / 12 % 2 == 1, (y - box.Y) % 12 == 8, across: false);
+            }
+
+            int flowers = 0;
             foreach ((int y, bool up) in new[] { (box.Y, true), (box.Bottom - 4, false) })
             {
-                Fill(b, box.X - 4, y - 2, box.Width + 8, 8, VineDark);
-                Fill(b, box.X - 4, y - 2, box.Width + 8, 4, VineLight);
                 int k = 0;
-                for (int x = box.X + 10; x < box.Right - 10; x += 30, k++)
+                for (int x = box.X + 14; x < box.Right - 10; x += 30, k++)
                 {
                     if (k % 3 == 1)
-                        DrawBlossom(b, x + 4, y + (up ? -10 : 14), SummerPetal, SummerPetalLight, SummerCenter);
+                        drawFlower(x + 4, y + (up ? -10 : 14), flowers++);
                     else
                         DrawVineLeaf(b, x, y + (up ? -6 : 6), up, flip: k % 2 == 1);
                 }
             }
+            foreach ((int x, bool left) in new[] { (box.X, true), (box.Right - 4, false) })
+            {
+                int k = 0;
+                for (int y = box.Y + 22; y < box.Bottom - 16; y += 34, k++)
+                {
+                    if (k % 2 == 1)
+                        drawFlower(x + (left ? -10 : 14), y + 2, flowers++);
+                    else
+                        DrawSideLeaf(b, x + (left ? -6 : 6), y, left, flip: k % 4 == 2);
+                }
+            }
+        }
+
+        /// <summary>One 4px step of the vine: two strands side by side, swapping light and dark, with a knot where they twist.</summary>
+        private static void DrawStrand(SpriteBatch b, int x, int y, bool swapped, bool knot, bool across)
+        {
+            Color first = swapped ? VineLight : VineDark, second = swapped ? VineDark : VineLight;
+            if (knot)
+                first = second = VineKnot;
+            Fill(b, x, y, Px, Px, first);
+            if (across)
+                Fill(b, x, y + Px, Px, Px, second);
+            else
+                Fill(b, x + Px, y, Px, Px, second);
         }
 
         /// <summary>Fall: fallen leaves piled two deep along the top, and a couple caught at each bottom corner.</summary>
@@ -296,16 +336,6 @@ namespace StardewEventTracker.UI.Themes
             Fill(b, x, y, Px, Px, center);
         }
 
-        /// <summary>A small leaf beside a blossom, rising to one side.</summary>
-        private static void DrawSprigLeaf(SpriteBatch b, int x, int y, bool flip)
-        {
-            int dir = flip ? -1 : 1;
-            Fill(b, x, y, Px, Px, LeafShade);
-            Fill(b, x + dir * Px, y, Px, Px, LeafGreen);
-            Fill(b, x + dir * Px, y - Px, Px, Px, LeafGreen);
-            Fill(b, x + dir * 2 * Px, y - Px, Px, Px, LeafGreen);
-        }
-
         /// <summary>A vine leaf growing up (above the vine) or down (below it), leaning one way or the other.</summary>
         private static void DrawVineLeaf(SpriteBatch b, int x, int y, bool up, bool flip)
         {
@@ -315,6 +345,17 @@ namespace StardewEventTracker.UI.Themes
             };
             foreach ((int dx, int dy, Color color) in shape)
                 Fill(b, x + (flip ? -dx : dx) * Px, y + (up ? -dy : dy) * Px, Px, Px, color);
+        }
+
+        /// <summary>A vine leaf growing out to the left or right of a side of the frame, leaning up or down.</summary>
+        private static void DrawSideLeaf(SpriteBatch b, int x, int y, bool left, bool flip)
+        {
+            (int dy, int dx, Color color)[] shape =
+            {
+                (0, 0, VineLeafShade), (0, 1, VineLeaf), (0, 2, VineLeaf), (1, 1, VineLeaf), (1, 2, VineLeafVein), (1, 3, VineLeaf), (2, 2, VineLeaf), (2, 3, VineLeaf)
+            };
+            foreach ((int dy, int dx, Color color) in shape)
+                Fill(b, x + (left ? -dx : dx) * Px, y + (flip ? -dy : dy) * Px, Px, Px, color);
         }
 
         /// <summary>One of the game's fall weather leaves, still.</summary>
