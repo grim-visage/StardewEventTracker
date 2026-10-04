@@ -328,6 +328,13 @@ settings; picking a sound in Generic Mod Config Menu plays a preview.
 Missed one? The Pinned tab has a "Today's messages" list at the top with every
 reminder from today.
 
+Want to hear about events you haven't pinned too? Turn on "Remind me about
+unpinned events" (UnpinnedReminders). It only covers events with a start
+time: you get the "before it starts" reminders and a pop-up when they open,
+but no morning, evening or leave-now messages, and nothing for events that
+can happen all day. At most two pop-ups come at once; the rest are summed up
+as "+3 more events coming up".
+
 
 Spoiler-free mode
 ~~~~~~~~~~~~~~~~~
@@ -369,6 +376,8 @@ launch:
   ShowMapMarkers         true             Hearts on the map for pinned
                                           events
   StoryReminders         true             Reminders for pinned story events
+  UnpinnedReminders      false            Reminders for unpinned events with
+                                          a start time
   MorningHeadsUp         true             Day-start message about today's
                                           events
   ReminderMinutesBefore  [120, 60]        When to remind you before an
@@ -453,7 +462,8 @@ KNOWN LIMITATIONS
     tracker can't predict when they'll happen.
   * Requirement types the mod doesn't recognize are shown as their raw code.
     Whether they're met is still checked correctly.
-  * Reminders, the HUD and map markers only cover what you've pinned.
+  * The HUD and map markers only cover what you've pinned, and so do
+    reminders unless "Remind me about unpinned events" is on.
   * Walking estimates count walking and riding only, not minecarts, the bus,
     boats or totems.
 

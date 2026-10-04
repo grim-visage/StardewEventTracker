@@ -220,6 +220,7 @@ namespace StardewEventTracker
 
             gmcm.AddSectionTitle(m, () => I18n.Get("config.section.reminders"), () => I18n.Get("config.section.reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.StoryReminders, v => this.Config.StoryReminders = v, () => I18n.Get("config.story-reminders"), () => I18n.Get("config.story-reminders.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.UnpinnedReminders, v => this.Config.UnpinnedReminders = v, () => I18n.Get("config.unpinned-reminders"), () => I18n.Get("config.unpinned-reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => I18n.Get("config.morning"), () => I18n.Get("config.morning.tip"));
             foreach (int minutes in ModConfig.AllowedReminderMinutes)
             {
@@ -679,6 +680,59 @@ namespace StardewEventTracker
                     this.Notify(EventNarrator.MorningHeadsUp(evt), this.Config.ReminderSound);
                 }
             }
+
+            if (this.Config.UnpinnedReminders)
+                this.RunUnpinnedReminders(intervals);
+        }
+
+        /// <summary>
+        /// Reminders for events that aren't pinned: only those with a start time, at the reminder intervals and again
+        /// when they open, so events that can happen all day don't flood the screen. A few at a time, then a summary.
+        /// </summary>
+        private void RunUnpinnedReminders(List<int> intervals)
+        {
+            const int maxPopups = 2;
+            var pinnedStory = this.State.PinnedStoryEvents;
+            var events = this.Index.ByOwner.Keys
+                .Where(npc => !this.PinnedNpcs.Contains(npc))
+                .SelectMany(npc => this.Index.GetPending(npc).Pending)
+                .Concat(this.Index.StoryByLocation.Keys.SelectMany(location => this.Index.GetStoryPending(location).Pending).Where(p => !pinnedStory.Contains(p.Event.Key)))
+                .DistinctBy(p => p.Event.Key);
+
+            var messages = new List<(string Text, bool Now)>();
+            foreach ((EventInfo evt, EventEvaluation eval) in events)
+            {
+                if (this.IsSnoozed(evt) || this.HidesDetails(eval))
+                    continue;
+
+                // open now: only worth saying if it was reminded about while it was coming up
+                if (eval.Status == EventStatus.AvailableNow)
+                {
+                    if (this.Config.AlertWhenAvailable && this.alertedToday.Contains($"upcoming:{evt.Key}") && this.alertedToday.Add($"now:{evt.Key}"))
+                        messages.Add((EventNarrator.AvailableNow(evt), true));
+                    continue;
+                }
+
+                if (eval.Status != EventStatus.LaterToday || eval.MinutesUntilStart is not { } minutesLeft)
+                    continue;
+
+                int due = intervals.FirstOrDefault(m => minutesLeft <= m);
+                if (due <= 0)
+                    continue;
+                bool sent = this.alertedToday.Contains($"remind:{due}:{evt.Key}");
+                foreach (int crossed in intervals.Where(m => m >= due))
+                    this.alertedToday.Add($"remind:{crossed}:{evt.Key}");
+                this.alertedToday.Add($"upcoming:{evt.Key}");
+                if (!sent)
+                    messages.Add((EventNarrator.Reminder(evt, eval, minutesLeft), false));
+            }
+
+            // what's open now first, then what's coming up
+            messages = messages.OrderByDescending(m => m.Now).ToList();
+            foreach ((string text, bool now) in messages.Take(maxPopups))
+                this.Notify(text, now ? this.Config.AvailableSound : this.Config.ReminderSound);
+            if (messages.Count > maxPopups)
+                this.Notify(I18n.Get("msg.unpinned-more", new { count = messages.Count - maxPopups, key = this.Config.OpenMenuKey }), this.Config.ReminderSound);
         }
 
         private void Notify(string text, string sound)

@@ -71,6 +71,9 @@ namespace StardewEventTracker
         /// <summary>Whether pinned story events get reminders like pinned NPCs do.</summary>
         public bool StoryReminders { get; set; } = true;
 
+        /// <summary>Whether events nobody pinned get reminders too: only those with a start time, before it and when it comes.</summary>
+        public bool UnpinnedReminders { get; set; }
+
         /// <summary>Whether to send a "leave now" reminder based on how long the walk there takes.</summary>
         public bool TravelReminders { get; set; } = true;
 
