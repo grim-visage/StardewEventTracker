@@ -100,6 +100,9 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The height the title takes inside the box, above the first entry.</summary>
         public virtual int TitleInside => 0;
 
+        /// <summary>The height the theme needs inside the box below the last entry, e.g. for a footer.</summary>
+        public virtual int FooterInside => 0;
+
         /// <summary>The narrowest the box can be, e.g. so it's at least as wide as a title drawn above it.</summary>
         public virtual int MinBoxWidth => 0;
 

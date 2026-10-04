@@ -88,7 +88,7 @@ namespace StardewEventTracker.UI
             int padding = theme.Padding;
             int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => font.MeasureString(l.Text).X) : 0;
             int width = Math.Max(textWidth + padding * 2, theme.MinBoxWidth);
-            int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2;
+            int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2 + theme.FooterInside;
 
             // a title drawn above the box stays on screen too
             int x = Math.Clamp(this.mod.Config.HudX, 0, Math.Max(0, Game1.uiViewport.Width - width));
@@ -171,7 +171,7 @@ namespace StardewEventTracker.UI
             var lines = new List<(string, Color)>();
             int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
             int boxY = Math.Max(theme.TitleAbove, this.mod.Config.HudY);
-            int maxLines = Math.Max(2, (Game1.uiViewport.Height - boxY - theme.Padding * 2 - theme.TitleInside) / LineHeight);
+            int maxLines = Math.Max(2, (Game1.uiViewport.Height - boxY - theme.Padding * 2 - theme.TitleInside - theme.FooterInside) / LineHeight);
             int shown = 0;
             foreach (Entry entry in entries)
             {
