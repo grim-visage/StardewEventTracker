@@ -60,6 +60,12 @@ namespace StardewEventTracker.UI
         /// <summary>Whether the player is dragging the box, which highlights it.</summary>
         public bool Dragging { get; set; }
 
+        /// <summary>
+        /// The mouse in UI pixels, which the HUD is drawn in. Not SMAPI's scaled screen pixels: outside drawing those are
+        /// in zoomed game pixels, which put the grab area off from the box whenever zoom and UI scale differ.
+        /// </summary>
+        public static Point UiMouse => new(Game1.getMouseX(ui_scale: true), Game1.getMouseY(ui_scale: true));
+
         public HudTracker(ModEntry mod)
         {
             this.mod = mod;
@@ -124,8 +130,7 @@ namespace StardewEventTracker.UI
         {
             if (this.mod.Config.HudFadeOnHover)
             {
-                Vector2 cursor = this.mod.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
-                if (this.Bounds.Contains((int)cursor.X, (int)cursor.Y))
+                if (this.Bounds.Contains(UiMouse))
                     return true;
             }
 

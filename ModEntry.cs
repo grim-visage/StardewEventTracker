@@ -399,17 +399,14 @@ namespace StardewEventTracker
             if (e.Button != SButton.MouseRight || !Context.IsWorldReady)
                 return;
 
-            Vector2 cursor = e.Cursor.GetScaledScreenPixels();
-            Rectangle bounds = this.hud.Value.Bounds;
-            bool onHud = bounds.Contains((int)cursor.X, (int)cursor.Y);
-            this.Monitor.Log($"HUD drag: right-click at {cursor} (screen {e.Cursor.ScreenPixels}), HUD at {bounds}, {(onHud ? "grabbed" : "missed")}; UI scale {Game1.options.uiScale}, zoom {Game1.options.zoomLevel}, tick {Game1.ticks}.", LogLevel.Trace);
-            if (!onHud)
+            Point cursor = HudTracker.UiMouse;
+            if (!this.hud.Value.Bounds.Contains(cursor))
                 return;
 
             // don't check or interact with whatever's under the box; the offset is from the box, so its title can be dragged too
             this.Helper.Input.Suppress(SButton.MouseRight);
             Point box = this.hud.Value.BoxPosition;
-            this.hudDragOffset.Value = new Point((int)cursor.X - box.X, (int)cursor.Y - box.Y);
+            this.hudDragOffset.Value = new Point(cursor.X - box.X, cursor.Y - box.Y);
             this.hud.Value.Dragging = true;
         }
 
@@ -418,14 +415,13 @@ namespace StardewEventTracker
             if (this.hudDragOffset.Value is not { } offset)
                 return;
 
-            Vector2 cursor = this.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
-            this.Config.HudX = Math.Max(0, (int)cursor.X - offset.X);
-            this.Config.HudY = Math.Max(0, (int)cursor.Y - offset.Y);
+            Point cursor = HudTracker.UiMouse;
+            this.Config.HudX = Math.Max(0, cursor.X - offset.X);
+            this.Config.HudY = Math.Max(0, cursor.Y - offset.Y);
 
             bool held = this.Helper.Input.IsDown(SButton.MouseRight) || this.Helper.Input.IsSuppressed(SButton.MouseRight);
             if (!held)
             {
-                this.Monitor.Log($"HUD drag: released at {this.Config.HudX}, {this.Config.HudY}, tick {Game1.ticks}.", LogLevel.Trace);
                 this.hudDragOffset.Value = null;
                 this.hud.Value.Dragging = false;
                 this.Helper.WriteConfig(this.Config);
