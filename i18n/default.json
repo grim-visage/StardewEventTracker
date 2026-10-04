@@ -199,6 +199,7 @@
   "menu.pinned.no-match": "None of your pinned NPCs have events matching your search or filters.",
   "menu.messages": "Today's messages ({{count}})",
   "menu.hearts.no-match": "No heart events match your search or filters.",
+  "menu.hearts.all-seen": "{{count}} NPCs whose events you've all seen are on the Completed tab.",
   "menu.story.no-match": "No story events match your search or filters.",
   "menu.story.none": "No unseen story events right now.",
   "menu.completed.count": "({{seen}}/{{total}} seen)",

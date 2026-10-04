@@ -72,11 +72,12 @@ Tracker menu (F2)
                reminder from today.
   * Hearts     Every NPC with heart events, with their hearts shown like on
                the game's Social tab ("Not met" until you meet them).
-               Click a name to expand it.
+               Click a name to expand it. NPCs whose events you've all
+               seen move to the Completed tab.
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
   * Completed  Events you've already seen. Switch between Hearts and Story
-               at the top.
+               at the top. Names in green have every event seen.
 
 Each NPC's events are listed in story order (when two need the same hearts,
 the one with fewer requirements left comes first), followed by a "Next up" line

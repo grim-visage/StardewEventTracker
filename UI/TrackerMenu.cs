@@ -296,8 +296,16 @@ namespace StardewEventTracker.UI
                 .ToList();
 
             bool any = false;
+            int allSeen = 0;
             foreach (string owner in owners)
             {
+                // NPCs whose events have all been seen are on the Completed tab instead
+                if (this.Index.GetEvents(owner).All(e => e.Seen))
+                {
+                    allSeen++;
+                    continue;
+                }
+
                 PendingEvents pending = this.Index.GetPending(owner);
                 bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(EventIndex.GetNpcDisplayName(owner));
                 var visible = this.Visible(pending, nameMatch);
@@ -317,6 +325,11 @@ namespace StardewEventTracker.UI
 
             if (!any)
                 this.AddRow(I18n.Get("menu.hearts.no-match"), MutedColor);
+            if (allSeen > 0)
+            {
+                this.AddSpacer(12);
+                this.AddRow(I18n.Get("menu.hearts.all-seen", new { count = allSeen }), MutedColor);
+            }
         }
 
         private void BuildStoryTab()
@@ -390,7 +403,7 @@ namespace StardewEventTracker.UI
                 bool expanded = IsExpanded(key, autoExpand: false);
                 this.AddRow(
                     $"{(expanded ? "v" : ">")} {name}   {I18n.Get("menu.completed.count", new { seen = seen.Count, total })}",
-                    Game1.textColor,
+                    seen.Count == total ? MetColor : Game1.textColor,
                     font: Game1.dialogueFont,
                     onClick: () => ToggleExpanded(key, autoExpand: false));
 
