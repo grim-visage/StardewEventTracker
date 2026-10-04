@@ -95,11 +95,11 @@ namespace StardewEventTracker.UI.Themes
         public override void DrawBox(SpriteBatch b, Rectangle box, bool dragging)
         {
             Texture2D pixel = Game1.staminaRect;
-            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width, box.Height), Color.Black * 0.27f);
-            b.Draw(pixel, box, dragging ? Rule : Frame);
-            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), Paper * 0.96f);
+            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width, box.Height), Fade(Color.Black * 0.27f));
+            b.Draw(pixel, box, Fade(dragging ? Rule : Frame));
+            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), Fade(Paper * 0.96f));
             int lightsWidth = Lights.Length * (LightSize + LightGap);
-            b.Draw(pixel, new Rectangle(box.X + 8, box.Bottom - 14, box.Width - 16 - lightsWidth, 4), Rule);
+            b.Draw(pixel, new Rectangle(box.X + 8, box.Bottom - 14, box.Width - 16 - lightsWidth, 4), Fade(Rule));
         }
 
         public override void DrawLine(SpriteBatch b, string text, Vector2 position, Color color) => DrawDarkLine(b, text, position, color);
@@ -112,18 +112,18 @@ namespace StardewEventTracker.UI.Themes
             Texture2D sheet = Game1.mouseCursors_1_6;
 
             // the game's banner (SpriteText scroll style 3), drawn taller than the game draws it
-            b.Draw(sheet, new Vector2(x - 16, top), BannerLeft, Color.White, 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x - 4, top), BannerMiddle, Color.White, 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x - 4 + inner, top), BannerRight, Color.White, 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - 16, top), BannerLeft, Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - 4, top), BannerMiddle, Fade(Color.White), 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - 4 + inner, top), BannerRight, Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
 
             // centred in the banner's dark middle (rows 2-14 of 17)
             int logoX = x + BannerMargin;
             int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - LogoSource.Height * LogoScale) / 2;
             if (this.GetLogo() is { } logo)
-                b.Draw(logo, new Vector2(logoX, logoY), null, Color.White, 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
+                b.Draw(logo, new Vector2(logoX, logoY), null, Fade(Color.White), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
 
             int textX = logoX + this.LogoWidth + LogoGap;
-            SpriteText.drawString(b, this.Title, textX, top + 22, width: SpriteText.getWidthOfString(this.Title) + 16, color: Color.White);
+            SpriteText.drawString(b, this.Title, textX, top + 22, width: SpriteText.getWidthOfString(this.Title) + 16, alpha: Opacity, color: Color.White);
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
             this.DrawSparkle(b, logoX, logoY, now);
@@ -145,7 +145,7 @@ namespace StardewEventTracker.UI.Themes
                 if (glow <= 0)
                     continue;
                 foreach (Point p in this.rays[i])
-                    b.Draw(Game1.staminaRect, new Rectangle(logoX + p.X * LogoScale, logoY + p.Y * LogoScale, LogoScale, LogoScale), Color.White * (0.85f * glow));
+                    b.Draw(Game1.staminaRect, new Rectangle(logoX + p.X * LogoScale, logoY + p.Y * LogoScale, LogoScale, LogoScale), Fade(Color.White * (0.85f * glow)));
             }
         }
 
@@ -168,9 +168,9 @@ namespace StardewEventTracker.UI.Themes
                 if (on && Game1.lantern != null)
                 {
                     float scale = 30f / Game1.lantern.Width;
-                    b.Draw(Game1.lantern, light.Center.ToVector2(), null, color * 0.35f, 0f, new Vector2(Game1.lantern.Width / 2f, Game1.lantern.Height / 2f), scale, SpriteEffects.None, 1f);
+                    b.Draw(Game1.lantern, light.Center.ToVector2(), null, Fade(color * 0.35f), 0f, new Vector2(Game1.lantern.Width / 2f, Game1.lantern.Height / 2f), scale, SpriteEffects.None, 1f);
                 }
-                b.Draw(Game1.staminaRect, light, on ? color : color * 0.25f);
+                b.Draw(Game1.staminaRect, light, Fade(on ? color : color * 0.25f));
             }
         }
 

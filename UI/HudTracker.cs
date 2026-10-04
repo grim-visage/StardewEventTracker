@@ -42,6 +42,15 @@ namespace StardewEventTracker.UI
         private int builtForY = -1;
         private HudTheme? builtForTheme;
 
+        /// <summary>How see-through the HUD gets while the player or the mouse is under it.</summary>
+        private const float FadedOpacity = 0.3f;
+
+        /// <summary>How long a full fade in or out takes, in milliseconds.</summary>
+        private const float FadeMs = 250;
+
+        /// <summary>How opaque the HUD is now, easing towards fully opaque or <see cref="FadedOpacity"/>.</summary>
+        private float opacity = 1f;
+
         /// <summary>Whether an entry on the HUD can happen right now, for themes that react to it.</summary>
         private bool anyAvailableNow;
 
@@ -87,11 +96,44 @@ namespace StardewEventTracker.UI
             this.BoxPosition = box.Location;
             this.Bounds = title.IsEmpty ? box : Rectangle.Union(box, title);
 
-            theme.DrawBox(b, box, this.Dragging);
-            int top = y + padding + theme.TitleInside;
-            for (int i = 0; i < this.lines.Count; i++)
-                theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
-            theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
+            this.UpdateOpacity();
+            HudTheme.Opacity = this.opacity;
+            try
+            {
+                theme.DrawBox(b, box, this.Dragging);
+                int top = y + padding + theme.TitleInside;
+                for (int i = 0; i < this.lines.Count; i++)
+                    theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
+                theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
+            }
+            finally
+            {
+                HudTheme.Opacity = 1f;
+            }
+        }
+
+        /// <summary>Eases the HUD towards faded while it's in the way, or back to opaque; it stays opaque while it's being moved.</summary>
+        private void UpdateOpacity()
+        {
+            bool inWay = this.mod.Config.HudFade && !this.Dragging && !this.mod.Config.HudDragKey.IsDown() && this.IsInWay();
+            float target = inWay ? FadedOpacity : 1f;
+            float step = (float)(Game1.currentGameTime?.ElapsedGameTime.TotalMilliseconds ?? FadeMs) / FadeMs * (1f - FadedOpacity);
+            this.opacity = this.opacity < target ? Math.Min(target, this.opacity + step) : Math.Max(target, this.opacity - step);
+        }
+
+        /// <summary>Whether the mouse is over the HUD, or the player is standing under it.</summary>
+        private bool IsInWay()
+        {
+            Vector2 cursor = this.mod.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
+            if (this.Bounds.Contains((int)cursor.X, (int)cursor.Y))
+                return true;
+
+            // the player's sprite (a tile wide, two tall, standing on their bounding box), from world to UI pixels
+            Rectangle feet = Game1.player.GetBoundingBox();
+            Vector2 topLeft = Game1.GlobalToLocal(Game1.viewport, new Vector2(feet.Center.X - 32, feet.Bottom - 128));
+            float scale = Game1.options.zoomLevel / Game1.options.uiScale;
+            var sprite = new Rectangle((int)(topLeft.X * scale), (int)(topLeft.Y * scale), (int)(64 * scale), (int)(128 * scale));
+            return this.Bounds.Intersects(sprite);
         }
 
         /// <summary>The theme the player picked in the config.</summary>

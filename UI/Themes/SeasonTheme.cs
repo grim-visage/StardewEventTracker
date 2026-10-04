@@ -88,13 +88,13 @@ namespace StardewEventTracker.UI.Themes
         public override void DrawBox(SpriteBatch b, Rectangle box, bool dragging)
         {
             Texture2D pixel = Game1.staminaRect;
-            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width, box.Height), Color.Black * 0.24f);
+            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width, box.Height), Fade(Color.Black * 0.24f));
 
             // spring and summer frame the box with vines instead
             bool vines = this.season is Season.Spring or Season.Summer;
             if (!vines || dragging)
-                b.Draw(pixel, box, dragging ? Color.Lerp(this.look.Frame, Color.White, 0.4f) : this.look.Frame);
-            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), this.look.Paper * 0.96f);
+                b.Draw(pixel, box, Fade(dragging ? Color.Lerp(this.look.Frame, Color.White, 0.4f) : this.look.Frame));
+            b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), Fade(this.look.Paper * 0.96f));
 
             switch (this.season)
             {
@@ -118,7 +118,7 @@ namespace StardewEventTracker.UI.Themes
             if (this.dark)
                 DrawDarkLine(b, text, position, color);
             else
-                b.DrawString(Game1.smallFont, text, position, color);
+                b.DrawString(Game1.smallFont, text, position, Fade(color));
         }
 
         public override void DrawTitle(SpriteBatch b, Rectangle box, HudState state)
@@ -130,14 +130,14 @@ namespace StardewEventTracker.UI.Themes
 
             // the banner, laid out like SpriteText.drawString lays out its scrolls around their text
             Texture2D sheet = Game1.mouseCursors;
-            b.Draw(sheet, new Vector2(x - this.bannerEnd, y - 12), this.bannerLeft, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x, y - 12), this.bannerMiddle, Color.White, 0f, Vector2.Zero, new Vector2(content, 4f), SpriteEffects.None, 1f);
-            b.Draw(sheet, new Vector2(x + content, y - 12), this.bannerRight, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x - this.bannerEnd, y - 12), this.bannerLeft, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x, y - 12), this.bannerMiddle, Fade(Color.White), 0f, Vector2.Zero, new Vector2(content, 4f), SpriteEffects.None, 1f);
+            b.Draw(sheet, new Vector2(x + content, y - 12), this.bannerRight, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
 
             this.DrawCompanion(b, new Vector2(x, y - 4), now, right: false);
             this.DrawCompanion(b, new Vector2(x + content - CompanionSize, y - 4), now, right: true);
             string title = this.Title;
-            SpriteText.drawString(b, title, x + CompanionSize + CompanionGap, y, width: SpriteText.getWidthOfString(title) + 16, color: this.look.Title);
+            SpriteText.drawString(b, title, x + CompanionSize + CompanionGap, y, width: SpriteText.getWidthOfString(title) + 16, alpha: Opacity, color: this.look.Title);
         }
 
         /****
@@ -158,7 +158,7 @@ namespace StardewEventTracker.UI.Themes
                     Texture2D critters = Game1.content.Load<Texture2D>("TileSheets\\critters");
                     var source = new Rectangle(frame * 16 % critters.Width, frame * 16 / critters.Width * 16, 16, 16);
                     float bob = (float)Math.Sin(t / 500) * 2f;
-                    b.Draw(critters, at + new Vector2(0, bob), source, Color.White, 0f, Vector2.Zero, CompanionScale, right ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+                    b.Draw(critters, at + new Vector2(0, bob), source, Fade(Color.White), 0f, Vector2.Zero, CompanionScale, right ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
                     break;
                 }
 
@@ -190,7 +190,7 @@ namespace StardewEventTracker.UI.Themes
             ParsedItemData data = ItemRegistry.GetDataOrErrorItem(itemId);
             Rectangle source = data.GetSourceRect();
             var origin = new Vector2(source.Width / 2f, source.Height);
-            b.Draw(data.GetTexture(), at + new Vector2(CompanionSize / 2f, CompanionSize), source, color, angle, origin, CompanionScale, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+            b.Draw(data.GetTexture(), at + new Vector2(CompanionSize / 2f, CompanionSize), source, Fade(color), angle, origin, CompanionScale, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
         }
 
         /****
@@ -425,11 +425,11 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>One of the game's fall weather leaves, still.</summary>
         private static void DrawFallLeaf(SpriteBatch b, int x, int y, int frame, bool flip)
         {
-            b.Draw(Game1.mouseCursors, new Vector2(x, y), new Rectangle(352 + frame * 16, 1216, 16, 16), Color.White, 0f, Vector2.Zero, 3f, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+            b.Draw(Game1.mouseCursors, new Vector2(x, y), new Rectangle(352 + frame * 16, 1216, 16, 16), Fade(Color.White), 0f, Vector2.Zero, 3f, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
         }
 
         private static void Fill(SpriteBatch b, int x, int y, int width, int height, Color color) =>
-            b.Draw(Game1.staminaRect, new Rectangle(x, y, width, height), color);
+            b.Draw(Game1.staminaRect, new Rectangle(x, y, width, height), Fade(color));
 
         /// <summary>A stable pseudo-random number for a position, so decorations look scattered but stay put.</summary>
         private static uint Hash(int value)

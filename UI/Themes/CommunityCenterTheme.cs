@@ -85,13 +85,13 @@ namespace StardewEventTracker.UI.Themes
                 var left = new Rectangle(0, 0, TabEnd, TabSource.Height);
                 var stretch = new Rectangle(TabSource.Width / 2, 0, 1, TabSource.Height);
                 var right = new Rectangle(TabSource.Width - TabEnd, 0, TabEnd, TabSource.Height);
-                b.Draw(tab, new Vector2(x, y), left, Color.White, 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
-                b.Draw(tab, new Vector2(x + TabEnd * Scale, y), stretch, Color.White, 0f, Vector2.Zero, new Vector2(middle, Scale), SpriteEffects.None, 1f);
-                b.Draw(tab, new Vector2(x + TabEnd * Scale + middle, y), right, Color.White, 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
+                b.Draw(tab, new Vector2(x, y), left, Fade(Color.White), 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
+                b.Draw(tab, new Vector2(x + TabEnd * Scale, y), stretch, Fade(Color.White), 0f, Vector2.Zero, new Vector2(middle, Scale), SpriteEffects.None, 1f);
+                b.Draw(tab, new Vector2(x + TabEnd * Scale + middle, y), right, Fade(Color.White), 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
             }
 
             int textX = x + TabEnd * Scale + TitleMargin;
-            SpriteText.drawString(b, this.Title, textX, y + 10, width: this.TitleWidth + 16);
+            SpriteText.drawString(b, this.Title, textX, y + 10, width: this.TitleWidth + 16, alpha: Opacity);
 
             this.DrawJunimos(b, box, state.AnyAvailableNow);
         }
@@ -117,7 +117,7 @@ namespace StardewEventTracker.UI.Themes
 
                 var source = new Rectangle(frame * JunimoSize % 128, frame * JunimoSize / 128 * JunimoSize, JunimoSize, JunimoSize);
                 var position = new Vector2(box.Right - fromRight, box.Y - 40 - hop);
-                b.Draw(Game1.content.Load<Texture2D>("Characters\\Junimo"), position, source, color, 0f, Vector2.Zero, Scale, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+                b.Draw(Game1.content.Load<Texture2D>("Characters\\Junimo"), position, source, Fade(color), 0f, Vector2.Zero, Scale, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
             }
         }
 

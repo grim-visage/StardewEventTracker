@@ -269,6 +269,8 @@
   "config.map-markers": "Map markers",
   "config.map-markers.tip": "Show a heart on the map where pinned NPCs' events can happen today. Hover it for details.",
   "config.show-hud": "Show HUD tracker",
+  "config.hud-fade": "Fade HUD when in the way",
+  "config.hud-fade.tip": "Fades the HUD tracker while you walk under it or the mouse is over it. It comes back while you hold the drag key, so you can still move it.",
   "config.drag-key": "Drag HUD while holding",
   "config.drag-key.tip": "Hold this and drag the HUD tracker with the left mouse button to move it.",
   "config.hud-x": "HUD X position",

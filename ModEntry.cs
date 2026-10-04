@@ -256,6 +256,7 @@ namespace StardewEventTracker
             gmcm.AddBoolOption(m, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => I18n.Get("config.map-markers"), () => I18n.Get("config.map-markers.tip"));
             gmcm.AddBoolOption(m, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => I18n.Get("config.show-hud"));
             gmcm.AddKeybindList(m, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => I18n.Get("config.drag-key"), () => I18n.Get("config.drag-key.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.HudFade, v => this.Config.HudFade = v, () => I18n.Get("config.hud-fade"), () => I18n.Get("config.hud-fade.tip"));
             gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
             gmcm.AddTextOption(m, () => this.Config.HudSortOrder, v => this.Config.HudSortOrder = v, () => I18n.Get("config.hud-order"), () => I18n.Get("config.hud-order.tip"),

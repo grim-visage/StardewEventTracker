@@ -116,6 +116,9 @@ namespace StardewEventTracker
         /// <summary>Whether the season themes use their light or dark mode: <see cref="HudModeLight"/> or <see cref="HudModeDark"/>.</summary>
         public string HudMode { get; set; } = HudModeLight;
 
+        /// <summary>Whether the HUD tracker fades while the player walks under it or the mouse is over it.</summary>
+        public bool HudFade { get; set; } = true;
+
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
 

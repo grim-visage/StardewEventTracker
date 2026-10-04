@@ -71,7 +71,7 @@ namespace StardewEventTracker.UI.Themes
         public override void DrawBox(SpriteBatch b, Rectangle box, bool dragging)
         {
             Color tint = dragging ? new Color(95, 72, 135) : BoxTint;
-            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), box.X, box.Y, box.Width, box.Height, tint * 0.95f, 4f, drawShadow: false);
+            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), box.X, box.Y, box.Width, box.Height, Fade(tint * 0.95f), 4f, drawShadow: false);
         }
 
         public override void DrawLine(SpriteBatch b, string text, Vector2 position, Color color) => DrawDarkLine(b, text, position, color);
@@ -91,11 +91,11 @@ namespace StardewEventTracker.UI.Themes
             ParsedItemData lantern = ItemRegistry.GetDataOrErrorItem(LanternItem);
             Texture2D texture = lantern.GetTexture();
             Rectangle source = lantern.GetSourceRect();
-            b.Draw(texture, new Vector2(leftLantern, y - 4), source, Color.White, 0f, Vector2.Zero, LanternScale, SpriteEffects.None, 1f);
-            b.Draw(texture, new Vector2(rightLantern, y - 4), source, Color.White, 0f, Vector2.Zero, LanternScale, SpriteEffects.FlipHorizontally, 1f);
+            b.Draw(texture, new Vector2(leftLantern, y - 4), source, Fade(Color.White), 0f, Vector2.Zero, LanternScale, SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(rightLantern, y - 4), source, Fade(Color.White), 0f, Vector2.Zero, LanternScale, SpriteEffects.FlipHorizontally, 1f);
 
             string title = this.Title;
-            SpriteText.drawString(b, title, leftLantern + LanternSize + LanternGap, y, width: SpriteText.getWidthOfString(title) + 16, color: TitleColor);
+            SpriteText.drawString(b, title, leftLantern + LanternSize + LanternGap, y, width: SpriteText.getWidthOfString(title) + 16, alpha: Opacity, color: TitleColor);
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
             DrawGhost(b, x, y - 4, now);
@@ -112,7 +112,7 @@ namespace StardewEventTracker.UI.Themes
             int frame = (int)(now / 450) % 4;
             float bob = (float)Math.Sin(now / 1200) * 3f;
             var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
-            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Ghost"), new Vector2(x, y + bob), source, Color.White * 0.85f, 0f, Vector2.Zero, MonsterScale, SpriteEffects.None, 1f);
+            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Ghost"), new Vector2(x, y + bob), source, Fade(Color.White * 0.85f), 0f, Vector2.Zero, MonsterScale, SpriteEffects.None, 1f);
         }
 
         /// <summary>A bat hovering in a tiny, slow figure-eight around <paramref name="center"/>, facing the way it drifts.</summary>
@@ -125,7 +125,7 @@ namespace StardewEventTracker.UI.Themes
             int frame = (int)((now + phase * 100) / 160) % 4;
             var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
             var origin = new Vector2(MonsterWidth / 2f, MonsterHeight / 2f);
-            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Bat"), center + offset, source, Color.White, 0f, origin, MonsterScale, movingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+            b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Bat"), center + offset, source, Fade(Color.White), 0f, origin, MonsterScale, movingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
         }
 
         /// <summary>A candle glow behind a jack-o'-lantern whose top-left is at (x, y), flickering out of step with the other.</summary>
@@ -139,7 +139,7 @@ namespace StardewEventTracker.UI.Themes
             float size = LanternSize + 40;
             float scale = size / Game1.lantern.Width;
             var center = new Vector2(x + LanternSize / 2f, y - 4 + LanternSize / 2f);
-            b.Draw(Game1.lantern, center, null, new Color(255, 150, 40) * flicker, 0f, new Vector2(Game1.lantern.Width / 2f, Game1.lantern.Height / 2f), scale, SpriteEffects.None, 1f);
+            b.Draw(Game1.lantern, center, null, Fade(new Color(255, 150, 40) * flicker), 0f, new Vector2(Game1.lantern.Width / 2f, Game1.lantern.Height / 2f), scale, SpriteEffects.None, 1f);
         }
     }
 }

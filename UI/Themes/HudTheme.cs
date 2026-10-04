@@ -59,6 +59,12 @@ namespace StardewEventTracker.UI.Themes
             return seasonTheme;
         }
 
+        /// <summary>How opaque the HUD is drawn, from 0 to 1; it fades when the player or the mouse is under it.</summary>
+        public static float Opacity { get; set; } = 1f;
+
+        /// <summary>A colour faded to the HUD's <see cref="Opacity"/>; every colour a theme draws with goes through this.</summary>
+        protected static Color Fade(Color color) => color * Opacity;
+
         /// <summary>The ID saved in the config, e.g. "joja". Never change it once released, or players lose their choice.</summary>
         public abstract string Id { get; }
 
@@ -86,7 +92,7 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>Draws the box behind the entries.</summary>
         public virtual void DrawBox(SpriteBatch b, Rectangle box, bool dragging)
         {
-            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), box.X, box.Y, box.Width, box.Height, dragging ? Color.Wheat : Color.White * 0.9f, 4f, drawShadow: false);
+            IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), box.X, box.Y, box.Width, box.Height, Fade(dragging ? Color.Wheat : Color.White * 0.9f), 4f, drawShadow: false);
         }
 
         /// <summary>Draws the title, after the box so it can overlap it.</summary>
@@ -99,22 +105,22 @@ namespace StardewEventTracker.UI.Themes
         /// </summary>
         protected static void DrawBanner(SpriteBatch b, Texture2D texture, Rectangle left, Rectangle middle, Rectangle right, int x, int y, int innerWidth)
         {
-            b.Draw(texture, new Vector2(x - 12, y - 12), left, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
-            b.Draw(texture, new Vector2(x, y - 12), middle, Color.White, 0f, Vector2.Zero, new Vector2(innerWidth + 4, 4f), SpriteEffects.None, 1f);
-            b.Draw(texture, new Vector2(x + innerWidth + 4, y - 12), right, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(x - 12, y - 12), left, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(x, y - 12), middle, Fade(Color.White), 0f, Vector2.Zero, new Vector2(innerWidth + 4, 4f), SpriteEffects.None, 1f);
+            b.Draw(texture, new Vector2(x + innerWidth + 4, y - 12), right, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
         }
 
         /// <summary>Draws a line for a dark box: a dark drop shadow instead of the game's warm one, which glows on dark.</summary>
         protected static void DrawDarkLine(SpriteBatch b, string text, Vector2 position, Color color)
         {
-            b.DrawString(Game1.smallFont, text, position + new Vector2(2, 2), Color.Black * 0.45f);
-            b.DrawString(Game1.smallFont, text, position, color);
+            b.DrawString(Game1.smallFont, text, position + new Vector2(2, 2), Fade(Color.Black * 0.45f));
+            b.DrawString(Game1.smallFont, text, position, Fade(color));
         }
 
         /// <summary>Draws one line of an entry in the HUD's font.</summary>
         public virtual void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)
         {
-            Utility.drawTextWithShadow(b, text, Game1.smallFont, position, color, shadowIntensity: 0.25f);
+            Utility.drawTextWithShadow(b, text, Game1.smallFont, position, Fade(color), shadowIntensity: 0.25f * Opacity);
         }
     }
 }
