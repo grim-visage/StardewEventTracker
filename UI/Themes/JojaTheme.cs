@@ -50,7 +50,7 @@ namespace StardewEventTracker.UI.Themes
         private const int BannerInset = 36;
 
         /// <summary>The space between the banner's ends and its content, and between the logo and the title.</summary>
-        private const int BannerMargin = 4, LogoGap = 16;
+        private const int BannerMargin = 4, LogoGap = 8;
 
         /// <summary>How far the banner's top sits above the box; it overlaps the box's frame below that.</summary>
         private const int BannerAbove = 49;
@@ -142,14 +142,15 @@ namespace StardewEventTracker.UI.Themes
             b.Draw(sheet, new Vector2(x - 4, top), Part(BannerMiddle), Fade(Color.White), 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
             b.Draw(sheet, new Vector2(x - 4 + inner, top), Part(BannerRight), Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
 
-            // centred in the banner's dark middle (rows 2-14 of 17)
+            // the logo's top lines up with the top of the title's capitals: SpriteText raises capitals 12px, and their ink starts 12px into the glyph
+            int textY = top + 13;
             int logoX = x + BannerMargin;
-            int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - LogoSource.Height * LogoScale) / 2;
+            int logoY = textY;
             if (this.GetLogo() is { } logo)
                 b.Draw(logo, new Vector2(logoX, logoY), null, Fade(Color.White), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
 
             int textX = logoX + this.LogoWidth + LogoGap;
-            this.DrawTitleText(b, textX, top + 13, Color.White);
+            this.DrawTitleText(b, textX, textY, Color.White);
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
             this.DrawSparkle(b, logoX, logoY, now);
