@@ -23,10 +23,11 @@ namespace StardewEventTracker.Data
             {
                 "friendship" => string.Join("; ", EventInfo.FriendshipPairs(c).Select(p => DescribeFriendship(p.Npc, p.Points))),
                 "time" when a.Length >= 2 => I18n.Get("cond.time", new { start = Time(a[0]), end = Time(a[1]) }),
-                "weather" => I18n.Get("cond.weather", new { weather = string.Join(or, a.Select(WeatherName)) }),
+                // the game only reads the first weather and season listed, so say which others it ignores
+                "weather" when a.Length > 0 => I18n.Get("cond.weather", new { weather = WeatherName(a[0]) }) + Ignored(a, WeatherName),
                 "dayofweek" => I18n.Get("cond.day-of-week" + neg, new { days = string.Join("/", a.Select(DayName)) }),
                 "dayofmonth" => I18n.Get("cond.day-of-month" + neg, new { days = string.Join(", ", a) }),
-                "season" => I18n.Get("cond.season" + neg, new { seasons = string.Join(or, a.Select(SeasonName)) }),
+                "season" when a.Length > 0 => I18n.Get("cond.season" + neg, new { seasons = SeasonName(a[0]) }) + Ignored(a, SeasonName),
                 "daysplayed" => I18n.Get("cond.days-played", new { count = all }),
                 "year" => a.FirstOrDefault() == "1" ? I18n.Get("cond.year-one") : I18n.Get("cond.year", new { year = all }),
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = string.Join(or, a.Select(index.DescribeEvent)) }),
@@ -296,6 +297,10 @@ namespace StardewEventTracker.Data
 
         /// <summary>A weather value from an event condition, translated where known ("sunny" -> "Sunny").</summary>
         public static string WeatherName(string raw) => I18n.GetOr($"weather.{raw.ToLowerInvariant()}", Capitalize(raw));
+
+        /// <summary>A note naming the arguments after the first, which the game ignores for weather and seasons; empty if there are none.</summary>
+        private static string Ignored(string[] args, Func<string, string> name) =>
+            args.Length > 1 ? I18n.Get("cond.ignored", new { rest = string.Join(I18n.Get("join.and"), args.Skip(1).Select(name)) }) : "";
 
         public static string SeasonName(string raw) => I18n.GetOr($"season.{raw.ToLowerInvariant()}", Capitalize(raw));
 

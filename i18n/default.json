@@ -14,6 +14,7 @@
   "cond.day-of-month.not": "Not on day {{days}}",
   "cond.season": "In {{seasons}}",
   "cond.season.not": "Not in {{seasons}}",
+  "cond.ignored": " (the game ignores {{rest}})",
   "cond.days-played": "Played at least {{count}} days",
   "cond.year-one": "During year 1",
   "cond.year": "Year {{year}} or later",
