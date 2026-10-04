@@ -28,7 +28,10 @@ namespace StardewEventTracker.Data
     /// </summary>
     internal static class DoorAccess
     {
-        /// <summary>Locked doors by the location they lead to. Locations with any unlocked entrance aren't listed.</summary>
+        /// <summary>
+        /// Locked doors by the location they lead to, including rooms only reached from inside a locked building.
+        /// Locations with an unlocked way in from outdoors aren't listed.
+        /// </summary>
         private static Dictionary<string, List<DoorLock>> locks = new();
 
         /// <summary>How many doors deep an inner door's outer door is followed, so doors that lead into each other can't loop.</summary>
@@ -58,7 +61,10 @@ namespace StardewEventTracker.Data
         {
             var timer = Stopwatch.StartNew();
             var lockedInto = new Dictionary<string, List<DoorLock>>();
-            var openEntrances = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // where each location's unlocked ways out lead (warps, and warp actions), and which locations are outdoors
+            var openTo = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            var outdoors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // where each location's warps, doors and map actions lead, to find areas there's no way into yet
             var names = new HashSet<string>(Game1.locationData.Keys, StringComparer.OrdinalIgnoreCase);
@@ -76,20 +82,22 @@ namespace StardewEventTracker.Data
                     string from = location.NameOrUniqueName;
                     if (!routes.TryGetValue(from, out HashSet<string>? leadsTo))
                         routes[from] = leadsTo = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    if (location.IsOutdoors)
+                        outdoors.Add(from);
 
                     foreach (Warp warp in location.warps)
                     {
                         if (!warp.npcOnly.Value)
                         {
-                            openEntrances.Add(warp.TargetName);
+                            AddOpen(openTo, from, warp.TargetName);
                             leadsTo.Add(warp.TargetName);
                         }
                     }
                     foreach (KeyValuePair<Microsoft.Xna.Framework.Point, string> door in location.doors.Pairs)
                         leadsTo.Add(door.Value);
 
-                    ScanLayer(location, location.Map?.GetLayer("Buildings"), "Action", lockedInto, openEntrances, names, leadsTo);
-                    ScanLayer(location, location.Map?.GetLayer("Back"), "TouchAction", lockedInto, openEntrances, names, leadsTo);
+                    ScanLayer(location, location.Map?.GetLayer("Buildings"), "Action", lockedInto, openTo, names, leadsTo);
+                    ScanLayer(location, location.Map?.GetLayer("Back"), "TouchAction", lockedInto, openTo, names, leadsTo);
                 }
                 catch (Exception ex)
                 {
@@ -98,11 +106,46 @@ namespace StardewEventTracker.Data
                 return true;
             });
 
-            // another way in makes a LockedDoorWarp moot, but the game's special doors are the only way in for players
-            locks = lockedInto
-                .Select(p => (p.Key, Doors: openEntrances.Contains(p.Key) ? p.Value.Where(IsSpecial).ToList() : p.Value))
+            // what can be walked to from outdoors without a locked door in the way: an unlocked way in from there makes a
+            // LockedDoorWarp moot, but one from inside (Sebastian's stairs down into Robin's house) doesn't
+            var free = new HashSet<string>(outdoors, StringComparer.OrdinalIgnoreCase);
+            var queue = new Queue<string>(free);
+            while (queue.Count > 0)
+            {
+                if (!openTo.TryGetValue(queue.Dequeue(), out HashSet<string>? next))
+                    continue;
+                foreach (string target in next)
+                {
+                    if (free.Add(target))
+                        queue.Enqueue(target);
+                }
+            }
+
+            // the game's special doors are the only way in for players, wherever else warps lead from
+            var found = lockedInto
+                .Select(p => (p.Key, Doors: free.Contains(p.Key) ? p.Value.Where(IsSpecial).ToList() : p.Value))
                 .Where(p => p.Doors.Count > 0)
-                .ToDictionary(p => p.Key, p => p.Doors);
+                .ToDictionary(p => p.Key, p => p.Doors, StringComparer.OrdinalIgnoreCase);
+
+            // rooms only reached from inside a locked building (Sebastian's room, Harvey's) share its door
+            var inside = new Queue<string>(found.Keys);
+            while (inside.Count > 0)
+            {
+                string building = inside.Dequeue();
+                if (!openTo.TryGetValue(building, out HashSet<string>? rooms))
+                    continue;
+                foreach (string room in rooms)
+                {
+                    if (free.Contains(room) || found.ContainsKey(room))
+                        continue;
+                    // through the building's easiest door (Robin's front door, not Maru's lab door): whoever it needs
+                    // friendship with, if anyone; its hours come from the building's own door state
+                    DoorLock door = found[building].OrderBy(d => d.MinFriendship).First();
+                    found[room] = new List<DoorLock> { new(building, room, 600, 2600, door.Npc, door.MinFriendship, Inner: true) };
+                    inside.Enqueue(room);
+                }
+            }
+            locks = found;
             AreaAccess.Rebuild(names, routes, monitor);
             monitor.Log($"Found {locks.Count} locations behind locked doors in {timer.ElapsedMilliseconds}ms.", LogLevel.Trace);
         }
@@ -181,7 +224,7 @@ namespace StardewEventTracker.Data
 
         /// <param name="names">Every location's name, to spot actions that lead to one (including other mods' warp actions).</param>
         /// <param name="leadsTo">Where this location's map actions lead.</param>
-        private static void ScanLayer(GameLocation location, Layer? layer, string property, Dictionary<string, List<DoorLock>> lockedInto, HashSet<string> openEntrances, HashSet<string> names, HashSet<string> leadsTo)
+        private static void ScanLayer(GameLocation location, Layer? layer, string property, Dictionary<string, List<DoorLock>> lockedInto, Dictionary<string, HashSet<string>> openTo, HashSet<string> names, HashSet<string> leadsTo)
         {
             if (layer == null)
                 return;
@@ -198,7 +241,7 @@ namespace StardewEventTracker.Data
                     if (action == null)
                         continue;
 
-                    ReadAction(location, action, lockedInto, openEntrances);
+                    ReadAction(location, action, lockedInto, openTo);
                     foreach (string arg in ArgUtility.SplitBySpace(action))
                     {
                         if (names.Contains(arg))
@@ -220,7 +263,15 @@ namespace StardewEventTracker.Data
         private static string? Read(IPropertyCollection? properties, string key) =>
             properties != null && properties.TryGetValue(key, out PropertyValue? value) ? value?.ToString() : null;
 
-        private static void ReadAction(GameLocation location, string action, Dictionary<string, List<DoorLock>> lockedInto, HashSet<string> openEntrances)
+        /// <summary>Records an unlocked way from one location into another.</summary>
+        private static void AddOpen(Dictionary<string, HashSet<string>> openTo, string from, string to)
+        {
+            if (!openTo.TryGetValue(from, out HashSet<string>? targets))
+                openTo[from] = targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            targets.Add(to);
+        }
+
+        private static void ReadAction(GameLocation location, string action, Dictionary<string, List<DoorLock>> lockedInto, Dictionary<string, HashSet<string>> openTo)
         {
             string[] args = ArgUtility.SplitBySpace(action);
             if (args.Length == 0)
@@ -252,12 +303,12 @@ namespace StardewEventTracker.Data
 
                 // Warp <x> <y> <location>
                 case "Warp" or "WarpMensLocker" or "WarpWomensLocker" when args.Length >= 4 && !int.TryParse(args[3], out _):
-                    openEntrances.Add(args[3]);
+                    AddOpen(openTo, location.NameOrUniqueName, args[3]);
                     break;
 
                 // TouchAction Warp <location> <x> <y> and MagicWarp <location> <x> <y>
                 case "Warp" or "MagicWarp" when args.Length >= 2:
-                    openEntrances.Add(args[1]);
+                    AddOpen(openTo, location.NameOrUniqueName, args[1]);
                     break;
             }
         }
