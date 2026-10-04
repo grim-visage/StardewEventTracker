@@ -132,6 +132,10 @@ namespace StardewEventTracker.UI
                 shown++;
             }
 
+            // e.g. a pinned story event was just seen (it's unpinned at the end of the day) and the other pins aren't around today
+            if (entries.Count == 0)
+                lines.Add((I18n.Get("hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted));
+
             var hidden = entries.Skip(shown).ToList();
             if (hidden.Count > 0)
             {
