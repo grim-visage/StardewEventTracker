@@ -308,26 +308,39 @@ namespace StardewEventTracker.UI.Themes
         {
             int x = box.X, y = box.Y, w = box.Width, h = box.Height;
 
-            // the crust: 16px thick at the top (half outside the box), thinning to drips about 60% of the way down
+            // the crust: over the frame and growing outward, about 20px thick at the top with a lumpy edge, thinning
+            // about 60% of the way down to a lip that drips run down from
             int depth = (int)(h * 0.6) / Px * Px;
             foreach (bool left in new[] { true, false })
             {
+                int inner = left ? x + 4 : x + w - 4;
                 for (int top = y; top < y + depth; top += Px)
                 {
                     float t = (top - y) / (float)depth;
-                    int width = t < 0.3f ? 16 : t < 0.55f ? 12 : t < 0.8f ? 8 : 4;
-                    int at = left ? x - 8 : x + w + 8 - width;
-                    Fill(b, at, top, width, Px, Ice);
-                    Fill(b, left ? at : at + width - Px, top, Px, Px, IceDark);
-                    if (width >= 12)
-                        Fill(b, at + (left ? 8 : width - 12), top, Px, Px, IceShine);
+                    int lump = ((int)(Hash((top - y) / Px * 13 + (left ? 0 : 1)) % 3) - 1) * Px;
+                    int thickness = Math.Clamp((int)Math.Round((20 - 12 * t + lump) / Px) * Px, 8, 24);
+                    if (top >= y + depth - 3 * Px)
+                        thickness = 12;
+
+                    int from = left ? inner - thickness : inner;
+                    Fill(b, from, top, thickness, Px, Ice);
+                    Fill(b, left ? from : from + thickness - Px, top, Px, Px, IceDark);
+                    if (thickness >= 12)
+                        Fill(b, left ? from + Px : from + thickness - 2 * Px, top, Px, Px, IceShine);
                 }
-                int[] drips = { 3, 5, 2 };
-                for (int k = 0; k < drips.Length; k++)
+
+                // a long thick drip down the frame, and a short thin one further out
+                foreach ((int fromInner, int thickness, int length) in new[] { (8, 8, 8), (12, 4, 4) })
                 {
-                    int dripX = left ? x - 8 + k * Px : x + w + 4 - k * Px;
-                    for (int j = 0; j < drips[k]; j++)
-                        Fill(b, dripX, y + depth + j * Px, Px, Px, j < drips[k] - 1 ? Ice : IceTip);
+                    int dripX = left ? inner - fromInner : inner + fromInner - thickness;
+                    for (int j = 0; j < length; j++)
+                    {
+                        int width = j < length - 2 ? thickness : Px;
+                        int at = dripX + (left ? thickness - width : 0);
+                        Fill(b, at, y + depth + j * Px, width, Px, j < length - 1 ? Ice : IceTip);
+                        if (width >= 8 && j < length - 2)
+                            Fill(b, at + (left ? Px : 0), y + depth + j * Px, Px, Px, IceShine);
+                    }
                 }
             }
 
