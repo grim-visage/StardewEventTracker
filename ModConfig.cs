@@ -106,7 +106,7 @@ namespace StardewEventTracker
         public string HudSortOrder { get; set; } = HudOrderUrgency;
 
         /// <summary>How the HUD tracker looks, by theme ID (see <see cref="UI.Themes.HudTheme.All"/>).</summary>
-        public string HudTheme { get; set; } = "classic";
+        public string HudTheme { get; set; } = "community-center";
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;

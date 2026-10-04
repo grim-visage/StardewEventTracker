@@ -8,6 +8,10 @@ using StardewValley.Menus;
 
 namespace StardewEventTracker.UI.Themes
 {
+    /// <summary>What the HUD is showing, for themes that react to it.</summary>
+    /// <param name="AnyAvailableNow">Whether an event on the HUD can happen right now.</param>
+    internal readonly record struct HudState(bool AnyAvailableNow);
+
     /// <summary>The text colours a theme uses on the HUD.</summary>
     internal readonly record struct HudPalette(Color Text, Color Ready, Color Soon, Color Muted);
 
@@ -18,8 +22,8 @@ namespace StardewEventTracker.UI.Themes
     /// </summary>
     internal abstract class HudTheme
     {
-        /// <summary>The look the HUD had before themes, used when the config names a theme that doesn't exist.</summary>
-        public static readonly HudTheme Default = new ClassicTheme();
+        /// <summary>The theme for new players, and the one used when the config names a theme that doesn't exist.</summary>
+        public static readonly HudTheme Default = new CommunityCenterTheme();
 
         /// <summary>Every theme players can choose, in the order the config menu lists them.</summary>
         public static readonly IReadOnlyList<HudTheme> All = new HudTheme[] { Default, new JojaTheme() };
@@ -30,7 +34,7 @@ namespace StardewEventTracker.UI.Themes
         public static HudTheme Get(string? id) =>
             All.FirstOrDefault(t => t.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) ?? Default;
 
-        /// <summary>The ID saved in the config, e.g. "classic". Never change it once released, or players lose their choice.</summary>
+        /// <summary>The ID saved in the config, e.g. "joja". Never change it once released, or players lose their choice.</summary>
         public abstract string Id { get; }
 
         /// <summary>The default text colours, matching the rest of the mod's menus.</summary>
@@ -61,7 +65,7 @@ namespace StardewEventTracker.UI.Themes
         }
 
         /// <summary>Draws the title, after the box so it can overlap it.</summary>
-        public abstract void DrawTitle(SpriteBatch b, Rectangle box);
+        public abstract void DrawTitle(SpriteBatch b, Rectangle box, HudState state);
 
         /// <summary>Draws one line of an entry in the HUD's font.</summary>
         public virtual void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)

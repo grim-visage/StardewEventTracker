@@ -42,6 +42,9 @@ namespace StardewEventTracker.UI
         private int builtForY = -1;
         private HudTheme? builtForTheme;
 
+        /// <summary>Whether an entry on the HUD can happen right now, for themes that react to it.</summary>
+        private bool anyAvailableNow;
+
         /// <summary>Where the box was last drawn, in UI pixels; empty if it's hidden.</summary>
         public Rectangle Bounds { get; private set; }
 
@@ -88,7 +91,7 @@ namespace StardewEventTracker.UI
             int top = y + padding + theme.TitleInside;
             for (int i = 0; i < this.lines.Count; i++)
                 theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
-            theme.DrawTitle(b, box);
+            theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
         }
 
         /// <summary>The theme the player picked in the config.</summary>
@@ -143,6 +146,7 @@ namespace StardewEventTracker.UI
             this.builtForHeight = Game1.uiViewport.Height;
             this.builtForY = this.mod.Config.HudY;
             this.builtForTheme = theme;
+            this.anyAvailableNow = entries.Any(e => e.Urgency == Urgency.Now);
         }
 
         private Entry BuildNpcEntry(string npc)

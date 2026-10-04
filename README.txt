@@ -253,9 +253,11 @@ time to set off.
 Hold Shift and drag the box (or its title) to move it.
 
 Pick a look with the "HUD theme" setting:
-  * Classic   The game's parchment box (the default)
-  * Joja      Joja's "Social Planner", on the blue-metal banner Joja uses
-              in the game, floating above the box
+  * Community Center  The title on the bundle book's title tab, with three
+                      Junimos perched on the box. They cheer when an event
+                      can happen right now. (The default.)
+  * Joja              Joja's "Social Planner", on the blue-metal banner Joja
+                      uses in the game, floating above the box
 
 
 Map markers
@@ -358,7 +360,8 @@ launch:
   HudX / HudY            16 / 120         HUD position on screen, in pixels
   HudSortOrder           urgency          HUD order: "urgency" or
                                           "alphabetical"
-  HudTheme               classic          HUD look: "classic" or "joja"
+  HudTheme               community-center HUD look: "community-center" or
+                                          "joja"
   HudMaxNpcs             5                Most entries (NPCs and story
                                           events) shown on the HUD
 

@@ -56,7 +56,7 @@ namespace StardewEventTracker.UI.Themes
             return new Rectangle(x - 12, box.Y - this.TitleAbove, this.BannerInnerWidth + 28, (int)(BannerMiddle.Height * BannerScale));
         }
 
-        public override void DrawTitle(SpriteBatch b, Rectangle box)
+        public override void DrawTitle(SpriteBatch b, Rectangle box, HudState state)
         {
             int x = box.X + BannerInset;
             int y = box.Y - TextAbove;
