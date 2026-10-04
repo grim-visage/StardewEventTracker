@@ -204,7 +204,7 @@ namespace StardewEventTracker.UI.Themes
         private static readonly Color VineDark = new(44, 96, 34), VineLight = new(98, 172, 66), VineKnot = new(68, 134, 48), VineLeaf = new(120, 196, 72), VineLeafShade = new(40, 92, 30), VineLeafVein = new(170, 220, 110);
         private static readonly Color SummerPetal = new(255, 206, 50), SummerPetalLight = new(255, 236, 140), SummerCenter = new(150, 86, 36);
         private static readonly Color Snow = new(250, 252, 255), SnowShade = new(205, 222, 242);
-        private static readonly Color Ice = new(178, 214, 250), IceDark = new(120, 166, 226), IceShine = new(232, 246, 255), IceTip = new(140, 185, 235), Icicle = new(225, 240, 255), IcicleTop = new(240, 248, 255);
+        private static readonly Color Ice = new(178, 214, 250), IceDark = new(120, 166, 226), IceShine = new(232, 246, 255), IceTip = new(140, 185, 235), Icicle = new(225, 240, 255), IcicleShine = new(245, 251, 255), IcicleTop = new(240, 248, 255);
 
         /// <summary>Spring: a frame of vines, with leaves and pink and white blossoms growing out of it.</summary>
         private static void DrawSpringBorder(SpriteBatch b, Rectangle box)
@@ -302,7 +302,7 @@ namespace StardewEventTracker.UI.Themes
 
         /// <summary>
         /// Winter: snow piled unevenly along the top, ice built up over the top corners, an ice crust flowing part way
-        /// down each side into drips, and icicles underneath: short in the middle, longest at the corners.
+        /// down each side into drips, and uneven icicles underneath, longer towards the corners.
         /// </summary>
         private static void DrawWinterBorder(SpriteBatch b, Rectangle box)
         {
@@ -355,18 +355,29 @@ namespace StardewEventTracker.UI.Themes
                 }
             }
 
-            // icicles, longer towards the corners
-            int k2 = 0;
-            for (int ix = x + 12; ix < x + w - 12; ix += 26, k2++)
+            // icicles of uneven thickness, spacing and length, longer towards the corners on the whole; each is fixed by
+            // its place along the box, so they don't change from frame to frame
+            int n = 0;
+            for (int ix = x + 10; ix < x + w - 14; n++)
             {
+                uint r = Hash(n * 7 + 3);
+                int thickness = new[] { 4, 8, 8, 12 }[r % 4];
                 float fromMiddle = Math.Abs((ix - x) - w / 2f) / (w / 2f);
-                int length = 3 + (int)(fromMiddle * fromMiddle * 10) + (int)(Hash(k2) % 3);
+                int length = Math.Max(2, 2 + (int)(fromMiddle * fromMiddle * 9) + (int)((r >> 3) % 5) - 1);
+                if ((r >> 7) % 7 == 0)
+                    length = Math.Max(2, length / 2); // now and then a stubby one
+
                 for (int j = 0; j < length; j++)
                 {
-                    int width = j < length - 2 ? 8 : 4;
-                    Fill(b, ix + (8 - width) / 2, y + h + j * Px, width, Px, j < length - 1 ? Icicle : IceTip);
+                    // full thickness at the top, narrowing towards the tip
+                    int width = Math.Min(thickness, Px * Math.Max(1, (length - j + 1) / 2));
+                    int left = ix + (thickness - width) / 2 / Px * Px;
+                    Fill(b, left, y + h + j * Px, width, Px, j < length - 1 ? Icicle : IceTip);
+                    if (thickness >= 8 && j < length - 2)
+                        Fill(b, left, y + h + j * Px, Px, Px, IcicleShine);
                 }
-                Fill(b, ix - 4, y + h, 16, Px, IcicleTop);
+                Fill(b, ix - 4, y + h, thickness + 8, Px, IcicleTop);
+                ix += thickness + 8 + (int)((r >> 11) % 6) * Px;
             }
 
             // and the longest, right at each corner
