@@ -4,7 +4,6 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using StardewValley.BellsAndWhistles;
 
 namespace StardewEventTracker.UI.Themes
 {
@@ -42,10 +41,10 @@ namespace StardewEventTracker.UI.Themes
             [new Color(149, 135, 150)] = LightBlue
         };
 
-        /// <summary>The banner's scale: the game's 4x across, and 5x tall so the whole logo fits inside its dark middle.</summary>
-        private static readonly Vector2 BannerScale = new(4, 5);
+        /// <summary>The banner's scale, the game's 4x; the logo fits inside its dark middle.</summary>
+        private static readonly Vector2 BannerScale = new(4, 4);
 
-        private const int LogoScale = 2;
+        private const float LogoScale = 1.5f;
 
         /// <summary>How far the banner's content starts in from the box's left edge.</summary>
         private const int BannerInset = 36;
@@ -54,7 +53,7 @@ namespace StardewEventTracker.UI.Themes
         private const int BannerMargin = 4, LogoGap = 16;
 
         /// <summary>How far the banner's top sits above the box; it overlaps the box's frame below that.</summary>
-        private const int BannerAbove = 66;
+        private const int BannerAbove = 49;
 
         /// <summary>The box's colours: a Joja-blue frame and light-blue rule around a navy a shade darker than the banner's.</summary>
         private static readonly Color Frame = JojaBlue, Paper = new(10, 12, 62), Rule = LightBlue;
@@ -103,10 +102,10 @@ namespace StardewEventTracker.UI.Themes
 
         public override int MinBoxWidth => BannerInset + this.BannerInnerWidth + 40;
 
-        private int LogoWidth => LogoSource.Width * LogoScale;
+        private int LogoWidth => (int)(LogoSource.Width * LogoScale);
 
         /// <summary>The banner's middle: the logo, the gap and the title, with a margin each side.</summary>
-        private int BannerInnerWidth => BannerMargin + this.LogoWidth + LogoGap + SpriteText.getWidthOfString(this.Title) + BannerMargin * 2;
+        private int BannerInnerWidth => BannerMargin + this.LogoWidth + LogoGap + this.TitleWidth + BannerMargin * 2;
 
         private static int BannerHeight => (int)(BannerMiddle.Height * BannerScale.Y);
 
@@ -138,19 +137,19 @@ namespace StardewEventTracker.UI.Themes
             Point offset = recoloured == null ? BannerSource.Location : Point.Zero;
             Rectangle Part(Rectangle part) => new(part.X + offset.X, part.Y + offset.Y, part.Width, part.Height);
 
-            // the banner, drawn taller than the game draws it
+            // the banner
             b.Draw(sheet, new Vector2(x - 16, top), Part(BannerLeft), Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
             b.Draw(sheet, new Vector2(x - 4, top), Part(BannerMiddle), Fade(Color.White), 0f, Vector2.Zero, new Vector2(inner, BannerScale.Y), SpriteEffects.None, 1f);
             b.Draw(sheet, new Vector2(x - 4 + inner, top), Part(BannerRight), Fade(Color.White), 0f, Vector2.Zero, BannerScale, SpriteEffects.None, 1f);
 
             // centred in the banner's dark middle (rows 2-14 of 17)
             int logoX = x + BannerMargin;
-            int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - LogoSource.Height * LogoScale) / 2;
+            int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - (int)(LogoSource.Height * LogoScale)) / 2;
             if (this.GetLogo() is { } logo)
                 b.Draw(logo, new Vector2(logoX, logoY), null, Fade(Color.White), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
 
             int textX = logoX + this.LogoWidth + LogoGap;
-            SpriteText.drawString(b, this.Title, textX, top + 22, width: SpriteText.getWidthOfString(this.Title) + 16, alpha: Opacity, color: Color.White);
+            this.DrawTitleText(b, textX, top + 13, Color.White);
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
             this.DrawSparkle(b, logoX, logoY, now);
@@ -172,7 +171,7 @@ namespace StardewEventTracker.UI.Themes
                 if (glow <= 0)
                     continue;
                 foreach (Point p in this.rays[i])
-                    b.Draw(Game1.staminaRect, new Rectangle(logoX + p.X * LogoScale, logoY + p.Y * LogoScale, LogoScale, LogoScale), Fade(Color.White * (0.85f * glow)));
+                    b.Draw(Game1.staminaRect, new Vector2(logoX + p.X * LogoScale, logoY + p.Y * LogoScale), null, Fade(Color.White * (0.85f * glow)), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
             }
         }
 

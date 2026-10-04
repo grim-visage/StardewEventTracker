@@ -80,7 +80,7 @@ namespace StardewEventTracker.UI.Themes
         public override int MinBoxWidth => ContentInset + this.ContentWidth + this.bannerEnd + 24;
 
         /// <summary>The banner's content: a companion, the title and another companion.</summary>
-        private int ContentWidth => CompanionSize * 2 + CompanionGap * 2 + SpriteText.getWidthOfString(this.Title);
+        private int ContentWidth => CompanionSize * 2 + CompanionGap * 2 + this.TitleWidth;
 
         public override Rectangle TitleArea(Rectangle box) =>
             new(box.X + ContentInset - this.bannerEnd, box.Y - TextAbove - 12, this.ContentWidth + this.bannerEnd * 2 + 4, 18 * 4);
@@ -136,8 +136,7 @@ namespace StardewEventTracker.UI.Themes
 
             this.DrawCompanion(b, new Vector2(x, y - 4), now, right: false);
             this.DrawCompanion(b, new Vector2(x + content - CompanionSize, y - 4), now, right: true);
-            string title = this.Title;
-            SpriteText.drawString(b, title, x + CompanionSize + CompanionGap, y, width: SpriteText.getWidthOfString(title) + 16, alpha: Opacity, color: this.look.Title);
+            this.DrawTitleText(b, x + CompanionSize + CompanionGap, y, this.look.Title);
         }
 
         /****

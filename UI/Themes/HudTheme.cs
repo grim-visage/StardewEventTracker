@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
 
 namespace StardewEventTracker.UI.Themes
@@ -77,6 +78,22 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The title text, translated.</summary>
         public abstract string Title { get; }
 
+        /// <summary>The title's words, drawn one by one so the gaps between them can be narrower than SpriteText's spaces.</summary>
+        private string[] TitleWords => this.Title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        /// <summary>The gap between the title's words: half a SpriteText space.</summary>
+        private static int WordGap => (SpriteText.getWidthOfString("a a") - SpriteText.getWidthOfString("aa")) / 2;
+
+        /// <summary>The title's width as <see cref="DrawTitleText"/> draws it.</summary>
+        protected int TitleWidth
+        {
+            get
+            {
+                string[] words = this.TitleWords;
+                return words.Sum(w => SpriteText.getWidthOfString(w)) + WordGap * Math.Max(0, words.Length - 1);
+            }
+        }
+
         /// <summary>How far the title sticks out above the box, so the box can be kept below the top of the screen.</summary>
         public virtual int TitleAbove => 0;
 
@@ -108,6 +125,18 @@ namespace StardewEventTracker.UI.Themes
             b.Draw(texture, new Vector2(x - 12, y - 12), left, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
             b.Draw(texture, new Vector2(x, y - 12), middle, Fade(Color.White), 0f, Vector2.Zero, new Vector2(innerWidth + 4, 4f), SpriteEffects.None, 1f);
             b.Draw(texture, new Vector2(x + innerWidth + 4, y - 12), right, Fade(Color.White), 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+        }
+
+        /// <summary>Draws the title in SpriteText with its top-left at (<paramref name="x"/>, <paramref name="y"/>), with narrower gaps between words than SpriteText's spaces.</summary>
+        /// <param name="color">The text colour, or null for SpriteText's default.</param>
+        protected void DrawTitleText(SpriteBatch b, int x, int y, Color? color = null)
+        {
+            foreach (string word in this.TitleWords)
+            {
+                int width = SpriteText.getWidthOfString(word);
+                SpriteText.drawString(b, word, x, y, width: width + 16, alpha: Opacity, color: color);
+                x += width + WordGap;
+            }
         }
 
         /// <summary>Draws a line for a dark box: a dark drop shadow instead of the game's warm one, which glows on dark.</summary>

@@ -1,9 +1,7 @@
 using System;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using StardewValley.BellsAndWhistles;
 using StardewValley.ItemTypeDefinitions;
 using StardewValley.Menus;
 
@@ -65,21 +63,6 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The ghost, the jack-o'-lantern, then the title.</summary>
         private int BannerInnerWidth => GhostSize + GhostGap + LanternSize + LanternGap + this.TitleWidth;
 
-        /// <summary>The title's words, drawn one by one so the gaps between them can be narrower than SpriteText's spaces.</summary>
-        private string[] TitleWords => this.Title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        /// <summary>The gap between the title's words: half a SpriteText space.</summary>
-        private static int WordGap => (SpriteText.getWidthOfString("a a") - SpriteText.getWidthOfString("aa")) / 2;
-
-        private int TitleWidth
-        {
-            get
-            {
-                string[] words = this.TitleWords;
-                return words.Sum(w => SpriteText.getWidthOfString(w)) + WordGap * Math.Max(0, words.Length - 1);
-            }
-        }
-
         public override Rectangle TitleArea(Rectangle box) =>
             new(box.X + BannerInset - 12, box.Y - TextAbove - 12, this.BannerInnerWidth + 28, BannerMiddle.Height * 4);
 
@@ -106,13 +89,7 @@ namespace StardewEventTracker.UI.Themes
             Rectangle source = lantern.GetSourceRect();
             b.Draw(texture, new Vector2(lanternX, y - 4), source, Fade(Color.White), 0f, Vector2.Zero, LanternScale, SpriteEffects.None, 1f);
 
-            int wordX = lanternX + LanternSize + LanternGap;
-            foreach (string word in this.TitleWords)
-            {
-                int width = SpriteText.getWidthOfString(word);
-                SpriteText.drawString(b, word, wordX, y, width: width + 16, alpha: Opacity, color: TitleColor);
-                wordX += width + WordGap;
-            }
+            this.DrawTitleText(b, lanternX + LanternSize + LanternGap, y, TitleColor);
 
             DrawGhost(b, x, y - 4, Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0);
         }

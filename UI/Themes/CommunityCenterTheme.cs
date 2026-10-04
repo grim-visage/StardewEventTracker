@@ -2,7 +2,6 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using StardewValley.BellsAndWhistles;
 
 namespace StardewEventTracker.UI.Themes
 {
@@ -66,8 +65,6 @@ namespace StardewEventTracker.UI.Themes
 
         public override int MinBoxWidth => TabLeft + this.TabWidth + 180;
 
-        private int TitleWidth => SpriteText.getWidthOfString(this.Title);
-
         /// <summary>The tab's width on screen: its two ends and the stretched middle around the title.</summary>
         private int TabWidth => TabEnd * 2 * Scale + this.TitleWidth + TitleMargin * 2;
 
@@ -91,7 +88,7 @@ namespace StardewEventTracker.UI.Themes
             }
 
             int textX = x + TabEnd * Scale + TitleMargin;
-            SpriteText.drawString(b, this.Title, textX, y + 10, width: this.TitleWidth + 16, alpha: Opacity);
+            this.DrawTitleText(b, textX, y + 10);
 
             this.DrawJunimos(b, box, state.AnyAvailableNow);
         }
