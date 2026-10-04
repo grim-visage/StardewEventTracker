@@ -251,7 +251,13 @@ namespace StardewEventTracker.Data
                     : I18n.Get("wait.day-of-week.not", new { days = string.Join("/", others) }));
             }
             if (seasonUnmet && seasons.Count > 0)
-                parts.Insert(0, I18n.Get("wait.season", new { seasons = string.Join(or, seasons.OrderBy(x => x).Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
+            {
+                // every season but one: that's the current one, so it's a wait for it to end ("not in winter")
+                var excluded = Enum.GetValues<Season>().Except(seasons).ToList();
+                parts.Insert(0, excluded.Count == 1
+                    ? I18n.Get("wait.season.not", new { seasons = PreconditionFormatter.SeasonName(excluded[0].ToString()) })
+                    : I18n.Get("wait.season", new { seasons = string.Join(or, seasons.OrderBy(x => x).Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
+            }
 
             return parts.Count > 0 ? string.Join(I18n.Get("join.and"), parts) : I18n.Get("wait.another-day");
         }
