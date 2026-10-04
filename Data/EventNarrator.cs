@@ -252,11 +252,12 @@ namespace StardewEventTracker.Data
             }
             if (seasonUnmet && seasons.Count > 0)
             {
-                // every season but one: that's the current one, so it's a wait for it to end ("not in winter")
+                // every season but one ("not in winter"): that's the current one, so the next season works
                 var excluded = Enum.GetValues<Season>().Except(seasons).ToList();
-                parts.Insert(0, excluded.Count == 1
-                    ? I18n.Get("wait.season.not", new { seasons = PreconditionFormatter.SeasonName(excluded[0].ToString()) })
-                    : I18n.Get("wait.season", new { seasons = string.Join(or, seasons.OrderBy(x => x).Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
+                var waitFor = excluded.Count == 1
+                    ? new List<Season> { (Season)(((int)excluded[0] + 1) % 4) }
+                    : seasons.OrderBy(x => x).ToList();
+                parts.Insert(0, I18n.Get("wait.season", new { seasons = string.Join(or, waitFor.Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
             }
 
             return parts.Count > 0 ? string.Join(I18n.Get("join.and"), parts) : I18n.Get("wait.another-day");

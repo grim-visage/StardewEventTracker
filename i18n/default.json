@@ -170,7 +170,7 @@
   "wait.day-of-month": "day {{days}}",
   "wait.day-of-month.not": "a day other than the {{days}}",
   "wait.season": "{{seasons}}",
-  "wait.season.not": "the end of {{seasons}}",
+  "wait.season.not": "a season other than {{seasons}}",
   "wait.festival-day": "a festival day",
   "wait.festival-day.not": "a day without a festival",
   "wait.upcoming-festival": "a day before a festival",
