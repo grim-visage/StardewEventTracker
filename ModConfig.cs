@@ -120,7 +120,7 @@ namespace StardewEventTracker
         public bool HudFadeOnHover { get; set; } = true;
 
         /// <summary>How opaque the HUD tracker gets while it fades, in percent.</summary>
-        public int HudFadeOpacity { get; set; } = 5;
+        public int HudFadeOpacity { get; set; } = 3;
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
