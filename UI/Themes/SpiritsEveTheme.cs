@@ -100,27 +100,28 @@ namespace StardewEventTracker.UI.Themes
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
             DrawGhost(b, x + inner + 16 + GhostGap, box.Y - 58, now);
-            DrawBat(b, new Vector2(box.Right - 10, box.Y - 46), now, phase: 0);
-            DrawBat(b, new Vector2(box.Right - 10, box.Y - 46), now, phase: Math.PI);
+            // two bats, each hovering around its own spot by the box's top-right corner
+            DrawBat(b, new Vector2(box.Right - 40, box.Y - 50), now, phase: 0);
+            DrawBat(b, new Vector2(box.Right + 20, box.Y - 30), now, phase: Math.PI);
         }
 
         /// <summary>A ghost floating gently up and down, slightly see-through, at (x, y).</summary>
         private static void DrawGhost(SpriteBatch b, int x, int y, double now)
         {
-            int frame = (int)(now / 220) % 4;
-            float bob = (float)Math.Sin(now / 600) * 5f;
+            int frame = (int)(now / 450) % 4;
+            float bob = (float)Math.Sin(now / 1200) * 4f;
             var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
             b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Ghost"), new Vector2(x, y + bob), source, Color.White * 0.85f, 0f, Vector2.Zero, MonsterScale, SpriteEffects.None, 1f);
         }
 
-        /// <summary>A bat flapping along a slow figure-eight around <paramref name="center"/>, facing the way it flies.</summary>
+        /// <summary>A bat hovering in a small, slow figure-eight around <paramref name="center"/>, facing the way it drifts.</summary>
         private static void DrawBat(SpriteBatch b, Vector2 center, double now, double phase)
         {
-            double angle = now / 1400 + phase;
-            var offset = new Vector2((float)Math.Cos(angle) * 46f, (float)Math.Sin(angle * 2) * 16f);
+            double angle = now / 3200 + phase;
+            var offset = new Vector2((float)Math.Cos(angle) * 18f, (float)Math.Sin(angle * 2) * 7f);
             bool movingLeft = Math.Sin(angle) > 0;
 
-            int frame = (int)((now + phase * 100) / 90) % 4;
+            int frame = (int)((now + phase * 100) / 160) % 4;
             var source = new Rectangle(frame * MonsterWidth, 0, MonsterWidth, MonsterHeight);
             var origin = new Vector2(MonsterWidth / 2f, MonsterHeight / 2f);
             b.Draw(Game1.content.Load<Texture2D>("Characters\\Monsters\\Bat"), center + offset, source, Color.White, 0f, origin, MonsterScale, movingLeft ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);

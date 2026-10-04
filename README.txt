@@ -265,7 +265,7 @@ Pick a look with the "HUD theme" setting:
                       uses in the game, floating above the box
   * Spirit's Eve      A dark mode: a night-purple box with light text, the
                       title between two flickering jack-o'-lanterns, a
-                      floating ghost and two bats circling the box
+                      floating ghost and two bats by the box
 
 
 Map markers
