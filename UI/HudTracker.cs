@@ -147,6 +147,9 @@ namespace StardewEventTracker.UI
 
         private HudPalette Palette => this.Theme.Palette;
 
+        /// <summary>Whether every entry takes one short line, so more fit.</summary>
+        private bool Compact => this.mod.Config.HudLayout == ModConfig.HudLayoutCompact;
+
         private static int LineHeight => (int)Game1.smallFont.MeasureString("Ag").Y;
 
         private int PinCount => this.mod.PinnedNpcs.Count + this.mod.State.PinnedStoryEvents.Count;
@@ -218,7 +221,7 @@ namespace StardewEventTracker.UI
             if (eval.Status == EventStatus.Locked)
             {
                 string text = evt.Relationship == null && evt.RequiredPoints > 0 && evt.ProgressRank == evt.RequiredPoints
-                    ? I18n.Get("hud.next-locked", new
+                    ? I18n.Get(this.Compact ? "hud.short.next-locked" : "hud.next-locked", new
                     {
                         name,
                         more = PreconditionFormatter.MoreFriendship(npc, evt.RequiredPoints) ?? "",
@@ -230,11 +233,18 @@ namespace StardewEventTracker.UI
             }
 
             int awake = pending.Pending.Count(p => !this.mod.IsSnoozed(p.Event));
+            bool hidden = this.mod.HidesDetails(eval);
+            string location = EventNarrator.WithArticle(evt.LocationDisplayName);
+            if (this.Compact)
+            {
+                // "Abigail at the Mountain" for what's on today, just "Abigail" otherwise
+                string at = hidden ? name : I18n.Get("hud.short.at", new { name, location });
+                return this.EventEntry(evt, eval, name, at, name, "", isStory: false);
+            }
+
             string more = awake > 1 ? I18n.Get("hud.more", new { count = awake - 1 }) : "";
             string shortHead = I18n.Get("hud.event-hidden", new { name, title = evt.Title });
-            string fullHead = this.mod.HidesDetails(eval)
-                ? shortHead
-                : I18n.Get("hud.event", new { name, title = evt.Title, location = EventNarrator.WithArticle(evt.LocationDisplayName) });
+            string fullHead = hidden ? shortHead : I18n.Get("hud.event", new { name, title = evt.Title, location });
             return this.EventEntry(evt, eval, name, fullHead, shortHead, more, isStory: false);
         }
 
@@ -245,7 +255,7 @@ namespace StardewEventTracker.UI
             if (this.mod.IsSnoozed(evt))
                 return OneLine(sortName, I18n.Get("hud.story-snoozed", new { location = place }), isStory: true);
 
-            string head = I18n.Get("hud.story", new { location = place, title = evt.Title });
+            string head = this.Compact ? sortName : I18n.Get("hud.story", new { location = place, title = evt.Title });
             return this.EventEntry(evt, eval, sortName, head, head, "", isStory: true);
         }
 
@@ -267,9 +277,13 @@ namespace StardewEventTracker.UI
 
             if (urgency >= Urgency.NotToday)
             {
-                string line = I18n.Get("hud.compact", new { head = shortHead + more, stage });
+                string line = I18n.Get(this.Compact ? "hud.short.line" : "hud.compact", new { head = shortHead + more, stage });
                 return new Entry(urgency, minutes, sortName, isStory, new List<(string, Color)> { (line, this.Palette.Muted) });
             }
+
+            // compact: what's on today in one line too, coloured by how soon
+            if (this.Compact)
+                return new Entry(urgency, minutes, sortName, isStory, new List<(string, Color)> { (I18n.Get("hud.short.line", new { head = fullHead, stage }), color) });
 
             var lines = new List<(string, Color)>
             {
@@ -290,7 +304,7 @@ namespace StardewEventTracker.UI
                 return (I18n.Get("status.hidden"), this.Palette.Muted, EventNarrator.HudTone.Normal);
 
             int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
-            (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes, this.mod.Index);
+            (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes, this.mod.Index, this.Compact);
             Color color = tone switch
             {
                 EventNarrator.HudTone.Go => this.Palette.Ready,

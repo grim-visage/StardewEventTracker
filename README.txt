@@ -251,6 +251,14 @@ each group, whatever starts soonest comes first. Entries with nothing to do
 today take a single line. Prefer a fixed list? Set "HUD order" to
 Alphabetical (NPCs A-Z, then story events).
 
+Tracking a lot? Set "HUD layout" to Compact: every entry takes one short
+line, with the colour saying how soon, e.g.
+
+  Abigail at the Mountain: Leave now (40m walk)
+  Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
+  Haley: Wait for Summer
+  Leah: 1 more heart to go
+
 The HUD shows up to 5 entries (HudMaxNpcs), and fewer if they wouldn't fit on
 screen. Anything left over is summed up in a last line, e.g. "+2 more pinned
 (F2 to see all)", which turns green if one of them can happen now or it's
@@ -397,6 +405,8 @@ launch:
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
   HudX / HudY            16 / 120         HUD position on screen, in pixels
+  HudLayout              detailed         "detailed", or "compact" for one
+                                          short line per entry
   HudSortOrder           urgency          HUD order: "urgency" or
                                           "alphabetical"
   HudTheme               community-center HUD look: "community-center",

@@ -262,6 +262,8 @@ namespace StardewEventTracker
                 min: 0, max: 100, interval: 1, formatValue: v => $"{v}%");
             gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
+            gmcm.AddTextOption(m, () => this.Config.HudLayout, v => this.Config.HudLayout = v, () => I18n.Get("config.hud-layout"), () => I18n.Get("config.hud-layout.tip"),
+                allowedValues: ModConfig.HudLayouts, formatAllowedValue: v => I18n.Get($"config.hud-layout.{v}"));
             gmcm.AddTextOption(m, () => this.Config.HudSortOrder, v => this.Config.HudSortOrder = v, () => I18n.Get("config.hud-order"), () => I18n.Get("config.hud-order.tip"),
                 allowedValues: ModConfig.HudOrders, formatAllowedValue: v => I18n.Get($"config.hud-order.{v}"));
             gmcm.AddTextOption(m, () => this.Config.HudTheme, v => this.Config.HudTheme = v, () => I18n.Get("config.hud-theme"), () => I18n.Get("config.hud-theme.tip"),
@@ -818,6 +820,12 @@ namespace StardewEventTracker
             if (!ModConfig.HudModes.Contains(this.Config.HudMode))
             {
                 this.Config.HudMode = ModConfig.HudModeLight;
+                changed = true;
+            }
+
+            if (!ModConfig.HudLayouts.Contains(this.Config.HudLayout))
+            {
+                this.Config.HudLayout = ModConfig.HudLayoutDetailed;
                 changed = true;
             }
 

@@ -44,6 +44,11 @@ namespace StardewEventTracker
 
         public static readonly string[] HudModes = { HudModeLight, HudModeDark };
 
+        /// <summary>The HUD's layouts: two lines for what's happening today, or one short line for everything.</summary>
+        public const string HudLayoutDetailed = "detailed", HudLayoutCompact = "compact";
+
+        public static readonly string[] HudLayouts = { HudLayoutDetailed, HudLayoutCompact };
+
         /// <summary>Opens or closes the tracker menu.</summary>
         public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
 
@@ -124,6 +129,9 @@ namespace StardewEventTracker
 
         /// <summary>How opaque the HUD tracker gets while it fades, in percent.</summary>
         public int HudFadeOpacity { get; set; } = 3;
+
+        /// <summary>How the HUD tracker lays out its entries: <see cref="HudLayoutDetailed"/> or <see cref="HudLayoutCompact"/>.</summary>
+        public string HudLayout { get; set; } = HudLayoutDetailed;
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;

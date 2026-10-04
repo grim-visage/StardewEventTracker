@@ -133,12 +133,16 @@ namespace StardewEventTracker.Data
         /// <param name="travelMinutes">Walking time to the event's location, if known.</param>
         /// <param name="travelBuffer">Slack added to the walk before it's time to leave.</param>
         /// <param name="index">Used to name events the player needs to see first.</param>
-        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0, EventIndex? index = null)
+        /// <param name="compact">Whether to say it in as few words as possible, for the HUD's compact layout: the colour (from the tone) says how soon.</param>
+        public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0, EventIndex? index = null, bool compact = false)
         {
-            string away = travelMinutes > 0 ? I18n.Get("hud.away", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value) }) : "";
-            string tomorrow = TomorrowHint(eval, includeNo: false);
+            string away = travelMinutes > 0 && !compact ? I18n.Get("hud.away", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value) }) : "";
+            string tomorrow = compact ? "" : TomorrowHint(eval, includeNo: false);
             switch (eval.Status)
             {
+                case EventStatus.AvailableNow when compact:
+                    return (evt.Window is { } open ? I18n.Get("hud.short.now-until", new { end = PreconditionFormatter.Time(open.End) }) : I18n.Get("hud.short.now"), HudTone.Go);
+
                 case EventStatus.AvailableNow:
                     string go = I18n.Get(evt.IsStory ? "hud.go.story" : "hud.go");
                     string until = evt.Window is { } w ? I18n.Get("hud.until", new { go, end = PreconditionFormatter.Time(w.End) }) : go;
@@ -148,17 +152,16 @@ namespace StardewEventTracker.Data
                     int minutes = eval.MinutesUntilStart ?? 0;
                     string start = StartTime(evt, eval);
                     if (travelMinutes > 0 && minutes <= travelMinutes + travelBuffer)
-                        return (I18n.Get("hud.leave-now", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value), start }), HudTone.Urgent);
+                        return (I18n.Get(compact ? "hud.short.leave-now" : "hud.leave-now", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value), start }), HudTone.Urgent);
 
                     string when = I18n.Get("hud.starts", new { start, duration = PreconditionFormatter.FormatDuration(minutes) }) + away;
                     var stages = reminderMinutes.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
                     if (stages.Count == 0)
                         stages = new List<int> { 60, 120 };
-                    if (minutes <= stages[0])
-                        return (I18n.Get("hud.head-out", new { when }), HudTone.Urgent);
-                    if (minutes <= stages[^1])
-                        return (I18n.Get("hud.get-ready", new { when }), HudTone.Soon);
-                    return (I18n.Get("hud.later-today", new { when }), HudTone.Normal);
+                    HudTone tone = minutes <= stages[0] ? HudTone.Urgent : minutes <= stages[^1] ? HudTone.Soon : HudTone.Normal;
+                    if (compact)
+                        return (when, tone);
+                    return (I18n.Get(tone switch { HudTone.Urgent => "hud.head-out", HudTone.Soon => "hud.get-ready", _ => "hud.later-today" }, new { when }), tone);
 
                 case EventStatus.OnEntry:
                     return (I18n.Get("hud.on-entry"), HudTone.Normal);
@@ -171,7 +174,7 @@ namespace StardewEventTracker.Data
                 case EventStatus.MissedToday:
                     return (I18n.Get("hud.missed") + tomorrow, HudTone.Normal);
                 case EventStatus.NotYet:
-                    return (I18n.Get("hud.not-yet", new { step = NextStep(evt, eval, index) }) + MoreSteps(eval), HudTone.Normal);
+                    return (I18n.Get("hud.not-yet", new { step = NextStep(evt, eval, index) }) + (compact ? "" : MoreSteps(eval)), HudTone.Normal);
                 case EventStatus.Special:
                     return (I18n.Get("hud.special"), HudTone.Normal);
                 default:
