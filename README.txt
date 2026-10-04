@@ -109,8 +109,9 @@ Filter buttons next to the search box (combine as many as you like):
                   or today's time window has passed
   Show locked     Also list events that need more hearts
 
-While a search or filter is on, matching groups expand automatically. Click a
-group's heading to close it again.
+A search lists the matching groups closed; click a group's heading to open
+it. The filter buttons open matching groups automatically, and you can click
+a heading to close one again.
 
 
 Event status

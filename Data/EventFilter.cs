@@ -34,6 +34,9 @@ namespace StardewEventTracker.Data
         /// <summary>Whether anything narrows the default view, which also auto-expands matching groups.</summary>
         public static bool IsActive => HasSearch || HasStatusFilter || ShowLocked;
 
+        /// <summary>Whether matching groups open by themselves: for the filter buttons, but not a search, which lists matching groups closed.</summary>
+        public static bool AutoExpands => HasStatusFilter || ShowLocked;
+
         /// <summary>Changes whenever the search or a filter does.</summary>
         public static string Signature => $"{SearchText.Trim().ToLowerInvariant()}|{AvailableNow}|{AvailableToday}|{WaitingOnDay}|{ShowLocked}";
 

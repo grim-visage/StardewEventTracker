@@ -275,11 +275,11 @@ namespace StardewEventTracker.UI
                 return;
 
             const string key = "messages";
-            bool expanded = IsExpanded(key, EventFilter.HasSearch);
+            bool expanded = IsExpanded(key, autoExpand: false);
             this.AddRow(
                 $"{(expanded ? "v" : ">")} {I18n.Get("menu.messages", new { count = messages.Count })}",
                 Game1.textColor,
-                onClick: () => ToggleExpanded(key, EventFilter.HasSearch));
+                onClick: () => ToggleExpanded(key, autoExpand: false));
             if (expanded)
             {
                 foreach ((int time, string text) in messages)
@@ -306,7 +306,7 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = "hearts:" + owner;
-                bool expanded = IsExpanded(key, EventFilter.IsActive);
+                bool expanded = IsExpanded(key, EventFilter.AutoExpands);
                 this.AddNpcHeader(owner, pending, expandable: true, expanded, key);
                 if (expanded)
                 {
@@ -338,7 +338,7 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = "story:" + location;
-                bool expanded = IsExpanded(key, EventFilter.IsActive);
+                bool expanded = IsExpanded(key, EventFilter.AutoExpands);
                 int now = pending.Count(EventStatus.AvailableNow);
                 int later = pending.Count(EventStatus.LaterToday);
 
@@ -346,7 +346,7 @@ namespace StardewEventTracker.UI
                     $"{(expanded ? "v" : ">")} {name}",
                     now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                     font: Game1.dialogueFont,
-                    onClick: () => ToggleExpanded(key, EventFilter.IsActive));
+                    onClick: () => ToggleExpanded(key, EventFilter.AutoExpands));
                 this.AddRow(
                     I18n.Get("menu.count.unseen", new { count = pending.Pending.Count })
                         + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")
@@ -386,12 +386,12 @@ namespace StardewEventTracker.UI
 
                 any = true;
                 string key = (story ? "done-story:" : "done:") + groupKey;
-                bool expanded = IsExpanded(key, EventFilter.HasSearch);
+                bool expanded = IsExpanded(key, autoExpand: false);
                 this.AddRow(
                     $"{(expanded ? "v" : ">")} {name}   {I18n.Get("menu.completed.count", new { seen = seen.Count, total })}",
                     Game1.textColor,
                     font: Game1.dialogueFont,
-                    onClick: () => ToggleExpanded(key, EventFilter.HasSearch));
+                    onClick: () => ToggleExpanded(key, autoExpand: false));
 
                 if (!expanded)
                     continue;
@@ -445,7 +445,7 @@ namespace StardewEventTracker.UI
                 prefix + name,
                 now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
                 font: Game1.dialogueFont,
-                onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.IsActive) : null,
+                onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.AutoExpands) : null,
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
                 onButton: () => this.mod.TogglePin(owner));
             // everyone listed here has heart events, so show hearts even before they can be befriended
@@ -688,8 +688,8 @@ namespace StardewEventTracker.UI
         private void AddSpacer(int height) => this.rows.Add(new Row { Height = height });
 
         /// <summary>
-        /// Whether a group is open. While a search or filter is on, matching groups open by themselves but can still be
-        /// closed; that's forgotten when the search or filters change.
+        /// Whether a group is open. While a filter is on, matching groups open by themselves but can still be closed;
+        /// that's forgotten when the search or filters change. A search alone leaves groups as they were.
         /// </summary>
         private static bool IsExpanded(string key, bool autoExpand)
         {
