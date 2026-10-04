@@ -44,7 +44,7 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The banner's scale, the game's 4x; the logo fits inside its dark middle.</summary>
         private static readonly Vector2 BannerScale = new(4, 4);
 
-        private const float LogoScale = 1.5f;
+        private const int LogoScale = 1;
 
         /// <summary>How far the banner's content starts in from the box's left edge.</summary>
         private const int BannerInset = 36;
@@ -102,7 +102,7 @@ namespace StardewEventTracker.UI.Themes
 
         public override int MinBoxWidth => BannerInset + this.BannerInnerWidth + 40;
 
-        private int LogoWidth => (int)(LogoSource.Width * LogoScale);
+        private int LogoWidth => LogoSource.Width * LogoScale;
 
         /// <summary>The banner's middle: the logo, the gap and the title, with a margin each side.</summary>
         private int BannerInnerWidth => BannerMargin + this.LogoWidth + LogoGap + this.TitleWidth + BannerMargin * 2;
@@ -144,7 +144,7 @@ namespace StardewEventTracker.UI.Themes
 
             // centred in the banner's dark middle (rows 2-14 of 17)
             int logoX = x + BannerMargin;
-            int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - (int)(LogoSource.Height * LogoScale)) / 2;
+            int logoY = top + (int)(2 * BannerScale.Y) + ((int)(13 * BannerScale.Y) - LogoSource.Height * LogoScale) / 2;
             if (this.GetLogo() is { } logo)
                 b.Draw(logo, new Vector2(logoX, logoY), null, Fade(Color.White), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
 
@@ -171,7 +171,7 @@ namespace StardewEventTracker.UI.Themes
                 if (glow <= 0)
                     continue;
                 foreach (Point p in this.rays[i])
-                    b.Draw(Game1.staminaRect, new Vector2(logoX + p.X * LogoScale, logoY + p.Y * LogoScale), null, Fade(Color.White * (0.85f * glow)), 0f, Vector2.Zero, LogoScale, SpriteEffects.None, 1f);
+                    b.Draw(Game1.staminaRect, new Rectangle(logoX + p.X * LogoScale, logoY + p.Y * LogoScale, LogoScale, LogoScale), Fade(Color.White * (0.85f * glow)));
             }
         }
 
