@@ -662,25 +662,26 @@ namespace StardewEventTracker.UI
             if (door.FestivalClosed)
                 this.AddRow("x " + I18n.Get("door.festival"), UnmetColor, indent);
 
-            if (door.Door.MinFriendship > 0 && door.Door.Npc != null)
+            // who lets you in and when, on one line: "Arthur lets you in 8:00 am-9:00 pm"
+            string open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close);
+            string? resident = door.Door.MinFriendship > 0 && door.Door.Npc != null ? EventIndex.GetNpcDisplayName(door.Door.Npc) : null;
+            if (resident != null && !door.HeartsOk)
             {
-                string name = EventIndex.GetNpcDisplayName(door.Door.Npc);
                 int hearts = (int)Math.Ceiling(door.Door.MinFriendship / (double)NPC.friendshipPointsPerHeartLevel);
-                if (door.HeartsOk)
-                    this.AddRow("+ " + I18n.Get("door.hearts.ok", new { name, hearts }), MetColor, indent);
-                else
-                    this.AddRow("x " + I18n.Get("door.hearts", new { name, hearts, more = PreconditionFormatter.MoreFriendship(door.Door.Npc, door.Door.MinFriendship) ?? "" }), UnmetColor, indent);
+                this.AddRow("x " + I18n.Get("door.hearts", new { name = resident, hearts, more = PreconditionFormatter.MoreFriendship(door.Door.Npc!, door.Door.MinFriendship) ?? "" }), UnmetColor, indent);
+                resident = null;
             }
 
+            string who = resident != null ? ".resident" : "";
             if (door.AllDay)
-                this.AddRow("+ " + I18n.Get("door.town-key"), MetColor, indent);
+                this.AddRow("+ " + I18n.Get("door.town-key" + who, new { name = resident }), MetColor, indent);
             else if (eval.DoorNeverOpen)
-                this.AddRow("x " + I18n.Get("door.never-open", new { open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close) }), UnmetColor, indent);
+                this.AddRow("x " + I18n.Get("door.never-open", new { open, close }), UnmetColor, indent);
             else
             {
                 int now = Game1.timeOfDay;
                 Color color = now >= door.Open && now < door.Close ? MetColor : now < door.Open ? SoonColor : MutedColor;
-                this.AddRow("~ " + I18n.Get("door.hours", new { open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close) }), color, indent);
+                this.AddRow("~ " + I18n.Get("door.hours" + who, new { name = resident, open, close }), color, indent);
             }
         }
 

@@ -521,7 +521,11 @@ namespace StardewEventTracker.Data
                     displayName = TokenParser.ParseText(data.DisplayName);
                 // mods sometimes point at a missing translation, which renders as "(no translation:...)"
                 if (!string.IsNullOrWhiteSpace(displayName) && displayName != name && !displayName.Contains("no translation") && !displayName.StartsWith('['))
-                    return displayName;
+                {
+                    // some mods end their names with a full stop ("Arthur House."), which reads oddly mid-sentence
+                    string trimmed = displayName.Trim();
+                    return trimmed.EndsWith('.') && !trimmed.EndsWith("..") ? trimmed[..^1] : trimmed;
+                }
             }
             catch (Exception)
             {
