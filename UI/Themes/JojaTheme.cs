@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
@@ -7,15 +8,18 @@ using StardewValley;
 namespace StardewEventTracker.UI.Themes
 {
     /// <summary>
-    /// A Joja product, in dark mode: Joja's logo (the smiling "Joja.") and the title on the game's metal banner,
-    /// recoloured in the blues of a Joja Cola can, over a box in the same colours: a Joja-blue frame around deep Joja
-    /// navy, with a light-blue rule under the text. A row of status lights on the box blinks like an office computer's
-    /// (the green one flashes when an event can happen now).
+    /// A Joja product, in dark mode: the Joja logo and the title on the game's metal banner, recoloured in the blues of
+    /// a Joja Cola can, over a box in the same colours: a Joja-blue frame around deep Joja navy, with a light-blue rule
+    /// under the text. The logo's sunburst sparkles ray by ray, and a row of status
+    /// lights on the box blinks like an office computer's (the green one flashes when an event can happen now).
     /// </summary>
     internal sealed class JojaTheme : HudTheme
     {
-        /// <summary>Joja's logo, "Joja." with a smile under it, on the sign above the movie theater's concession stand.</summary>
-        private static readonly Rectangle LogoSource = new(72, 3, 20, 11);
+        /// <summary>The Joja logo and sunburst on the Community Development form (down to the j's tail), in the English texture.</summary>
+        private static readonly Rectangle LogoSource = new(15, 6, 62, 31);
+
+        /// <summary>The second j's tail in the logo's bottom row, from its left; the rest of that row is the form's own text.</summary>
+        private const int TailLeft = 21, TailRight = 30;
 
         /// <summary>The metal banner (SpriteText's scroll style 3) in the game's texture: its left end, middle and right end side by side.</summary>
         private static readonly Rectangle BannerSource = new(86, 145, 9, 17);
@@ -40,7 +44,7 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The banner's scale, the game's 4x; the logo fits inside its dark middle.</summary>
         private static readonly Vector2 BannerScale = new(4, 4);
 
-        private const int LogoScale = 4;
+        private const int LogoScale = 1;
 
         /// <summary>How far the banner's content starts in from the box's left edge.</summary>
         private const int BannerInset = 36;
@@ -54,6 +58,12 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The box's colours: a Joja-blue frame and light-blue rule around a navy a shade darker than the banner's.</summary>
         private static readonly Color Frame = JojaBlue, Paper = new(10, 12, 62), Rule = LightBlue;
 
+        /// <summary>Where the sunburst starts in the logo (left of it is the word "Joja").</summary>
+        private const int SunburstLeft = 44;
+
+        /// <summary>Milliseconds for the sparkle to move on to the next ray of the sunburst.</summary>
+        private const double SparkleStepMs = 260;
+
         /// <summary>The status lights: colour, how long each blink lasts, and how often it's on, in percent.</summary>
         private static readonly (Color Color, double PeriodMs, int OnPercent)[] Lights =
         {
@@ -66,8 +76,11 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>A status light's size, and the space between lights, in pixels.</summary>
         private const int LightSize = 6, LightGap = 8;
 
-        /// <summary>The logo with the sign around it made see-through, made from the game's texture on first use.</summary>
+        /// <summary>The logo with the form's white paper made see-through, made from the game's texture on first use.</summary>
         private Texture2D? logo;
+
+        /// <summary>The sunburst's rays, each a list of the logo's pixels, in order around the sun.</summary>
+        private List<List<Point>> rays = new();
 
         /// <summary>Whether making the logo failed, so it isn't tried again every frame.</summary>
         private bool logoFailed;
@@ -139,7 +152,27 @@ namespace StardewEventTracker.UI.Themes
             this.DrawTitleText(b, textX, top + 13, Color.White);
 
             double now = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
+            this.DrawSparkle(b, logoX, logoY, now);
             DrawLights(b, box, now, state.AnyAvailableNow);
+        }
+
+        /// <summary>Brightens the sunburst's rays one after another, with a fading trail, so it seems to turn.</summary>
+        private void DrawSparkle(SpriteBatch b, int logoX, int logoY, double now)
+        {
+            if (this.rays.Count == 0)
+                return;
+
+            double lead = now / SparkleStepMs % this.rays.Count;
+            for (int i = 0; i < this.rays.Count; i++)
+            {
+                // how far behind the sparkle this ray is, around the circle
+                double behind = (lead - i + this.rays.Count) % this.rays.Count;
+                float glow = (float)Math.Max(0, 1 - behind / 2.5);
+                if (glow <= 0)
+                    continue;
+                foreach (Point p in this.rays[i])
+                    b.Draw(Game1.staminaRect, new Rectangle(logoX + p.X * LogoScale, logoY + p.Y * LogoScale, LogoScale, LogoScale), Fade(Color.White * (0.85f * glow)));
+            }
         }
 
         /// <summary>The row of status lights at the right end of the box's rule, each blinking in its own rhythm.</summary>
@@ -186,30 +219,21 @@ namespace StardewEventTracker.UI.Themes
 
             try
             {
-                // the English sheet: the Russian one has its own lettering
-                Texture2D sheet = Game1.content.Load<Texture2D>("Maps\\MovieTheaterJoja_TileSheet", LocalizedContentManager.LanguageCode.en);
+                // always the English form: the Russian one spells the logo out (Джоджо) and is laid out differently
+                Texture2D form = Game1.content.Load<Texture2D>("LooseSprites\\JojaCDForm", LocalizedContentManager.LanguageCode.en);
                 var pixels = new Color[LogoSource.Width * LogoSource.Height];
-                sheet.GetData(0, LogoSource, pixels, 0, pixels.Length);
-
-                // the logo is drawn in pale blue on the sign's darker blue
-                int kept = 0;
+                form.GetData(0, LogoSource, pixels, 0, pixels.Length);
                 for (int i = 0; i < pixels.Length; i++)
                 {
-                    if (pixels[i].R + pixels[i].G + pixels[i].B > 600)
-                        kept++;
-                    else
+                    int x = i % LogoSource.Width;
+                    bool formText = i / LogoSource.Width == LogoSource.Height - 1 && (x < TailLeft || x > TailRight);
+                    if (formText || (pixels[i].R > 240 && pixels[i].G > 240 && pixels[i].B > 240))
                         pixels[i] = Color.Transparent;
-                }
-
-                // none or mostly light: a retexture moved the sign, so there's no logo to cut out here
-                if (kept == 0 || kept > pixels.Length / 2)
-                {
-                    this.logoFailed = true;
-                    return null;
                 }
 
                 var texture = new Texture2D(Game1.graphics.GraphicsDevice, LogoSource.Width, LogoSource.Height);
                 texture.SetData(pixels);
+                this.rays = FindRays(pixels);
                 return this.logo = texture;
             }
             catch (Exception)
@@ -258,6 +282,55 @@ namespace StardewEventTracker.UI.Themes
                 this.bannerFailed = true;
                 return null;
             }
+        }
+
+        /// <summary>The sunburst's rays: the separate clusters of pixels right of the word, in order around their centre.</summary>
+        private static List<List<Point>> FindRays(Color[] pixels)
+        {
+            var ink = new HashSet<Point>();
+            for (int y = 0; y < LogoSource.Height; y++)
+            {
+                for (int x = SunburstLeft; x < LogoSource.Width; x++)
+                {
+                    if (pixels[y * LogoSource.Width + x].A > 0)
+                        ink.Add(new Point(x, y));
+                }
+            }
+            if (ink.Count == 0)
+                return new List<List<Point>>();
+
+            // pixels touching each other (diagonals too) are one ray
+            var rays = new List<List<Point>>();
+            var seen = new HashSet<Point>();
+            foreach (Point start in ink)
+            {
+                if (!seen.Add(start))
+                    continue;
+                var ray = new List<Point>();
+                var stack = new Stack<Point>();
+                stack.Push(start);
+                while (stack.Count > 0)
+                {
+                    Point p = stack.Pop();
+                    ray.Add(p);
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        for (int dy = -1; dy <= 1; dy++)
+                        {
+                            var next = new Point(p.X + dx, p.Y + dy);
+                            if (ink.Contains(next) && seen.Add(next))
+                                stack.Push(next);
+                        }
+                    }
+                }
+                rays.Add(ray);
+            }
+
+            float centerX = (ink.Min(p => p.X) + ink.Max(p => p.X)) / 2f;
+            float centerY = (ink.Min(p => p.Y) + ink.Max(p => p.Y)) / 2f;
+            return rays
+                .OrderBy(ray => Math.Atan2(ray.Average(p => p.Y) - centerY, ray.Average(p => p.X) - centerX))
+                .ToList();
         }
     }
 }
