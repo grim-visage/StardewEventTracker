@@ -11,7 +11,7 @@ namespace StardewEventTracker.UI.Themes
     /// A season's look, light or dark: a box in the season's colours with a seasonal border, and the title on a banner
     /// (the parchment scroll in light mode, dark metal in dark mode) with the season's companions at both ends: a frame
     /// of vines with blossoms and butterflies in spring, a frame of vines with yellow flowers and sunflowers in summer,
-    /// fallen leaves piled on top and pumpkins in fall, snow on top, icicles underneath and crystal fruit in winter. The
+    /// fallen leaves piled on top and pumpkins in fall, snow and ice with icicles underneath and crystal fruit in winter. The
     /// border keeps to the box's edges, so it never covers the text.
     /// </summary>
     internal sealed class SeasonTheme : HudTheme
@@ -203,7 +203,8 @@ namespace StardewEventTracker.UI.Themes
         private static readonly Color BlossomWhite = new(255, 240, 246), BlossomCenter = new(255, 214, 80);
         private static readonly Color VineDark = new(44, 96, 34), VineLight = new(98, 172, 66), VineKnot = new(68, 134, 48), VineLeaf = new(120, 196, 72), VineLeafShade = new(40, 92, 30), VineLeafVein = new(170, 220, 110);
         private static readonly Color SummerPetal = new(255, 206, 50), SummerPetalLight = new(255, 236, 140), SummerCenter = new(150, 86, 36);
-        private static readonly Color Snow = new(250, 252, 255), SnowShade = new(205, 222, 242), Ice = new(225, 240, 255), IceTip = new(160, 200, 245), IceTop = new(240, 248, 255);
+        private static readonly Color Snow = new(250, 252, 255), SnowShade = new(205, 222, 242);
+        private static readonly Color Ice = new(178, 214, 250), IceDark = new(120, 166, 226), IceShine = new(232, 246, 255), IceTip = new(140, 185, 235), Icicle = new(225, 240, 255), IcicleTop = new(240, 248, 255);
 
         /// <summary>Spring: a frame of vines, with leaves and pink and white blossoms growing out of it.</summary>
         private static void DrawSpringBorder(SpriteBatch b, Rectangle box)
@@ -299,29 +300,85 @@ namespace StardewEventTracker.UI.Themes
             DrawFallLeaf(b, box.Right - 38, box.Bottom - 22, 2, flip: false);
         }
 
-        /// <summary>Winter: snow piled unevenly along the top, and icicles of different lengths hanging underneath.</summary>
+        /// <summary>
+        /// Winter: snow piled unevenly along the top, ice built up over the top corners, an ice crust flowing part way
+        /// down each side into drips, and icicles underneath: short in the middle, longest at the corners.
+        /// </summary>
         private static void DrawWinterBorder(SpriteBatch b, Rectangle box)
         {
-            for (int x = box.X - 4; x < box.Right + 4; x += Px)
+            int x = box.X, y = box.Y, w = box.Width, h = box.Height;
+
+            // the crust: 16px thick at the top (half outside the box), thinning to drips about 60% of the way down
+            int depth = (int)(h * 0.6) / Px * Px;
+            foreach (bool left in new[] { true, false })
             {
-                // the bumps follow the box, so the snow doesn't shift while it's dragged
-                int at = x - box.X;
-                int height = 8 + (int)(6 * Math.Abs(Math.Sin(at / 41.0))) + (Hash(at) % 3 == 0 ? 4 : 0);
-                Fill(b, x, box.Y - height + 4, Px, height, Snow);
-                Fill(b, x, box.Y + 4, Px, Px, SnowShade);
+                for (int top = y; top < y + depth; top += Px)
+                {
+                    float t = (top - y) / (float)depth;
+                    int width = t < 0.3f ? 16 : t < 0.55f ? 12 : t < 0.8f ? 8 : 4;
+                    int at = left ? x - 8 : x + w + 8 - width;
+                    Fill(b, at, top, width, Px, Ice);
+                    Fill(b, left ? at : at + width - Px, top, Px, Px, IceDark);
+                    if (width >= 12)
+                        Fill(b, at + (left ? 8 : width - 12), top, Px, Px, IceShine);
+                }
+                int[] drips = { 3, 5, 2 };
+                for (int k = 0; k < drips.Length; k++)
+                {
+                    int dripX = left ? x - 8 + k * Px : x + w + 4 - k * Px;
+                    for (int j = 0; j < drips[k]; j++)
+                        Fill(b, dripX, y + depth + j * Px, Px, Px, j < drips[k] - 1 ? Ice : IceTip);
+                }
             }
 
-            int[] lengths = { 5, 8, 4, 7, 6 };
-            int k = 0;
-            for (int x = box.X + 16; x < box.Right - 16; x += 30, k++)
+            // snow along the top; the bumps follow the box, so the snow doesn't shift while it's dragged
+            for (int sx = x - 4; sx < x + w + 4; sx += Px)
             {
-                int length = lengths[k % lengths.Length];
+                int at = sx - x;
+                int height = 8 + (int)(6 * Math.Abs(Math.Sin(at / 41.0))) + (Hash(at) % 3 == 0 ? 4 : 0);
+                Fill(b, sx, y - height + 4, Px, height, Snow);
+                Fill(b, sx, y + 4, Px, Px, SnowShade);
+            }
+
+            // ice mounds over the top corners, capped with snow (heights in 4px pixels, from the outside in)
+            int[] mound = { 3, 5, 6, 7, 7, 7, 6, 5, 4 };
+            foreach (bool left in new[] { true, false })
+            {
+                for (int i = 0; i < mound.Length; i++)
+                {
+                    int mx = left ? x - 12 + i * Px : x + w + 8 - (i + 1) * Px;
+                    int top = y + 8 - mound[i] * Px;
+                    Fill(b, mx, top + Px, Px, mound[i] * Px - Px, Ice);
+                    Fill(b, mx, top + Px * 2, Px, Px, i is >= 2 and <= 4 ? IceShine : Ice);
+                    Fill(b, mx, y + 4, Px, Px, IceDark);
+                    Fill(b, mx, top, Px, Px * (i % 3 == 0 ? 1 : 2), Snow);
+                }
+            }
+
+            // icicles, longer towards the corners
+            int k2 = 0;
+            for (int ix = x + 12; ix < x + w - 12; ix += 26, k2++)
+            {
+                float fromMiddle = Math.Abs((ix - x) - w / 2f) / (w / 2f);
+                int length = 3 + (int)(fromMiddle * fromMiddle * 10) + (int)(Hash(k2) % 3);
                 for (int j = 0; j < length; j++)
                 {
                     int width = j < length - 2 ? 8 : 4;
-                    Fill(b, x + (8 - width) / 2, box.Bottom + j * Px, width, Px, j < length - 1 ? Ice : IceTip);
+                    Fill(b, ix + (8 - width) / 2, y + h + j * Px, width, Px, j < length - 1 ? Icicle : IceTip);
                 }
-                Fill(b, x - 4, box.Bottom, 16, Px, IceTop);
+                Fill(b, ix - 4, y + h, 16, Px, IcicleTop);
+            }
+
+            // and the longest, right at each corner
+            foreach (int cx in new[] { x - 4, x + w - 4 })
+            {
+                for (int j = 0; j < 15; j++)
+                {
+                    int width = j < 11 ? 8 : 4;
+                    Fill(b, cx + (8 - width) / 2, y + h - 4 + j * Px, width, Px, j < 14 ? Ice : IceTip);
+                    if (j < 9)
+                        Fill(b, cx + 2, y + h - 4 + j * Px, Px, Px, IceShine);
+                }
             }
         }
 
