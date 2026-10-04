@@ -116,8 +116,11 @@ namespace StardewEventTracker
         /// <summary>Whether the HUD tracker fades while the player walks under it or the mouse is over it.</summary>
         public bool HudFade { get; set; } = true;
 
+        /// <summary>Whether the HUD tracker also fades while the mouse is over it (with <see cref="HudFade"/> on).</summary>
+        public bool HudFadeOnHover { get; set; } = true;
+
         /// <summary>How opaque the HUD tracker gets while it fades, in percent.</summary>
-        public int HudFadeOpacity { get; set; } = 3;
+        public int HudFadeOpacity { get; set; } = 5;
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;

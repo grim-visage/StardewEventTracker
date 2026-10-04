@@ -119,12 +119,15 @@ namespace StardewEventTracker.UI
             this.opacity = this.opacity < target ? Math.Min(target, this.opacity + step) : Math.Max(target, this.opacity - step);
         }
 
-        /// <summary>Whether the mouse is over the HUD, or the player is standing under it.</summary>
+        /// <summary>Whether the player is standing under the HUD, or the mouse is over it (if that fades it too).</summary>
         private bool IsInWay()
         {
-            Vector2 cursor = this.mod.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
-            if (this.Bounds.Contains((int)cursor.X, (int)cursor.Y))
-                return true;
+            if (this.mod.Config.HudFadeOnHover)
+            {
+                Vector2 cursor = this.mod.Helper.Input.GetCursorPosition().GetScaledScreenPixels();
+                if (this.Bounds.Contains((int)cursor.X, (int)cursor.Y))
+                    return true;
+            }
 
             // the player's sprite (a tile wide, two tall, standing on their bounding box), from world to UI pixels
             Rectangle feet = Game1.player.GetBoundingBox();

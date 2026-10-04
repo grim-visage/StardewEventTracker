@@ -259,9 +259,10 @@ Drag the box (or its title) with the right mouse button to move it.
 
 The HUD fades almost all the way out while you walk under it or the mouse is
 over it, so it never hides what's behind it. It comes back while you drag it
-with the right mouse button. Turn this off with "Fade HUD when in the way" (HudFade), or
-set how much still shows with "Faded HUD opacity" (HudFadeOpacity, 3% by
-default).
+with the right mouse button. Turn this off with "Fade HUD when in the way"
+(HudFade), keep it up while you point at it by turning off "Also fade on mouse
+hover" (HudFadeOnHover), or set how much still shows with "Faded HUD opacity"
+(HudFadeOpacity, 5% by default).
 
 Pick a look with the "HUD theme" setting:
   * Community Center  The title on the bundle book's title tab, with three
@@ -362,7 +363,8 @@ launch:
   ShowHud                true             Whether the HUD tracker is visible
   HudFade                true             Fade the HUD while you or the
                                           mouse are under it
-  HudFadeOpacity         3                How much of the HUD shows while
+  HudFadeOnHover         true             Fade the HUD on mouse hover too
+  HudFadeOpacity         5                How much of the HUD shows while
                                           faded, in percent
   ShowMapMarkers         true             Hearts on the map for pinned
                                           events
