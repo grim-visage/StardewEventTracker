@@ -21,5 +21,8 @@ namespace StardewEventTracker.Integrations
         void OnFieldChanged(IManifest mod, Action<string, object> onChange);
 
         void AddKeybindList(IManifest mod, Func<KeybindList> getValue, Action<KeybindList> setValue, Func<string> name, Func<string>? tooltip = null, string? fieldId = null);
+
+        /// <summary>Opens a mod's config page over the current menu, which comes back when it's closed.</summary>
+        void OpenModMenuAsChildMenu(IManifest mod);
     }
 }

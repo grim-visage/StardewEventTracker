@@ -79,6 +79,12 @@ namespace StardewEventTracker.UI
         private readonly List<Chip> chips = new();
         private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
+
+        /// <summary>The button at the end of the tab row that opens the config page; empty without Generic Mod Config Menu.</summary>
+        private Rectangle settingsArea;
+
+        /// <summary>Whether the config page was open over the menu last tick, so the menu can catch up when it closes.</summary>
+        private bool configWasOpen;
         private Tab tab = LastTab.Value;
         private int builtVersion = -1;
         private int scrollY;
@@ -116,6 +122,15 @@ namespace StardewEventTracker.UI
 
             const int gap = 12;
             int inner = this.width - Padding * 2;
+
+            // the settings button takes the end of the tab row, and the tabs share the rest
+            this.settingsArea = Rectangle.Empty;
+            if (this.mod.HasConfigMenu)
+            {
+                int settingsWidth = (int)Game1.smallFont.MeasureString(I18n.Get("menu.settings")).X + 48;
+                this.settingsArea = new Rectangle(this.xPositionOnScreen + this.width - Padding - settingsWidth, this.yPositionOnScreen + Padding, settingsWidth, TabHeight);
+                inner -= settingsWidth + gap;
+            }
             int tabWidth = (inner - gap * (TabLabels.Length - 1)) / TabLabels.Length;
             this.tabAreas = Enumerable.Range(0, TabLabels.Length)
                 .Select(i => new Rectangle(this.xPositionOnScreen + Padding + i * (tabWidth + gap), this.yPositionOnScreen + Padding, tabWidth, TabHeight))
@@ -735,6 +750,12 @@ namespace StardewEventTracker.UI
         {
             base.update(time);
 
+            // settings may have changed on the config page (e.g. spoiler-free mode)
+            bool configOpen = this.GetChildMenu() != null;
+            if (this.configWasOpen && !configOpen)
+                this.builtVersion = -1;
+            this.configWasOpen = configOpen;
+
             if (this.searchBox.Text != EventFilter.SearchText)
             {
                 EventFilter.SearchText = this.searchBox.Text;
@@ -762,6 +783,13 @@ namespace StardewEventTracker.UI
                     this.SetTab((Tab)i);
                     return;
                 }
+            }
+
+            if (this.settingsArea.Contains(x, y))
+            {
+                Game1.playSound("bigSelect");
+                this.mod.OpenConfigMenu();
+                return;
             }
 
             foreach (Chip chip in this.chips)
@@ -890,6 +918,11 @@ namespace StardewEventTracker.UI
                 bool selected = (int)this.tab == i;
                 DrawBox(b, area, selected ? Color.White : area.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
                 DrawCentered(b, TabLabels[i], area, Game1.textColor);
+            }
+            if (!this.settingsArea.IsEmpty)
+            {
+                DrawBox(b, this.settingsArea, this.settingsArea.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
+                DrawCentered(b, I18n.Get("menu.settings"), this.settingsArea, Game1.textColor);
             }
 
             // toolbar

@@ -18,6 +18,12 @@ namespace StardewEventTracker
     {
         internal ModConfig Config { get; private set; } = new();
 
+        /// <summary>Generic Mod Config Menu's API, if it's installed.</summary>
+        private IGenericModConfigMenuApi? configMenu;
+
+        /// <summary>Whether the config page can be opened from the tracker menu.</summary>
+        internal bool HasConfigMenu => this.configMenu != null;
+
         /// <summary>Each local player's tracking state; split-screen co-op gets one per screen.</summary>
         private PerScreen<PlayerState> screen = null!;
         private PerScreen<HudTracker> hud = null!;
@@ -118,6 +124,9 @@ namespace StardewEventTracker
             });
         }
 
+        /// <summary>Opens this mod's page in Generic Mod Config Menu over the tracker menu.</summary>
+        internal void OpenConfigMenu() => this.configMenu?.OpenModMenuAsChildMenu(this.ModManifest);
+
         internal void TogglePin(string npc)
         {
             if (this.PinnedNpcs.Remove(npc))
@@ -204,7 +213,7 @@ namespace StardewEventTracker
         ****/
         private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
         {
-            var gmcm = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            var gmcm = this.configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (gmcm == null)
                 return;
 
@@ -433,6 +442,10 @@ namespace StardewEventTracker
         private void OnButtonsChanged(object? sender, ButtonsChangedEventArgs e)
         {
             if (!Context.IsWorldReady)
+                return;
+
+            // keys belong to the config page while it's open over the tracker menu, e.g. while setting a keybind there
+            if (Game1.activeClickableMenu is TrackerMenu tracker && tracker.GetChildMenu() != null)
                 return;
 
             // modifier combos are checked first: Ctrl/Shift + F2 also count as pressing the menu's F2

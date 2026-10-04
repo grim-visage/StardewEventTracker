@@ -365,7 +365,9 @@ filters, based on their own friendships and seen events.
 SETTINGS
 --------
 Change these in Generic Mod Config Menu, or in config.json after the first
-launch:
+launch. With Generic Mod Config Menu installed, the Settings button at the end
+of the tracker menu's tabs opens this mod's page directly, and closing it
+takes you back to the tracker.
 
   Setting                Default          Description
   ---------------------  ---------------  -----------------------------------
