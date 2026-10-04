@@ -45,12 +45,12 @@ namespace StardewEventTracker.UI.Themes
         private const int IdleFrame = 8, CheerFrame = 44, FrameCount = 4, JunimoSize = 16;
 
         /// <summary>Milliseconds per idle frame, slower than the game's 100 so they stay calm on screen.</summary>
-        private const double IdleFrameMs = 180;
+        private const double IdleFrameMs = 220;
 
-        private const double CheerFrameMs = 200;
+        private const double CheerFrameMs = 240;
 
         /// <summary>How often each Junimo hops while cheering, and how long a hop lasts, in milliseconds.</summary>
-        private const double HopEveryMs = 1800, HopMs = 360;
+        private const double HopEveryMs = 2200, HopMs = 420;
 
         /// <summary>The tab with the page around its rounded ends made see-through, made from the game's texture on first use.</summary>
         private Texture2D? tab;

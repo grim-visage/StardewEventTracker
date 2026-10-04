@@ -71,12 +71,7 @@ namespace StardewEventTracker.UI.Themes
             IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), box.X, box.Y, box.Width, box.Height, tint * 0.95f, 4f, drawShadow: false);
         }
 
-        public override void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)
-        {
-            // a dark drop shadow instead of the game's warm one, which glows on a dark box
-            b.DrawString(Game1.smallFont, text, position + new Vector2(2, 2), Color.Black * 0.45f);
-            b.DrawString(Game1.smallFont, text, position, color);
-        }
+        public override void DrawLine(SpriteBatch b, string text, Vector2 position, Color color) => DrawDarkLine(b, text, position, color);
 
         public override void DrawTitle(SpriteBatch b, Rectangle box, HudState state)
         {

@@ -261,8 +261,9 @@ Pick a look with the "HUD theme" setting:
   * Community Center  The title on the bundle book's title tab, with three
                       Junimos perched on the box. They cheer when an event
                       can happen right now. (The default.)
-  * Joja              Joja's "Social Planner", on the blue-metal banner Joja
-                      uses in the game, floating above the box
+  * Joja              A dark mode: Joja's "Social Planner" on the blue-metal
+                      banner Joja uses in the game, over a navy box in the
+                      colours of Joja's Community Development form
   * Spirit's Eve      A dark mode: a night-purple box with light text, the
                       title between two flickering jack-o'-lanterns, a
                       floating ghost and two bats by the box

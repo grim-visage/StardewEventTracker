@@ -79,6 +79,13 @@ namespace StardewEventTracker.UI.Themes
             b.Draw(texture, new Vector2(x + innerWidth + 4, y - 12), right, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
         }
 
+        /// <summary>Draws a line for a dark box: a dark drop shadow instead of the game's warm one, which glows on dark.</summary>
+        protected static void DrawDarkLine(SpriteBatch b, string text, Vector2 position, Color color)
+        {
+            b.DrawString(Game1.smallFont, text, position + new Vector2(2, 2), Color.Black * 0.45f);
+            b.DrawString(Game1.smallFont, text, position, color);
+        }
+
         /// <summary>Draws one line of an entry in the HUD's font.</summary>
         public virtual void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)
         {

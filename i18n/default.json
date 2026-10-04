@@ -339,7 +339,7 @@
   "config.hud-order.urgency": "By urgency",
   "config.hud-order.alphabetical": "Alphabetical",
   "config.hud-theme": "HUD theme",
-  "config.hud-theme.tip": "How the HUD tracker looks. Community Center has the bundle book's title tab and a few Junimos; Joja floats a Joja banner above the box; Spirit's Eve is a dark box with jack-o'-lanterns.",
+  "config.hud-theme.tip": "How the HUD tracker looks. Community Center has the bundle book's title tab and a few Junimos; Joja is a dark box in Joja blue under a Joja banner; Spirit's Eve is a dark box with jack-o'-lanterns.",
   "config.hud-theme.community-center": "Community Center",
   "config.hud-theme.spirits-eve": "Spirit's Eve (dark)",
   "config.hud-theme.joja": "Joja",
