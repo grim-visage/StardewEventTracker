@@ -90,8 +90,12 @@ namespace StardewEventTracker.Data
         /// <summary>The door's hours and the event's time window never overlap, so it can't start without the Town Key.</summary>
         public bool DoorNeverOpen { get; }
 
-        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false)
+        /// <summary>The event is in an area a mod added that there's no way into yet (see <see cref="AreaAccess"/>).</summary>
+        public bool CantReach { get; }
+
+        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false, bool cantReach = false)
         {
+            this.CantReach = cantReach;
             this.Door = door;
             this.DoorNeverOpen = doorNeverOpen;
             this.Status = status;
@@ -107,7 +111,8 @@ namespace StardewEventTracker.Data
         public int UnmetCount =>
             this.States.Count(s => s is ConditionState.Unmet or ConditionState.Unknown)
             + (this.Door is { HeartsOk: false } or { MailOk: false } ? 1 : 0)
-            + (this.DoorNeverOpen ? 1 : 0);
+            + (this.DoorNeverOpen ? 1 : 0)
+            + (this.CantReach ? 1 : 0);
     }
 
     internal static class EventEvaluator
@@ -163,6 +168,9 @@ namespace StardewEventTracker.Data
             (int Open, int Close)? doorHours = door is { AllDay: false } d ? (d.Open, d.Close) : null;
             bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(evt.Window?.End ?? 2600, hours.Close);
 
+            // nothing inside matters until there's a way there
+            bool cantReach = evt.LocationName != EventIndex.AnywhereKey && !AreaAccess.IsReachable(evt.LocationName);
+
             EventStatus status;
             if (unreachable)
                 status = EventStatus.Unreachable;
@@ -170,7 +178,7 @@ namespace StardewEventTracker.Data
                 status = EventStatus.Special;
             else if (locked)
                 status = EventStatus.Locked;
-            else if (progressUnmet || door is { HeartsOk: false } or { MailOk: false } || doorNeverOpen)
+            else if (progressUnmet || door is { HeartsOk: false } or { MailOk: false } || doorNeverOpen || cantReach)
                 status = EventStatus.NotYet;
             else if (calendarUnmet)
                 status = EventStatus.WrongDay;
@@ -192,7 +200,7 @@ namespace StardewEventTracker.Data
             if (worksTomorrow == true && door is { } lockedDoor && DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))))
                 worksTomorrow = false;
 
-            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen);
+            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach);
         }
 
         /// <summary>

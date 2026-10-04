@@ -97,6 +97,19 @@ namespace StardewEventTracker
                     + $"(clock measured at {this.State.Travel.RealMsPerGameMinute:0} real ms per in-game minute).",
                     LogLevel.Info);
             });
+            helper.ConsoleCommands.Add("tracker_reach", "Lists the areas mods added that there's no way into yet, which the tracker marks 'Not yet'.\n\nUsage: tracker_reach", (_, _) =>
+            {
+                if (!Context.IsWorldReady)
+                    return;
+                var areas = AreaAccess.Unreachable.OrderBy(name => name).ToList();
+                this.Monitor.Log(areas.Count == 0 ? "Every location has a way in." : $"{areas.Count} locations have no way in yet:", LogLevel.Info);
+                foreach (string area in areas)
+                {
+                    int events = this.Index.ByOwner.Values.Concat(this.Index.StoryByLocation.Values).Sum(list => list.Count(e => e.LocationName == area));
+                    string how = AreaAccess.GetHint(area)?.Text ?? "no hint";
+                    this.Monitor.Log($"    {area} ({EventIndex.GetLocationDisplayName(area)}): {events} events; {how}", LogLevel.Info);
+                }
+            });
             helper.ConsoleCommands.Add("tracker_reindex", "Re-reads all event data.\n\nUsage: tracker_reindex", (_, _) =>
             {
                 if (Context.IsWorldReady)
@@ -774,6 +787,7 @@ namespace StardewEventTracker
                         evt.RawKey,
                         evt.LocationName,
                         Location = evt.LocationDisplayName,
+                        eval.CantReach,
                         evt.Owner,
                         OwnerName = evt.IsHeartEvent ? EventIndex.GetNpcDisplayName(evt.Owner) : null,
                         evt.IsHeartEvent,

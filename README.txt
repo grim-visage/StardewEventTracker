@@ -200,6 +200,11 @@ code and give them a requirement that can never be met, so the game won't
 also start them on its own. The tracker recognizes these and marks them
 "special trigger" instead of showing that requirement as missing.
 
+Some areas that mods add have no way in at first, e.g. Stardew Valley
+Expanded's Highlands, which open up once Marlon lets you use his boat. Events
+there show "Not yet" with a "Getting there" line until a way in exists, and
+assets/hints.json can say how to open it up.
+
 Events only start when you arrive at a location. If you're already there
 when one becomes available, step out and come back in.
 
@@ -388,6 +393,9 @@ Type these in the SMAPI console window:
       Write every event and its status to exports/events.json in the mod
       folder, with a count of every NPC in your game (how many you can
       befriend and how many have heart events).
+  tracker_reach
+      List the areas mods added that there's no way into yet. Events there
+      show "Not yet" until a way in opens up.
   tracker_reindex
       Re-read event data. The tracker also does this by itself each morning
       and whenever a mod changes events, letters or dialogue.

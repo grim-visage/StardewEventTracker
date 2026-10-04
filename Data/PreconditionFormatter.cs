@@ -155,6 +155,21 @@ namespace StardewEventTracker.Data
         }
 
         /// <summary>
+        /// How to open up the way to an event's area, from a hint in <c>assets/hints.json</c> if there is one, e.g.
+        /// "Complete Marlon's special order 'Marlon's Boat'... (from Stardew Valley Expanded data)".
+        /// </summary>
+        /// <param name="forStep">Use the short lower-case form for "Not yet: ..." lines.</param>
+        public static string DescribeReach(EventInfo evt, bool forStep)
+        {
+            if (AreaAccess.GetHint(evt.LocationName) is not { } hint)
+                return I18n.Get(forStep ? "step.reach" : "reach.unknown", new { place = EventNarrator.WithArticle(evt.LocationDisplayName) });
+
+            if (forStep)
+                return char.ToLowerInvariant(hint.Text[0]) + hint.Text[1..];
+            return hint.Source != null ? I18n.Get("flag.hint-source", new { hint = hint.Text, source = hint.Source }) : hint.Text;
+        }
+
+        /// <summary>
         /// Turns a game state query (from a trigger action) into readable clauses, e.g. "have Cherry Pit" or "have 8
         /// hearts with Dale and have seen Dale's 6-heart event". Unrecognized clauses are left out; null if none remain.
         /// </summary>

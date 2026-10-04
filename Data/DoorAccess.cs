@@ -60,17 +60,36 @@ namespace StardewEventTracker.Data
             var lockedInto = new Dictionary<string, List<DoorLock>>();
             var openEntrances = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // where each location's warps, doors and map actions lead, to find areas there's no way into yet
+            var names = new HashSet<string>(Game1.locationData.Keys, StringComparer.OrdinalIgnoreCase);
+            Utility.ForEachLocation(location =>
+            {
+                names.Add(location.NameOrUniqueName);
+                return true;
+            });
+            var routes = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+
             Utility.ForEachLocation(location =>
             {
                 try
                 {
+                    string from = location.NameOrUniqueName;
+                    if (!routes.TryGetValue(from, out HashSet<string>? leadsTo))
+                        routes[from] = leadsTo = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                     foreach (Warp warp in location.warps)
                     {
                         if (!warp.npcOnly.Value)
+                        {
                             openEntrances.Add(warp.TargetName);
+                            leadsTo.Add(warp.TargetName);
+                        }
                     }
-                    ScanLayer(location, location.Map?.GetLayer("Buildings"), "Action", lockedInto, openEntrances);
-                    ScanLayer(location, location.Map?.GetLayer("Back"), "TouchAction", lockedInto, openEntrances);
+                    foreach (KeyValuePair<Microsoft.Xna.Framework.Point, string> door in location.doors.Pairs)
+                        leadsTo.Add(door.Value);
+
+                    ScanLayer(location, location.Map?.GetLayer("Buildings"), "Action", lockedInto, openEntrances, names, leadsTo);
+                    ScanLayer(location, location.Map?.GetLayer("Back"), "TouchAction", lockedInto, openEntrances, names, leadsTo);
                 }
                 catch (Exception ex)
                 {
@@ -84,6 +103,7 @@ namespace StardewEventTracker.Data
                 .Select(p => (p.Key, Doors: openEntrances.Contains(p.Key) ? p.Value.Where(IsSpecial).ToList() : p.Value))
                 .Where(p => p.Doors.Count > 0)
                 .ToDictionary(p => p.Key, p => p.Doors);
+            AreaAccess.Rebuild(names, routes, monitor);
             monitor.Log($"Found {locks.Count} locations behind locked doors in {timer.ElapsedMilliseconds}ms.", LogLevel.Trace);
         }
 
@@ -159,7 +179,9 @@ namespace StardewEventTracker.Data
             return new DoorState(door, heartsOk, festivalClosed, open, door.Close, allDay);
         }
 
-        private static void ScanLayer(GameLocation location, Layer? layer, string property, Dictionary<string, List<DoorLock>> lockedInto, HashSet<string> openEntrances)
+        /// <param name="names">Every location's name, to spot actions that lead to one (including other mods' warp actions).</param>
+        /// <param name="leadsTo">Where this location's map actions lead.</param>
+        private static void ScanLayer(GameLocation location, Layer? layer, string property, Dictionary<string, List<DoorLock>> lockedInto, HashSet<string> openEntrances, HashSet<string> names, HashSet<string> leadsTo)
         {
             if (layer == null)
                 return;
@@ -173,8 +195,15 @@ namespace StardewEventTracker.Data
                         continue;
 
                     string? action = Read(tile.Properties, property) ?? Read(tile.TileIndexProperties, property);
-                    if (action != null)
-                        ReadAction(location, action, lockedInto, openEntrances);
+                    if (action == null)
+                        continue;
+
+                    ReadAction(location, action, lockedInto, openEntrances);
+                    foreach (string arg in ArgUtility.SplitBySpace(action))
+                    {
+                        if (names.Contains(arg))
+                            leadsTo.Add(arg);
+                    }
                 }
             }
         }

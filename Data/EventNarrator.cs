@@ -290,7 +290,10 @@ namespace StardewEventTracker.Data
         /// </summary>
         public static string NextStep(EventInfo evt, EventEvaluation eval, EventIndex? index)
         {
-            // the door comes first: nothing inside matters until you can get in
+            // getting there comes first, then the door: nothing inside matters until you can get in
+            if (eval.CantReach)
+                return PreconditionFormatter.DescribeReach(evt, forStep: true);
+
             if (eval.Door is { HeartsOk: false } door && door.Door.Npc is { } resident)
             {
                 return I18n.Get("step.door-hearts", new

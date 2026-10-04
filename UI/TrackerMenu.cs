@@ -574,10 +574,13 @@ namespace StardewEventTracker.UI
             if (eval.Festival is { } festival)
                 this.AddRow(I18n.Get("menu.festival", new { start = PreconditionFormatter.Time(festival.Start), end = PreconditionFormatter.Time(festival.End) }), MutedColor, inner);
 
+            if (eval.CantReach)
+                this.AddRow("x " + I18n.Get("reach.row", new { how = PreconditionFormatter.DescribeReach(evt, forStep: false) }), UnmetColor, inner);
+
             if (eval.Door is { } door)
                 this.AddDoorRows(door, eval, inner);
 
-            if (evt.Conditions.Count == 0 && eval.Door == null)
+            if (evt.Conditions.Count == 0 && eval.Door == null && !eval.CantReach)
                 this.AddRow(I18n.Get("menu.no-requirements"), MetColor, inner);
             for (int i = 0; i < evt.Conditions.Count; i++)
             {

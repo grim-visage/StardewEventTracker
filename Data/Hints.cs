@@ -21,6 +21,9 @@ namespace StardewEventTracker.Data
         /// <summary>What starts a conversation topic, phrased to follow "after", e.g. "the bus is repaired".</summary>
         public Dictionary<string, Hint> Topics { get; set; } = new();
 
+        /// <summary>How to open up the way into an area a mod added, by location name, e.g. Stardew Valley Expanded's Highlands.</summary>
+        public Dictionary<string, Hint> Locations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>Event requirements other mods register with the game, by name, e.g. Ridgeside's "rsvRidingHorse".</summary>
         public Dictionary<string, Hint> Preconditions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
@@ -39,7 +42,8 @@ namespace StardewEventTracker.Data
             file.Flags = WithoutNulls(file.Flags, StringComparer.Ordinal);
             file.Topics = WithoutNulls(file.Topics, StringComparer.Ordinal);
             file.Preconditions = WithoutNulls(file.Preconditions, StringComparer.OrdinalIgnoreCase);
-            monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints and {file.Preconditions.Count} requirement hints.", LogLevel.Trace);
+            file.Locations = WithoutNulls(file.Locations, StringComparer.OrdinalIgnoreCase);
+            monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints, {file.Preconditions.Count} requirement hints and {file.Locations.Count} location hints.", LogLevel.Trace);
         }
 
         /// <summary>A section of the file without the null sections or entries a typo can leave.</summary>
@@ -51,6 +55,9 @@ namespace StardewEventTracker.Data
 
         public static Hint? ForPrecondition(string name) =>
             file.Preconditions.TryGetValue(name, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
+
+        public static Hint? ForLocation(string location) =>
+            file.Locations.TryGetValue(location, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
 
         public static Hint? ForFlag(string flag) =>
             file.Flags.TryGetValue(flag, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
