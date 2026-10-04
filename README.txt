@@ -257,25 +257,26 @@ time to set off.
 
 Hold Shift and drag the box (or its title) to move it.
 
+The HUD fades almost all the way out while you walk under it or the mouse is
+over it, so it never hides what's behind it. Holding Shift brings it back so
+you can move it. Turn this off with "Fade HUD when in the way" (HudFade).
+
 Pick a look with the "HUD theme" setting:
   * Community Center  The title on the bundle book's title tab, with three
                       Junimos perched on the box. They cheer when an event
                       can happen right now. (The default.)
-  * Joja              A dark mode: Joja's "Social Planner" on the blue-metal
-                      banner Joja uses in the game, over a navy box in the
-                      colours of Joja's Community Development form. The
-                      logo's sunburst sparkles, and status lights blink
+  * Joja              A dark mode: Joja's "Social Planner" and the Joja
+                      logo on a banner in Joja Cola blues, over a navy box.
+                      The logo's sunburst sparkles, and status lights blink
                       like an office computer's (the green one flashes
                       when an event can happen right now)
-  * Spirit's Eve      A dark mode: a night-purple box with light text, the
-                      title between two flickering jack-o'-lanterns, a
-                      floating ghost and two bats by the box
+  * Spirit's Eve      A dark mode: a night-purple box with light text, and
+                      a ghost and a flickering jack-o'-lantern by the title
   * Seasonal          Follows the calendar: Spring, Summer, Fall or Winter
   * Spring            A frame of vines and blossoms, butterflies on the title
   * Summer            A frame of vines and yellow flowers, sunflowers
   * Fall              Fallen leaves piled on top, pumpkins on the title
-  * Winter            Snow and ice on top, ice down the sides into
-                      icicles underneath, crystal fruit
+  * Winter            Snow on top, short icicles underneath, crystal fruit
 
 The season themes come in a light and a dark mode: pick one with the
 "HUD mode" setting.
@@ -358,6 +359,8 @@ launch:
   SpoilerFree            false            Hide details of locked events
   ShowHud                true             Whether the HUD tracker is visible
   HudDragKey             LeftShift        Hold to drag the HUD tracker
+  HudFade                true             Fade the HUD while you or the
+                                          mouse are under it
   ShowMapMarkers         true             Hearts on the map for pinned
                                           events
   StoryReminders         true             Reminders for pinned story events
