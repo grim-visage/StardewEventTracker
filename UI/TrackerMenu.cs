@@ -613,6 +613,12 @@ namespace StardewEventTracker.UI
                 this.AddRow(I18n.Get("menu.no-requirements"), MetColor, inner);
             for (int i = 0; i < evt.Conditions.Count; i++)
             {
+                if (eval.States[i] == ConditionState.Soft && evt.Conditions[i].Is("NpcVisibleHere"))
+                {
+                    Color stayColor = eval.NpcStay is { } stay && stay.End > Game1.timeOfDay ? SoonColor : MutedColor;
+                    this.AddRow($"~ {PreconditionFormatter.DescribeNpcStay(evt.Conditions[i], evt, eval, this.Index)}", stayColor, inner);
+                    continue;
+                }
                 if (eval.States[i] == ConditionState.Soft)
                 {
                     Color timeColor = eval.MinutesUntilStart > 0 ? SoonColor : eval.TimeOpen ? MetColor : MutedColor;

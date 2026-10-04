@@ -93,8 +93,12 @@ namespace StardewEventTracker.Data
         /// <summary>The event is in an area a mod added that there's no way into yet (see <see cref="AreaAccess"/>).</summary>
         public bool CantReach { get; }
 
-        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false, bool cantReach = false)
+        /// <summary>When the NPC the event needs there should be there today (HHMM), from their schedule; null if it needs nobody or that's unknown.</summary>
+        public TimeWindow? NpcStay { get; }
+
+        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false, bool cantReach = false, TimeWindow? npcStay = null)
         {
+            this.NpcStay = npcStay;
             this.CantReach = cantReach;
             this.Door = door;
             this.DoorNeverOpen = doorNeverOpen;
@@ -129,6 +133,7 @@ namespace StardewEventTracker.Data
             int? startTime = evt.Window?.Start;
             DoorState? door = DoorAccess.GetState(evt.LocationName);
             bool timeOpen = true, locked = false, unreachable = false, progressUnmet = false, calendarUnmet = false;
+            TimeWindow? npcStay = null;
 
             for (int i = 0; i < states.Length; i++)
             {
@@ -139,6 +144,14 @@ namespace StardewEventTracker.Data
                 {
                     timeOpen &= state == ConditionState.Met;
                     states[i] = ConditionState.Soft;
+                    continue;
+                }
+
+                // an NPC who should be there today: when they're there works like a time window
+                if (condition.Is("NpcVisibleHere") && !condition.Negated && state is ConditionState.Met or ConditionState.Unmet && NpcStay(condition, evt, state) is { } stay)
+                {
+                    npcStay = npcStay is { } other ? new TimeWindow(Math.Max(other.Start, stay.Start), Math.Min(other.End, stay.End)) : stay;
+                    states[i] = state == ConditionState.Met ? state : ConditionState.Soft;
                     continue;
                 }
 
@@ -170,6 +183,11 @@ namespace StardewEventTracker.Data
             (int Open, int Close)? doorHours = door is { AllDay: false } d ? (d.Open, d.Close) : null;
             bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(evt.Window?.End ?? 2600, hours.Close);
 
+            // the event can start while the door is open and the NPC is there
+            (int Open, int Close)? openHours = doorHours;
+            if (npcStay is { } npcHours)
+                openHours = doorHours is { } h ? (Math.Max(h.Open, npcHours.Start), Math.Min(h.Close, npcHours.End)) : (npcHours.Start, npcHours.End);
+
             // nothing inside matters until there's a way there
             bool cantReach = evt.LocationName != EventIndex.AnywhereKey && !AreaAccess.IsReachable(evt.LocationName);
 
@@ -189,7 +207,7 @@ namespace StardewEventTracker.Data
             else if (door is { FestivalClosed: true })
                 status = EventStatus.FestivalHere;
             else
-                (status, untilStart, startTime) = WithFestival(evt, festival, doorHours, timeOpen, untilStart);
+                (status, untilStart, startTime) = WithFestival(evt, festival, openHours, timeOpen, untilStart);
 
             if (status == EventStatus.AvailableNow && evt.IsStory && evt.Conditions.All(c =>
                     (c.Category is ConditionCategory.Time or ConditionCategory.Calendar && !c.Is("NpcVisibleHere")) || IsExclusion(c) || c.Is("IsHost") || c.Is("Random") || c.Is("Tile")))
@@ -202,7 +220,7 @@ namespace StardewEventTracker.Data
             if (worksTomorrow == true && door is { } lockedDoor && DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))))
                 worksTomorrow = false;
 
-            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach);
+            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach, npcStay);
         }
 
         /// <summary>
@@ -238,6 +256,27 @@ namespace StardewEventTracker.Data
             if (minutes > 0 && start < end)
                 return (EventStatus.LaterToday, minutes, start);
             return (EventStatus.MissedToday, untilStart, start);
+        }
+
+        /// <summary>
+        /// When an "NPC is here" requirement can be met today, from the NPC's schedule: the stay going on now if they're
+        /// there, else the next one today, else the last one (they've left for the day). Null if they don't go there
+        /// today or their schedule can't be read, so it's a matter of waiting for another day.
+        /// </summary>
+        private static TimeWindow? NpcStay(Precondition condition, EventInfo evt, ConditionState state)
+        {
+            if (condition.Args.Length == 0 || NpcPresence.Today(condition.Args[0], evt.LocationName) is not { Count: > 0 } stays)
+                return null;
+
+            int now = Game1.timeOfDay;
+            if (state == ConditionState.Met)
+                return stays.Where(s => s.Start <= now && now < s.End).Cast<TimeWindow?>().FirstOrDefault();
+
+            if (stays.Where(s => s.End > now).Cast<TimeWindow?>().FirstOrDefault() is not { } next)
+                return stays[^1];
+
+            // due there by now but not there yet: still on the way
+            return next.Start <= now ? next with { Start = Utility.ModifyTime(now, 10) } : next;
         }
 
         /// <summary>A mail flag requirement that an earlier event only sets on a path the player didn't take, e.g. another answer to Leah's question.</summary>

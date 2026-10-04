@@ -42,6 +42,8 @@ namespace StardewEventTracker.Data
 
             var w = new Words(evt);
             object tokens = w.Tokens(time: time, where: I18n.Get(w.IsHome ? "msg.where.home" : "msg.where.at", new { place = w.Place }));
+            if (minutesLeft >= 180)
+                return I18n.Get("msg.reminder.later", tokens);
             if (minutesLeft >= 120)
                 return Pick(evt, "msg.reminder.hours", 2, tokens);
             if (minutesLeft >= 60)

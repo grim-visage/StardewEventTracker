@@ -259,6 +259,21 @@ namespace StardewEventTracker.Data
             return I18n.Get("time.over", tokens);
         }
 
+        /// <summary>An NPC's stay at the event's location today, e.g. "Alex should be at the Beach about 1:10 pm-5:00 pm".</summary>
+        public static string DescribeNpcStay(Precondition c, EventInfo evt, EventEvaluation eval, EventIndex index)
+        {
+            if (eval.NpcStay is not { } stay)
+                return Describe(c, index, evt);
+
+            var tokens = new
+            {
+                name = c.Args.Length > 0 ? EventIndex.GetNpcDisplayName(c.Args[0]) : I18n.Get("someone"),
+                place = EventNarrator.WithArticle(evt.LocationDisplayName),
+                range = I18n.Get("time.range", new { start = Time(stay.Start), end = Time(stay.End) })
+            };
+            return I18n.Get(stay.End <= Game1.timeOfDay ? "cond.npc-stay.left" : "cond.npc-stay", tokens);
+        }
+
         /// <summary>Formats in-game minutes as "1h 20m", "2h" or "40m".</summary>
         public static string FormatDuration(int minutes)
         {
