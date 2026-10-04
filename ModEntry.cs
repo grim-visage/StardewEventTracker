@@ -400,7 +400,10 @@ namespace StardewEventTracker
                 return;
 
             Vector2 cursor = e.Cursor.GetScaledScreenPixels();
-            if (!this.hud.Value.Bounds.Contains((int)cursor.X, (int)cursor.Y))
+            Rectangle bounds = this.hud.Value.Bounds;
+            bool onHud = bounds.Contains((int)cursor.X, (int)cursor.Y);
+            this.Monitor.Log($"HUD drag: right-click at {cursor} (screen {e.Cursor.ScreenPixels}), HUD at {bounds}, {(onHud ? "grabbed" : "missed")}; UI scale {Game1.options.uiScale}, zoom {Game1.options.zoomLevel}, tick {Game1.ticks}.", LogLevel.Trace);
+            if (!onHud)
                 return;
 
             // don't check or interact with whatever's under the box; the offset is from the box, so its title can be dragged too
@@ -422,6 +425,7 @@ namespace StardewEventTracker
             bool held = this.Helper.Input.IsDown(SButton.MouseRight) || this.Helper.Input.IsSuppressed(SButton.MouseRight);
             if (!held)
             {
+                this.Monitor.Log($"HUD drag: released at {this.Config.HudX}, {this.Config.HudY}, tick {Game1.ticks}.", LogLevel.Trace);
                 this.hudDragOffset.Value = null;
                 this.hud.Value.Dragging = false;
                 this.Helper.WriteConfig(this.Config);
