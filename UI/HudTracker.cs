@@ -95,7 +95,7 @@ namespace StardewEventTracker.UI
         }
 
         /// <summary>The theme the player picked in the config.</summary>
-        private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme);
+        private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme, this.mod.Config.HudMode == ModConfig.HudModeDark);
 
         private HudPalette Palette => this.Theme.Palette;
 

@@ -25,14 +25,39 @@ namespace StardewEventTracker.UI.Themes
         /// <summary>The theme for new players, and the one used when the config names a theme that doesn't exist.</summary>
         public static readonly HudTheme Default = new CommunityCenterTheme();
 
-        /// <summary>Every theme players can choose, in the order the config menu lists them.</summary>
-        public static readonly IReadOnlyList<HudTheme> All = new HudTheme[] { Default, new JojaTheme(), new SpiritsEveTheme() };
+        /// <summary>The themes with one fixed look.</summary>
+        private static readonly IReadOnlyList<HudTheme> Fixed = new HudTheme[] { Default, new JojaTheme(), new SpiritsEveTheme() };
 
-        public static string[] Ids => All.Select(t => t.Id).ToArray();
+        /// <summary>The ID of the theme that follows the in-game season.</summary>
+        public const string SeasonalId = "seasonal";
+
+        /// <summary>Each season's theme, light and dark, made on first use.</summary>
+        private static readonly Dictionary<(Season, bool), SeasonTheme> Seasons = new();
+
+        /// <summary>Every theme players can choose, in the order the config menu lists them.</summary>
+        public static string[] Ids =>
+            Fixed.Select(t => t.Id)
+                .Append(SeasonalId)
+                .Concat(Enum.GetValues<Season>().Select(s => s.ToString().ToLowerInvariant()))
+                .ToArray();
 
         /// <summary>The theme with this ID, or <see cref="Default"/>.</summary>
-        public static HudTheme Get(string? id) =>
-            All.FirstOrDefault(t => t.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) ?? Default;
+        /// <param name="dark">Whether the season themes use their dark mode (the other themes have one look).</param>
+        public static HudTheme Get(string? id, bool dark)
+        {
+            if (Fixed.FirstOrDefault(t => t.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) is { } theme)
+                return theme;
+
+            Season? season = SeasonalId.Equals(id, StringComparison.OrdinalIgnoreCase)
+                ? Game1.season
+                : Enum.TryParse(id, ignoreCase: true, out Season named) ? named : null;
+            if (season is not { } s)
+                return Default;
+
+            if (!Seasons.TryGetValue((s, dark), out SeasonTheme? seasonTheme))
+                Seasons[(s, dark)] = seasonTheme = new SeasonTheme(s, dark);
+            return seasonTheme;
+        }
 
         /// <summary>The ID saved in the config, e.g. "joja". Never change it once released, or players lose their choice.</summary>
         public abstract string Id { get; }

@@ -39,6 +39,11 @@ namespace StardewEventTracker
 
         public static readonly string[] HudOrders = { HudOrderUrgency, HudOrderAlphabetical };
 
+        /// <summary>The season themes' light and dark modes.</summary>
+        public const string HudModeLight = "light", HudModeDark = "dark";
+
+        public static readonly string[] HudModes = { HudModeLight, HudModeDark };
+
         /// <summary>Opens or closes the tracker menu.</summary>
         public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
 
@@ -107,6 +112,9 @@ namespace StardewEventTracker
 
         /// <summary>How the HUD tracker looks, by theme ID (see <see cref="UI.Themes.HudTheme.All"/>).</summary>
         public string HudTheme { get; set; } = "community-center";
+
+        /// <summary>Whether the season themes use their light or dark mode: <see cref="HudModeLight"/> or <see cref="HudModeDark"/>.</summary>
+        public string HudMode { get; set; } = HudModeLight;
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;

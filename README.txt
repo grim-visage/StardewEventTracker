@@ -270,6 +270,14 @@ Pick a look with the "HUD theme" setting:
   * Spirit's Eve      A dark mode: a night-purple box with light text, the
                       title between two flickering jack-o'-lanterns, a
                       floating ghost and two bats by the box
+  * Seasonal          Follows the calendar: Spring, Summer, Fall or Winter
+  * Spring            Petals drifting past, butterflies on the title
+  * Summer            Leaves drifting past (fireflies at night), sunflowers
+  * Fall              Falling leaves, pumpkins on the title
+  * Winter            Falling snow, a snowy box, crystal fruit on the title
+
+The season themes come in a light and a dark mode: pick one with the
+"HUD mode" setting.
 
 
 Map markers
@@ -373,7 +381,11 @@ launch:
   HudSortOrder           urgency          HUD order: "urgency" or
                                           "alphabetical"
   HudTheme               community-center HUD look: "community-center",
-                                          "joja" or "spirits-eve"
+                                          "joja", "spirits-eve",
+                                          "seasonal", "spring", "summer",
+                                          "fall" or "winter"
+  HudMode                light            "light" or "dark", for the season
+                                          themes
   HudMaxNpcs             5                Most entries (NPCs and story
                                           events) shown on the HUD
 

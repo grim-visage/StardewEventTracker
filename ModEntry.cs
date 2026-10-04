@@ -262,6 +262,8 @@ namespace StardewEventTracker
                 allowedValues: ModConfig.HudOrders, formatAllowedValue: v => I18n.Get($"config.hud-order.{v}"));
             gmcm.AddTextOption(m, () => this.Config.HudTheme, v => this.Config.HudTheme = v, () => I18n.Get("config.hud-theme"), () => I18n.Get("config.hud-theme.tip"),
                 allowedValues: HudTheme.Ids, formatAllowedValue: v => I18n.GetOr($"config.hud-theme.{v}", v));
+            gmcm.AddTextOption(m, () => this.Config.HudMode, v => this.Config.HudMode = v, () => I18n.Get("config.hud-mode"), () => I18n.Get("config.hud-mode.tip"),
+                allowedValues: ModConfig.HudModes, formatAllowedValue: v => I18n.Get($"config.hud-mode.{v}"));
             gmcm.AddNumberOption(m, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => I18n.Get("config.hud-max"), min: 1, max: 15);
         }
 
@@ -715,7 +717,7 @@ namespace StardewEventTracker
             ModConfig defaults = new();
             if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null || this.Config.HudDragKey is null
                 || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null
-                || this.Config.HudTheme is null)
+                || this.Config.HudTheme is null || this.Config.HudMode is null)
             {
                 this.Config.OpenMenuKey ??= defaults.OpenMenuKey;
                 this.Config.ToggleHudKey ??= defaults.ToggleHudKey;
@@ -725,6 +727,7 @@ namespace StardewEventTracker
                 this.Config.ReminderSound ??= defaults.ReminderSound;
                 this.Config.AvailableSound ??= defaults.AvailableSound;
                 this.Config.HudTheme ??= defaults.HudTheme;
+                this.Config.HudMode ??= defaults.HudMode;
                 changed = true;
             }
 
@@ -751,6 +754,12 @@ namespace StardewEventTracker
             if (!HudTheme.Ids.Contains(this.Config.HudTheme, StringComparer.OrdinalIgnoreCase))
             {
                 this.Config.HudTheme = HudTheme.Default.Id;
+                changed = true;
+            }
+
+            if (!ModConfig.HudModes.Contains(this.Config.HudMode))
+            {
+                this.Config.HudMode = ModConfig.HudModeLight;
                 changed = true;
             }
 
