@@ -42,13 +42,10 @@ namespace StardewEventTracker.UI
         private int builtForY = -1;
         private HudTheme? builtForTheme;
 
-        /// <summary>How see-through the HUD gets while the player or the mouse is under it.</summary>
-        private const float FadedOpacity = 0.02f;
-
         /// <summary>How long a full fade in or out takes, in milliseconds.</summary>
         private const float FadeMs = 250;
 
-        /// <summary>How opaque the HUD is now, easing towards fully opaque or <see cref="FadedOpacity"/>.</summary>
+        /// <summary>How opaque the HUD is now, easing towards fully opaque or the faded opacity in the config.</summary>
         private float opacity = 1f;
 
         /// <summary>Whether an entry on the HUD can happen right now, for themes that react to it.</summary>
@@ -116,8 +113,9 @@ namespace StardewEventTracker.UI
         private void UpdateOpacity()
         {
             bool inWay = this.mod.Config.HudFade && !this.Dragging && !this.mod.Config.HudDragKey.IsDown() && this.IsInWay();
-            float target = inWay ? FadedOpacity : 1f;
-            float step = (float)(Game1.currentGameTime?.ElapsedGameTime.TotalMilliseconds ?? FadeMs) / FadeMs * (1f - FadedOpacity);
+            float faded = Math.Clamp(this.mod.Config.HudFadeOpacity, 0, 100) / 100f;
+            float target = inWay ? faded : 1f;
+            float step = (float)(Game1.currentGameTime?.ElapsedGameTime.TotalMilliseconds ?? FadeMs) / FadeMs;
             this.opacity = this.opacity < target ? Math.Min(target, this.opacity + step) : Math.Max(target, this.opacity - step);
         }
 
