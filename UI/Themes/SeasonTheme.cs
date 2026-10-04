@@ -52,8 +52,8 @@ namespace StardewEventTracker.UI.Themes
                 (Season.Summer, true) => new(new Color(24, 38, 66), new Color(70, 110, 170), new Color(255, 222, 100)),
                 (Season.Fall, false) => new(new Color(253, 238, 220), new Color(196, 104, 44), new Color(150, 52, 12)),
                 (Season.Fall, true) => new(new Color(60, 32, 26), new Color(160, 84, 44), new Color(255, 155, 65)),
-                (Season.Winter, false) => new(new Color(238, 245, 255), new Color(112, 152, 204), new Color(36, 82, 150)),
-                _ => new(new Color(28, 36, 64), new Color(110, 140, 196), new Color(195, 228, 255))
+                (Season.Winter, false) => new(new Color(238, 245, 255), new Color(64, 92, 140), new Color(36, 82, 150)),
+                _ => new(new Color(28, 36, 64), new Color(70, 92, 140), new Color(195, 228, 255))
             };
 
             if (dark)
@@ -301,45 +301,40 @@ namespace StardewEventTracker.UI.Themes
         }
 
         /// <summary>
-        /// Winter: snow piled unevenly along the top, ice built up over the top corners, an ice crust flowing part way
-        /// down each side into drips, and uneven icicles underneath, longer towards the corners.
+        /// Winter: snow piled unevenly along the top, ice built up over the top corners, a sheet of ice down each side
+        /// that flows into a long icicle at the bottom corner, and uneven icicles underneath, longer towards the corners.
         /// </summary>
         private static void DrawWinterBorder(SpriteBatch b, Rectangle box)
         {
             int x = box.X, y = box.Y, w = box.Width, h = box.Height;
 
-            // the crust: over the frame and growing outward, about 20px thick at the top with a lumpy edge, thinning
-            // about 60% of the way down to a lip that drips run down from
-            int depth = (int)(h * 0.6) / Px * Px;
+            // a sheet of ice down each side, over the frame: 16px thick at the top, easing to 8px, then on down into the
+            // long icicle at the corner, so it's one piece of ice from the top corner to the icicle's tip
+            int rows = (h - 4) / Px;
             foreach (bool left in new[] { true, false })
             {
                 int inner = left ? x + 4 : x + w - 4;
-                for (int top = y; top < y + depth; top += Px)
+                for (int k = 0; k < rows; k++)
                 {
-                    float t = (top - y) / (float)depth;
-                    int lump = ((int)(Hash((top - y) / Px * 13 + (left ? 0 : 1)) % 3) - 1) * Px;
-                    int thickness = Math.Clamp((int)Math.Round((20 - 12 * t + lump) / Px) * Px, 8, 24);
-                    if (top >= y + depth - 3 * Px)
-                        thickness = 12;
-
+                    double t = Math.Min(1, k / (rows * 0.7));
+                    int thickness = (2 + (int)Math.Round(2 * Math.Pow(Math.Cos(t * Math.PI / 2), 0.7))) * Px;
                     int from = left ? inner - thickness : inner;
-                    Fill(b, from, top, thickness, Px, Ice);
-                    Fill(b, left ? from : from + thickness - Px, top, Px, Px, IceDark);
-                    if (thickness >= 12)
-                        Fill(b, left ? from + Px : from + thickness - 2 * Px, top, Px, Px, IceShine);
+                    int outer = left ? from : from + thickness - Px;
+                    Fill(b, from, y + k * Px, thickness, Px, Ice);
+                    Fill(b, outer, y + k * Px, Px, Px, IceDark);
+                    Fill(b, left ? outer + Px : outer - Px, y + k * Px, Px, Px, IceShine);
                 }
 
-                // a long thick drip down the frame, and a short thin one further out
-                foreach ((int fromInner, int thickness, int length) in new[] { (8, 8, 8), (12, 4, 4) })
+                int cx = left ? x - 4 : x + w - 4;
+                for (int j = 0; j < 15; j++)
                 {
-                    int dripX = left ? inner - fromInner : inner + fromInner - thickness;
-                    for (int j = 0; j < length; j++)
+                    int width = j < 11 ? 8 : 4;
+                    int top = y + h - 4 + j * Px;
+                    Fill(b, cx + (8 - width) / 2, top, width, Px, j < 14 ? Ice : IceTip);
+                    if (width == 8)
                     {
-                        int width = j < length - 2 ? thickness : Px;
-                        int at = dripX + (left ? thickness - width : 0);
-                        Fill(b, at, y + depth + j * Px, width, Px, j < length - 1 ? Ice : IceTip);
-                        if (width >= 8 && j < length - 2)
-                            Fill(b, at + (left ? Px : 0), y + depth + j * Px, Px, Px, IceShine);
+                        Fill(b, left ? cx : cx + Px, top, Px, Px, IceDark);
+                        Fill(b, left ? cx + Px : cx, top, Px, Px, j < 9 ? IceShine : Ice);
                     }
                 }
             }
@@ -391,18 +386,6 @@ namespace StardewEventTracker.UI.Themes
                 }
                 Fill(b, ix - 4, y + h, thickness + 8, Px, IcicleTop);
                 ix += thickness + 8 + (int)((r >> 11) % 6) * Px;
-            }
-
-            // and the longest, right at each corner
-            foreach (int cx in new[] { x - 4, x + w - 4 })
-            {
-                for (int j = 0; j < 15; j++)
-                {
-                    int width = j < 11 ? 8 : 4;
-                    Fill(b, cx + (8 - width) / 2, y + h - 4 + j * Px, width, Px, j < 14 ? Ice : IceTip);
-                    if (j < 9)
-                        Fill(b, cx + 2, y + h - 4 + j * Px, Px, Px, IceShine);
-                }
             }
         }
 

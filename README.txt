@@ -274,7 +274,7 @@ Pick a look with the "HUD theme" setting:
   * Spring            A frame of vines and blossoms, butterflies on the title
   * Summer            A frame of vines and yellow flowers, sunflowers
   * Fall              Fallen leaves piled on top, pumpkins on the title
-  * Winter            Snow and ice on top, an ice crust down the sides,
+  * Winter            Snow and ice on top, ice down the sides into
                       icicles underneath, crystal fruit
 
 The season themes come in a light and a dark mode: pick one with the
