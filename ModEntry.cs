@@ -255,7 +255,6 @@ namespace StardewEventTracker
             gmcm.AddSectionTitle(m, () => I18n.Get("config.section.hud"));
             gmcm.AddBoolOption(m, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => I18n.Get("config.map-markers"), () => I18n.Get("config.map-markers.tip"));
             gmcm.AddBoolOption(m, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => I18n.Get("config.show-hud"));
-            gmcm.AddKeybindList(m, () => this.Config.HudDragKey, v => this.Config.HudDragKey = v, () => I18n.Get("config.drag-key"), () => I18n.Get("config.drag-key.tip"));
             gmcm.AddBoolOption(m, () => this.Config.HudFade, v => this.Config.HudFade = v, () => I18n.Get("config.hud-fade"), () => I18n.Get("config.hud-fade.tip"));
             gmcm.AddNumberOption(m, () => this.Config.HudFadeOpacity, v => this.Config.HudFadeOpacity = v, () => I18n.Get("config.hud-fade-opacity"), () => I18n.Get("config.hud-fade-opacity.tip"),
                 min: 0, max: 100, interval: 1, formatValue: v => $"{v}%");
@@ -390,20 +389,20 @@ namespace StardewEventTracker
                 state.Reset();
         }
 
-        /// <summary>Starts dragging the HUD when the drag key is held and the box is clicked.</summary>
+        /// <summary>Starts dragging the HUD when it's right-clicked.</summary>
         private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
         {
             // not Context.IsPlayerFree: that's false while the farmer swings a tool or eats, so the drag only sometimes started;
             // the HUD has no bounds while it's hidden (menus, events), so it can't be grabbed then anyway
-            if (e.Button != SButton.MouseLeft || !Context.IsWorldReady || !this.Config.HudDragKey.IsDown())
+            if (e.Button != SButton.MouseRight || !Context.IsWorldReady)
                 return;
 
             Vector2 cursor = e.Cursor.GetScaledScreenPixels();
             if (!this.hud.Value.Bounds.Contains((int)cursor.X, (int)cursor.Y))
                 return;
 
-            // don't swing a tool at whatever's under the box; the offset is from the box, so its title can be dragged too
-            this.Helper.Input.Suppress(SButton.MouseLeft);
+            // don't check or interact with whatever's under the box; the offset is from the box, so its title can be dragged too
+            this.Helper.Input.Suppress(SButton.MouseRight);
             Point box = this.hud.Value.BoxPosition;
             this.hudDragOffset.Value = new Point((int)cursor.X - box.X, (int)cursor.Y - box.Y);
             this.hud.Value.Dragging = true;
@@ -418,7 +417,7 @@ namespace StardewEventTracker
             this.Config.HudX = Math.Max(0, (int)cursor.X - offset.X);
             this.Config.HudY = Math.Max(0, (int)cursor.Y - offset.Y);
 
-            bool held = this.Helper.Input.IsDown(SButton.MouseLeft) || this.Helper.Input.IsSuppressed(SButton.MouseLeft);
+            bool held = this.Helper.Input.IsDown(SButton.MouseRight) || this.Helper.Input.IsSuppressed(SButton.MouseRight);
             if (!held)
             {
                 this.hudDragOffset.Value = null;
@@ -720,14 +719,13 @@ namespace StardewEventTracker
 
             // a hand-edited config.json can set a value to null; put the default back
             ModConfig defaults = new();
-            if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null || this.Config.HudDragKey is null
+            if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null
                 || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null
                 || this.Config.HudTheme is null || this.Config.HudMode is null)
             {
                 this.Config.OpenMenuKey ??= defaults.OpenMenuKey;
                 this.Config.ToggleHudKey ??= defaults.ToggleHudKey;
                 this.Config.PinKey ??= defaults.PinKey;
-                this.Config.HudDragKey ??= defaults.HudDragKey;
                 this.Config.ReminderMinutesBefore ??= defaults.ReminderMinutesBefore;
                 this.Config.ReminderSound ??= defaults.ReminderSound;
                 this.Config.AvailableSound ??= defaults.AvailableSound;

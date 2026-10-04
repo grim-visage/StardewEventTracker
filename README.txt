@@ -44,7 +44,7 @@ HOW TO USE IT
   Shift + F2          Show or hide the HUD tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
                       or on the Social tab)
-  Shift + drag        Move the HUD tracker with the mouse
+  Right-click + drag  Move the HUD tracker with the mouse
 
 
 Pinning
@@ -255,11 +255,11 @@ screen. Anything left over is summed up in a last line, e.g. "+2 more pinned
 (F2 to see all)", which turns green if one of them can happen now or it's
 time to set off.
 
-Hold Shift and drag the box (or its title) to move it.
+Drag the box (or its title) with the right mouse button to move it.
 
 The HUD fades almost all the way out while you walk under it or the mouse is
-over it, so it never hides what's behind it. Holding Shift brings it back so
-you can move it. Turn this off with "Fade HUD when in the way" (HudFade), or
+over it, so it never hides what's behind it. It comes back while you drag it
+with the right mouse button. Turn this off with "Fade HUD when in the way" (HudFade), or
 set how much still shows with "Faded HUD opacity" (HudFadeOpacity, 3% by
 default).
 
@@ -360,7 +360,6 @@ launch:
                                           partners automatically
   SpoilerFree            false            Hide details of locked events
   ShowHud                true             Whether the HUD tracker is visible
-  HudDragKey             LeftShift        Hold to drag the HUD tracker
   HudFade                true             Fade the HUD while you or the
                                           mouse are under it
   HudFadeOpacity         3                How much of the HUD shows while

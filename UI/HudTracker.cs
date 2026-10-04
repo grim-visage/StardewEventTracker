@@ -112,7 +112,7 @@ namespace StardewEventTracker.UI
         /// <summary>Eases the HUD towards faded while it's in the way, or back to opaque; it stays opaque while it's being moved.</summary>
         private void UpdateOpacity()
         {
-            bool inWay = this.mod.Config.HudFade && !this.Dragging && !this.mod.Config.HudDragKey.IsDown() && this.IsInWay();
+            bool inWay = this.mod.Config.HudFade && !this.Dragging && this.IsInWay();
             float faded = Math.Clamp(this.mod.Config.HudFadeOpacity, 0, 100) / 100f;
             float target = inWay ? faded : 1f;
             float step = (float)(Game1.currentGameTime?.ElapsedGameTime.TotalMilliseconds ?? FadeMs) / FadeMs;
