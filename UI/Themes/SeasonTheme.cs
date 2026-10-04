@@ -8,11 +8,11 @@ using StardewValley.ItemTypeDefinitions;
 namespace StardewEventTracker.UI.Themes
 {
     /// <summary>
-    /// A season's look, light or dark: a box in the season's colours, the title on a banner (the parchment scroll in light
-    /// mode, dark metal in dark mode) with the season's companions at both ends, and the season's weather drifting down
-    /// past the box: petals and a butterfly pair in spring, leaves (fireflies at night) and sunflowers in summer, leaves
-    /// and pumpkins in fall, snow, a snowy box and crystal fruit in winter. The weather stays outside the box, so it
-    /// never covers the text.
+    /// A season's look, light or dark: a box in the season's colours with a seasonal border, and the title on a banner
+    /// (the parchment scroll in light mode, dark metal in dark mode) with the season's companions at both ends: blossoms
+    /// along the frame and butterflies in spring, a leafy vine with yellow flowers and sunflowers in summer, fallen
+    /// leaves piled on top and pumpkins in fall, snow on top, icicles underneath and crystal fruit in winter. The border
+    /// keeps to the box's edges, so it never covers the text.
     /// </summary>
     internal sealed class SeasonTheme : HudTheme
     {
@@ -92,8 +92,21 @@ namespace StardewEventTracker.UI.Themes
             b.Draw(pixel, box, dragging ? Color.Lerp(this.look.Frame, Color.White, 0.4f) : this.look.Frame);
             b.Draw(pixel, new Rectangle(box.X + 4, box.Y + 4, box.Width - 8, box.Height - 8), this.look.Paper * 0.96f);
 
-            if (this.season == Season.Winter)
-                DrawSnowCap(b, box);
+            switch (this.season)
+            {
+                case Season.Spring:
+                    DrawSpringBorder(b, box);
+                    break;
+                case Season.Summer:
+                    DrawSummerBorder(b, box);
+                    break;
+                case Season.Fall:
+                    DrawFallBorder(b, box);
+                    break;
+                default:
+                    DrawWinterBorder(b, box);
+                    break;
+            }
         }
 
         public override void DrawLine(SpriteBatch b, string text, Vector2 position, Color color)
@@ -121,8 +134,6 @@ namespace StardewEventTracker.UI.Themes
             this.DrawCompanion(b, new Vector2(x + content - CompanionSize, y - 4), now, right: true);
             string title = this.Title;
             SpriteText.drawString(b, title, x + CompanionSize + CompanionGap, y, width: SpriteText.getWidthOfString(title) + 16, color: this.look.Title);
-
-            this.DrawWeather(b, box, x + content + this.bannerEnd, now);
         }
 
         /****
@@ -179,92 +190,149 @@ namespace StardewEventTracker.UI.Themes
         }
 
         /****
-        ** Weather
+        ** Borders
         ****/
-        /// <summary>
-        /// The season's weather, outside the box: some drifting down past its right edge, some across the space above it
-        /// between the banner and the box's corner, fading in and out at the ends of their paths.
-        /// </summary>
-        private void DrawWeather(SpriteBatch b, Rectangle box, int bannerRight, double now)
-        {
-            if (this.season == Season.Summer && this.dark)
-            {
-                DrawFireflies(b, box, bannerRight, now);
-                return;
-            }
+        /// <summary>The game's pixels are 4 screen pixels at the HUD's scale; the borders are drawn in those.</summary>
+        private const int Px = 4;
 
-            for (int i = 0; i < 6; i++)
+        private static readonly Color BlossomPink = new(255, 168, 204), BlossomPinkLight = new(255, 214, 232), BlossomCorner = new(240, 120, 170), BlossomCornerLight = new(255, 190, 215);
+        private static readonly Color BlossomWhite = new(255, 240, 246), BlossomCenter = new(255, 214, 80);
+        private static readonly Color LeafGreen = new(96, 170, 70), LeafShade = new(60, 125, 50);
+        private static readonly Color VineDark = new(44, 96, 34), VineLight = new(86, 160, 60), VineLeaf = new(120, 196, 72), VineLeafShade = new(40, 92, 30), VineLeafVein = new(170, 220, 110);
+        private static readonly Color SummerPetal = new(255, 206, 50), SummerPetalLight = new(255, 236, 140), SummerCenter = new(150, 86, 36);
+        private static readonly Color Snow = new(250, 252, 255), SnowShade = new(205, 222, 242), Ice = new(225, 240, 255), IceTip = new(160, 200, 245), IceTop = new(240, 248, 255);
+
+        /// <summary>Spring: blossoms with leaves along the top and bottom of the frame, and a deeper pink one in each corner.</summary>
+        private static void DrawSpringBorder(SpriteBatch b, Rectangle box)
+        {
+            foreach (int y in new[] { box.Y + 2, box.Bottom - 2 })
             {
-                double length = 7000 + i * 900;
-                double p = (now + i * 1730) % length / length;
-                float alpha = (float)Math.Min(1, Math.Min(p / 0.12, (1 - p) / 0.15));
-                Vector2 position;
-                if (i % 3 == 2)
+                int k = 0;
+                for (int x = box.X + 28; x < box.Right - 16; x += 46, k++)
                 {
-                    // across the top: from above the box's corner, drifting left and down towards the banner
-                    float fromX = box.Right - 20, toX = Math.Min(bannerRight + 20, box.Right - 60);
-                    position = new Vector2(MathHelper.Lerp(fromX, toX, (float)p), box.Y - 80 + (float)p * 56 + (float)Math.Sin(p * Math.PI * 3 + i) * 6);
+                    DrawSprigLeaf(b, x - 18, y + 2, flip: false);
+                    DrawSprigLeaf(b, x + 14, y + 2, flip: true);
+                    if (k % 2 == 0)
+                        DrawBlossom(b, x, y, BlossomPink, BlossomPinkLight, BlossomCenter);
+                    else
+                        DrawBlossom(b, x, y, BlossomWhite, Color.White, BlossomCenter);
                 }
-                else
+            }
+            foreach (Point corner in new[] { new Point(box.X + 2, box.Y + 2), new Point(box.Right - 2, box.Y + 2), new Point(box.X + 2, box.Bottom - 2), new Point(box.Right - 2, box.Bottom - 2) })
+                DrawBlossom(b, corner.X, corner.Y, BlossomCorner, BlossomCornerLight, BlossomCenter);
+        }
+
+        /// <summary>Summer: a vine along the top and bottom of the frame, its leaves and yellow flowers pointing out of the box.</summary>
+        private static void DrawSummerBorder(SpriteBatch b, Rectangle box)
+        {
+            foreach ((int y, bool up) in new[] { (box.Y, true), (box.Bottom - 4, false) })
+            {
+                Fill(b, box.X - 4, y - 2, box.Width + 8, 8, VineDark);
+                Fill(b, box.X - 4, y - 2, box.Width + 8, 4, VineLight);
+                int k = 0;
+                for (int x = box.X + 10; x < box.Right - 10; x += 30, k++)
                 {
-                    // down the right edge, swaying, never over the box
-                    position = new Vector2(box.Right + 12 + (i % 3) * 22 + (float)Math.Sin(p * Math.PI * 3 + i) * 8, MathHelper.Lerp(box.Y - 80, box.Bottom + 30, (float)p));
+                    if (k % 3 == 1)
+                        DrawBlossom(b, x + 4, y + (up ? -10 : 14), SummerPetal, SummerPetalLight, SummerCenter);
+                    else
+                        DrawVineLeaf(b, x, y + (up ? -6 : 6), up, flip: k % 2 == 1);
                 }
-                this.DrawFlake(b, position, i, now, alpha);
             }
         }
 
-        /// <summary>One petal, leaf or snowflake, from the game's weather sprites.</summary>
-        private void DrawFlake(SpriteBatch b, Vector2 position, int i, double now, float alpha)
+        /// <summary>Fall: fallen leaves piled two deep along the top, and a couple caught at each bottom corner.</summary>
+        private static void DrawFallBorder(SpriteBatch b, Rectangle box)
         {
-            if (this.season == Season.Winter)
+            int i = 0;
+            foreach ((int row, int dy) in new[] { (0, -28), (1, -16) })
             {
-                b.Draw(Game1.mouseCursors, position, new Rectangle(391 + 4 * (i % 5), 1236, 4, 4), Color.White * alpha, 0f, Vector2.Zero, 3f, SpriteEffects.None, 1f);
-                return;
+                for (int x = box.X - 12 + row * 14; x < box.Right - 24; x += 26, i++)
+                {
+                    // a stable choice of leaf, flip and height for each spot, so the pile doesn't shuffle
+                    uint h = Hash(i);
+                    DrawFallLeaf(b, x, box.Y + dy + (int)(h % 3) * 3, (int)(h / 3 % 6), flip: h / 18 % 2 == 0);
+                }
             }
-
-            int row = this.season switch { Season.Spring => 1184, Season.Summer => 1200, _ => 1216 };
-            int frame = (int)((now + i * 370) / 150) % 6;
-            b.Draw(Game1.mouseCursors, position, new Rectangle(352 + frame * 16, row, 16, 16), Color.White * (alpha * (this.dark ? 0.85f : 1f)), 0f, Vector2.Zero, 3f, SpriteEffects.None, 1f);
+            DrawFallLeaf(b, box.X - 16, box.Bottom - 34, 5, flip: false);
+            DrawFallLeaf(b, box.X - 2, box.Bottom - 22, 2, flip: false);
+            DrawFallLeaf(b, box.Right - 32, box.Bottom - 34, 5, flip: true);
+            DrawFallLeaf(b, box.Right - 38, box.Bottom - 22, 2, flip: false);
         }
 
-        /// <summary>Summer nights: fireflies wandering slowly around the box's corner and edge, glowing on and off.</summary>
-        private static void DrawFireflies(SpriteBatch b, Rectangle box, int bannerRight, double now)
+        /// <summary>Winter: snow piled unevenly along the top, and icicles of different lengths hanging underneath.</summary>
+        private static void DrawWinterBorder(SpriteBatch b, Rectangle box)
         {
-            Vector2[] homes =
+            for (int x = box.X - 4; x < box.Right + 4; x += Px)
             {
-                new(box.Right + 30, box.Y + 20),
-                new(box.Right + 46, box.Y + 90),
-                new(box.Right + 24, box.Bottom - 20),
-                new((bannerRight + box.Right) / 2f, box.Y - 50),
-                new(box.Right - 30, box.Y - 64)
+                // the bumps follow the box, so the snow doesn't shift while it's dragged
+                int at = x - box.X;
+                int height = 8 + (int)(6 * Math.Abs(Math.Sin(at / 41.0))) + (Hash(at) % 3 == 0 ? 4 : 0);
+                Fill(b, x, box.Y - height + 4, Px, height, Snow);
+                Fill(b, x, box.Y + 4, Px, Px, SnowShade);
+            }
+
+            int[] lengths = { 5, 8, 4, 7, 6 };
+            int k = 0;
+            for (int x = box.X + 16; x < box.Right - 16; x += 30, k++)
+            {
+                int length = lengths[k % lengths.Length];
+                for (int j = 0; j < length; j++)
+                {
+                    int width = j < length - 2 ? 8 : 4;
+                    Fill(b, x + (8 - width) / 2, box.Bottom + j * Px, width, Px, j < length - 1 ? Ice : IceTip);
+                }
+                Fill(b, x - 4, box.Bottom, 16, Px, IceTop);
+            }
+        }
+
+        /// <summary>A five-petal flower about 16px across, centred near (x, y).</summary>
+        private static void DrawBlossom(SpriteBatch b, int x, int y, Color petal, Color light, Color center)
+        {
+            foreach ((int dx, int dy) in new[] { (-1, -2), (0, -2), (-2, -1), (1, -1), (-2, 0), (1, 0), (-1, 1), (0, 1) })
+                Fill(b, x + dx * Px, y + dy * Px, Px, Px, petal);
+            Fill(b, x - Px, y - Px, Px, Px, light);
+            Fill(b, x, y - Px, Px, Px, center);
+            Fill(b, x - Px, y, Px, Px, center);
+            Fill(b, x, y, Px, Px, center);
+        }
+
+        /// <summary>A small leaf beside a blossom, rising to one side.</summary>
+        private static void DrawSprigLeaf(SpriteBatch b, int x, int y, bool flip)
+        {
+            int dir = flip ? -1 : 1;
+            Fill(b, x, y, Px, Px, LeafShade);
+            Fill(b, x + dir * Px, y, Px, Px, LeafGreen);
+            Fill(b, x + dir * Px, y - Px, Px, Px, LeafGreen);
+            Fill(b, x + dir * 2 * Px, y - Px, Px, Px, LeafGreen);
+        }
+
+        /// <summary>A vine leaf growing up (above the vine) or down (below it), leaning one way or the other.</summary>
+        private static void DrawVineLeaf(SpriteBatch b, int x, int y, bool up, bool flip)
+        {
+            (int dx, int dy, Color color)[] shape =
+            {
+                (0, 0, VineLeafShade), (1, 0, VineLeaf), (2, 0, VineLeaf), (1, 1, VineLeaf), (2, 1, VineLeafVein), (3, 1, VineLeaf), (2, 2, VineLeaf), (3, 2, VineLeaf)
             };
-            for (int i = 0; i < homes.Length; i++)
-            {
-                var position = homes[i] + new Vector2((float)Math.Sin(now / 1700 + i * 2.1) * 18, (float)Math.Sin(now / 1300 + i * 1.3) * 12);
-                float glow = (float)Math.Clamp(0.5 + Math.Sin(now / 420 + i * 1.7) * 0.7, 0, 1);
-                if (glow <= 0)
-                    continue;
-                if (Game1.lantern != null)
-                {
-                    float scale = 36f / Game1.lantern.Width;
-                    b.Draw(Game1.lantern, position, null, new Color(200, 255, 110) * (0.45f * glow), 0f, new Vector2(Game1.lantern.Width / 2f, Game1.lantern.Height / 2f), scale, SpriteEffects.None, 1f);
-                }
-                b.Draw(Game1.staminaRect, new Rectangle((int)position.X - 2, (int)position.Y - 2, 4, 4), new Color(240, 255, 170) * glow);
-            }
+            foreach ((int dx, int dy, Color color) in shape)
+                Fill(b, x + (flip ? -dx : dx) * Px, y + (up ? -dy : dy) * Px, Px, Px, color);
         }
 
-        /// <summary>Winter: snow piled along the top of the box, uneven in steps of the game's 4px pixels.</summary>
-        private static void DrawSnowCap(SpriteBatch b, Rectangle box)
+        /// <summary>One of the game's fall weather leaves, still.</summary>
+        private static void DrawFallLeaf(SpriteBatch b, int x, int y, int frame, bool flip)
         {
-            for (int x = box.X; x < box.Right; x += 4)
-            {
-                // a stable bumpy height from the position, not random each frame
-                int height = 4 + (int)(4 * Math.Abs(Math.Sin(x / 37.0))) + ((x * 7919) % 5 == 0 ? 4 : 0);
-                int width = Math.Min(4, box.Right - x);
-                b.Draw(Game1.staminaRect, new Rectangle(x, box.Y - height + 4, width, height), new Color(250, 252, 255));
-                b.Draw(Game1.staminaRect, new Rectangle(x, box.Y + 4, width, 4), new Color(200, 218, 240));
-            }
+            b.Draw(Game1.mouseCursors, new Vector2(x, y), new Rectangle(352 + frame * 16, 1216, 16, 16), Color.White, 0f, Vector2.Zero, 3f, flip ? SpriteEffects.FlipHorizontally : SpriteEffects.None, 1f);
+        }
+
+        private static void Fill(SpriteBatch b, int x, int y, int width, int height, Color color) =>
+            b.Draw(Game1.staminaRect, new Rectangle(x, y, width, height), color);
+
+        /// <summary>A stable pseudo-random number for a position, so decorations look scattered but stay put.</summary>
+        private static uint Hash(int value)
+        {
+            uint h = (uint)value * 2654435761u;
+            h ^= h >> 15;
+            h *= 2246822519u;
+            return h ^ (h >> 13);
         }
     }
 }
