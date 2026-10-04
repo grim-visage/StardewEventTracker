@@ -43,7 +43,7 @@ namespace StardewEventTracker.UI
         private HudTheme? builtForTheme;
 
         /// <summary>How see-through the HUD gets while the player or the mouse is under it.</summary>
-        private const float FadedOpacity = 0.3f;
+        private const float FadedOpacity = 0.02f;
 
         /// <summary>How long a full fade in or out takes, in milliseconds.</summary>
         private const float FadeMs = 250;
