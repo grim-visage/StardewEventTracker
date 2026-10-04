@@ -371,6 +371,7 @@ namespace StardewEventTracker.UI
             var groups = (story
                     ? this.Index.StoryByLocation.Select(p => (Key: p.Key, Name: this.Index.GetLocationName(p.Key), Events: p.Value))
                     : this.Index.ByOwner.Select(p => (Key: p.Key, Name: EventIndex.GetNpcDisplayName(p.Key), Events: p.Value)))
+                .Select(g => (g.Key, g.Name, Events: EventIndex.Distinct(g.Events).ToList()))
                 .Select(g => (g.Key, g.Name, Seen: g.Events.Where(e => e.Seen).ToList(), Total: g.Events.Count))
                 .Where(g => g.Seen.Count > 0)
                 .OrderBy(g => g.Name)
@@ -431,7 +432,7 @@ namespace StardewEventTracker.UI
             string name = EventIndex.GetNpcDisplayName(owner);
             int now = pending.Count(EventStatus.AvailableNow);
             int later = pending.Count(EventStatus.LaterToday);
-            int seen = this.Index.GetEvents(owner).Count(e => e.Seen);
+            int seen = EventIndex.Distinct(this.Index.GetEvents(owner)).Count(e => e.Seen);
 
             string counts = I18n.Get("menu.count.pending", new { count = pending.Pending.Count })
                 + (now > 0 ? I18n.Get("menu.count.now", new { count = now }) : "")

@@ -224,7 +224,9 @@ namespace StardewEventTracker.Data
                     {
                         if (!this.unlockedBy.TryGetValue(id, out List<EventInfo>? list))
                             this.unlockedBy[id] = list = new List<EventInfo>();
-                        list.Add(info);
+                        // one entry per event, however many versions of it need this one
+                        if (!list.Any(e => e.Key == info.Key))
+                            list.Add(info);
                     }
                 }
             }
@@ -312,9 +314,8 @@ namespace StardewEventTracker.Data
         private PendingEvents Collect(IEnumerable<EventInfo> events)
         {
             var result = new PendingEvents();
-            foreach (EventInfo evt in events)
+            foreach ((EventInfo evt, EventEvaluation eval) in this.BestVersions(events))
             {
-                EventEvaluation eval = this.Evaluate(evt);
                 switch (eval.Status)
                 {
                     case EventStatus.Seen:
@@ -350,6 +351,25 @@ namespace StardewEventTracker.Data
             result.LockedEvents.AddRange(locked);
             return result;
         }
+
+        /// <summary>
+        /// One entry per event: mods sometimes list several versions of an event (same ID and location, different
+        /// requirements, e.g. one for rain and one for sun), and whichever matches first plays. Shows the version
+        /// closest to happening, then the one needing the fewest things done.
+        /// </summary>
+        private IEnumerable<(EventInfo Event, EventEvaluation Eval)> BestVersions(IEnumerable<EventInfo> events)
+        {
+            return events
+                .GroupBy(e => e.Key)
+                .Select(g => g
+                    .Select(e => (Event: e, Eval: this.Evaluate(e)))
+                    .OrderBy(p => p.Eval.Status)
+                    .ThenBy(p => p.Eval.UnmetCount)
+                    .First());
+        }
+
+        /// <summary>Each event once, dropping the extra versions some mods list (see <see cref="BestVersions"/>).</summary>
+        public static IEnumerable<EventInfo> Distinct(IEnumerable<EventInfo> events) => events.DistinctBy(e => e.Key);
 
         /// <summary>A label for an event ID, e.g. "Abigail's 4-heart event at Mountain (#4)".</summary>
         public string DescribeEvent(string id)
