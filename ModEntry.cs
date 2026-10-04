@@ -63,6 +63,7 @@ namespace StardewEventTracker
                 if (!Context.IsWorldReady)
                     return;
                 this.ReindexIfDataChanged();
+                this.RescanIfMapsChanged();
                 this.State.Travel.OnUpdateTicked();
                 this.UpdateHudDrag();
                 if (this.openMenuNextTick.Value && Game1.activeClickableMenu == null && !Game1.dialogueUp)
@@ -267,6 +268,7 @@ namespace StardewEventTracker
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
         {
             this.dataChangedTick.Value = null;
+            this.mapsChangedTick = null;
             DoorAccess.Invalidate();
             this.State.Reset();
             PinData? data = this.Helper.Data.ReadJsonFile<PinData>(this.PinDataPath);
@@ -305,11 +307,11 @@ namespace StardewEventTracker
             if (!Context.IsWorldReady)
                 return;
 
-            // doors come from the maps, which are only scanned again when one changes
-            bool mapsChanged = e.NamesWithoutLocale.Any(name => name.StartsWith("Maps/"));
-            if (mapsChanged)
-                DoorAccess.Invalidate();
-            if (!mapsChanged && !e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
+            // a changed map only means reading that map's doors again, not every event (mods can change maps on every warp)
+            if (DoorAccess.MapsChanged(e.NamesWithoutLocale.Where(name => name.StartsWith("Maps/")).Select(name => name.Name)))
+                this.mapsChangedTick ??= Game1.ticks;
+
+            if (!e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
                 return;
 
             // each split-screen player has their own index
@@ -326,6 +328,20 @@ namespace StardewEventTracker
 
         /// <summary>The tick event data last changed, if this screen's index hasn't caught up yet.</summary>
         private readonly PerScreen<int?> dataChangedTick = new();
+
+        /// <summary>The tick a location's map changed, if its doors haven't been read again yet (shared by every screen).</summary>
+        private int? mapsChangedTick;
+
+        private void RescanIfMapsChanged()
+        {
+            if (this.mapsChangedTick is not { } changed || Game1.ticks - changed < 30 || Game1.eventUp)
+                return;
+
+            this.mapsChangedTick = null;
+            DoorAccess.EnsureScanned(this.Monitor);
+            foreach ((_, PlayerState state) in this.screen.GetActiveValues())
+                state.Index.Invalidate();
+        }
 
         private void ReindexIfDataChanged()
         {
