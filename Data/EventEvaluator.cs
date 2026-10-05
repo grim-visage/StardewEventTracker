@@ -93,11 +93,15 @@ namespace StardewEventTracker.Data
         /// <summary>The event is in an area a mod added that there's no way into yet (see <see cref="AreaAccess"/>).</summary>
         public bool CantReach { get; }
 
+        /// <summary>The passive festival that takes over the event's location all day today (e.g. the Night Market on the Beach), if any.</summary>
+        public string? TakenOverBy { get; }
+
         /// <summary>When the NPC the event needs there should be there today (HHMM), from their schedule; null if it needs nobody or that's unknown.</summary>
         public TimeWindow? NpcStay { get; }
 
-        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false, bool cantReach = false, TimeWindow? npcStay = null)
+        public EventEvaluation(EventStatus status, IReadOnlyList<ConditionState> states, bool timeOpen, int? minutesUntilStart, int? startTime = null, FestivalInfo? festival = null, bool? worksTomorrow = null, DoorState? door = null, bool doorNeverOpen = false, bool cantReach = false, TimeWindow? npcStay = null, string? takenOverBy = null)
         {
+            this.TakenOverBy = takenOverBy;
             this.NpcStay = npcStay;
             this.CantReach = cantReach;
             this.Door = door;
@@ -198,6 +202,9 @@ namespace StardewEventTracker.Data
             if (door is { ClosedToday: true })
                 calendarUnmet = true;
 
+            // a passive festival that replaces the location sends everyone to its own map all day
+            string? takenOverBy = CalendarInfo.PassiveFestivalReplacing(evt.LocationName, SDate.Now());
+
             // nothing inside matters until there's a way there
             bool cantReach = evt.LocationName != EventIndex.AnywhereKey && !AreaAccess.IsReachable(evt.LocationName);
 
@@ -214,7 +221,7 @@ namespace StardewEventTracker.Data
                 status = EventStatus.WrongDay;
             else if (SafeIsGreenRaining(location))
                 status = EventStatus.GreenRain;
-            else if (door is { FestivalClosed: true })
+            else if (door is { FestivalClosed: true } || takenOverBy != null)
                 status = EventStatus.FestivalHere;
             else
                 (status, untilStart, startTime) = WithFestival(evt, festival, openHours, timeOpen, untilStart);
@@ -230,8 +237,10 @@ namespace StardewEventTracker.Data
             if (worksTomorrow == true && door is { } lockedDoor
                 && (DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))) || DoorAccess.ClosedForTheDay(lockedDoor.Door, SDate.Now().AddDays(1))))
                 worksTomorrow = false;
+            if (worksTomorrow == true && CalendarInfo.PassiveFestivalReplacing(evt.LocationName, SDate.Now().AddDays(1)) != null)
+                worksTomorrow = false;
 
-            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach, npcStay);
+            return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach, npcStay, takenOverBy);
         }
 
         /// <summary>

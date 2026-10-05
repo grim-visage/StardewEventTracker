@@ -150,6 +150,8 @@
   "status.wait-for": "Wait for {{day}}",
   "status.green-rain": "No events during Green Rain",
   "status.festival": "Festival here today",
+  "status.taken-over": "The {{festival}} takes over {{place}} today",
+  "menu.taken-over": "The {{festival}} takes over {{place}} all day, so events here can't start until it's over",
   "status.missed": "Missed today's window",
   "status.not-yet": "Not yet: {{step}}",
   "status.special": "Special trigger: can't be started by visiting",

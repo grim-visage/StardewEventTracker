@@ -600,6 +600,9 @@ namespace StardewEventTracker.UI
             else if (eval.Status == EventStatus.LaterToday && eval.MinutesUntilStart is { } minutes)
                 this.AddRow(EventNarrator.Reminder(evt, eval, minutes), SoonColor, inner);
 
+            if (eval.TakenOverBy is { } passive)
+                this.AddRow("x " + I18n.Get("menu.taken-over", new { festival = passive, place = EventNarrator.WithArticle(evt.LocationDisplayName) }), UnmetColor, inner);
+
             if (eval.Festival is { } festival)
                 this.AddRow(I18n.Get("menu.festival", new { start = PreconditionFormatter.Time(festival.Start), end = PreconditionFormatter.Time(festival.End) }), MutedColor, inner);
 

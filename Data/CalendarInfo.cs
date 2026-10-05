@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using StardewModdingAPI.Utilities;
 using StardewValley;
+using StardewValley.GameData;
+using StardewValley.TokenizableStrings;
 
 namespace StardewEventTracker.Data
 {
@@ -22,6 +24,30 @@ namespace StardewEventTracker.Data
         {
             FestivalInfo? festival = GetFestival(date);
             return festival?.LocationName == locationName ? festival : null;
+        }
+
+        /// <summary>
+        /// The passive festival (e.g. the Night Market) that replaces this location on the date: the game sends anyone
+        /// going there to the festival's own location all day, so the location's events can't play. Null if none.
+        /// </summary>
+        public static string? PassiveFestivalReplacing(string locationName, SDate date)
+        {
+            try
+            {
+                foreach ((string id, PassiveFestivalData data) in DataLoader.PassiveFestivals(Game1.content))
+                {
+                    if (data.Season != date.Season || date.Day < data.StartDay || date.Day > data.EndDay || data.MapReplacements?.ContainsKey(locationName) != true)
+                        continue;
+                    if (!GameStateQuery.CheckConditions(data.Condition))
+                        continue;
+                    return TokenParser.ParseText(data.DisplayName) is { Length: > 0 } name ? name : id;
+                }
+            }
+            catch (Exception)
+            {
+                // treat unreadable festival data as no festival
+            }
+            return null;
         }
 
         public static FestivalInfo? GetFestival(SDate date)

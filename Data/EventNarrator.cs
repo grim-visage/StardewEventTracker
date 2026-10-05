@@ -105,7 +105,7 @@ namespace StardewEventTracker.Data
                 EventStatus.OnEntry => I18n.Get("status.on-entry"),
                 EventStatus.WrongDay => I18n.Get("status.wait-for", new { day = WaitFor(evt, eval) }) + tomorrow,
                 EventStatus.GreenRain => I18n.Get("status.green-rain") + tomorrow,
-                EventStatus.FestivalHere => FestivalTag(eval) + tomorrow,
+                EventStatus.FestivalHere => FestivalTag(evt, eval) + tomorrow,
                 EventStatus.MissedToday => I18n.Get("status.missed") + tomorrow,
                 EventStatus.NotYet => I18n.Get("status.not-yet", new { step = NextStep(evt, eval, index) }) + MoreSteps(eval),
                 EventStatus.Special => I18n.Get("status.special"),
@@ -172,7 +172,7 @@ namespace StardewEventTracker.Data
                 case EventStatus.GreenRain:
                     return (I18n.Get("hud.green-rain") + tomorrow, HudTone.Normal);
                 case EventStatus.FestivalHere:
-                    return (FestivalTag(eval) + tomorrow, HudTone.Normal);
+                    return (FestivalTag(evt, eval) + tomorrow, HudTone.Normal);
                 case EventStatus.MissedToday:
                     return (I18n.Get("hud.missed") + tomorrow, HudTone.Normal);
                 case EventStatus.NotYet:
@@ -407,8 +407,9 @@ namespace StardewEventTracker.Data
             eval.UnmetCount > 1 ? I18n.Get("hud.more", new { count = eval.UnmetCount - 1 }) : "";
 
         /// <summary>A festival at the location itself, or one that locks every shop and house door in the valley.</summary>
-        private static string FestivalTag(EventEvaluation eval) =>
-            I18n.Get(eval.Festival == null && eval.Door is { FestivalClosed: true } ? "status.door-festival" : "status.festival");
+        private static string FestivalTag(EventInfo evt, EventEvaluation eval) =>
+            eval.TakenOverBy is { } passive ? I18n.Get("status.taken-over", new { festival = passive, place = Place(evt) })
+            : I18n.Get(eval.Festival == null && eval.Door is { FestivalClosed: true } ? "status.door-festival" : "status.festival");
 
         /// <summary>" (tomorrow works!)" or " (not tomorrow either)", from the forecast.</summary>
         private static string TomorrowHint(EventEvaluation eval, bool includeNo) => eval.WorksTomorrow switch
