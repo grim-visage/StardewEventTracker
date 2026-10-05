@@ -540,7 +540,6 @@
   "step.free-slots": "free up {{count}} inventory slots",
   "cond.added-once": "Once {{when}}",
   "step.added-once": "once {{when}}",
-  "added.also-needs": " (also needs {{needs}})",
   "cond.added-needs": "Needs {{needs}}",
   "step.added-needs": "needs {{needs}}",
   "cond.added-soon": "Should be possible from tomorrow",

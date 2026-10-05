@@ -346,12 +346,12 @@ namespace StardewEventTracker.Data
                 .ToList();
             (PackEvent pack, List<string> unmet, bool understood) = options[0];
 
-            // just what has to happen for the requirement to be met: what makes the event appear, then what it needs
+            // just the next thing that has to happen: what makes the event appear, or once it will, what it needs
             string? when = unmet.Count > 0 ? DescribeCondition(string.Join(", ", unmet), index) : null;
-            string? needs = DescribePackEventNeeds(pack, index);
+            string? needs = when == null ? DescribePackEventNeeds(pack, index) : null;
             string prefix = forStep ? "step" : "cond";
             if (when != null)
-                return I18n.Get($"{prefix}.added-once", new { when }) + (needs != null ? I18n.Get("added.also-needs", new { needs }) : "");
+                return I18n.Get($"{prefix}.added-once", new { when });
             if (needs != null)
                 return I18n.Get($"{prefix}.added-needs", new { needs });
             return I18n.Get(understood ? $"{prefix}.added-soon" : $"{prefix}.story-progress");
