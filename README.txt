@@ -3,9 +3,8 @@
              Heart and story event tracking for Stardew Valley 1.6
 ================================================================================
 
-A SMAPI mod that lists the heart events and story events you haven't seen,
-where and when each one can take place, and which requirements are still
-unmet.
+Lists the heart events and story events you haven't seen, where and when
+each one can take place, and which requirements are still unmet.
 
 Features:
   * Event details: location, time window, and the status of each
