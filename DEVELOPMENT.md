@@ -18,21 +18,9 @@ dotnet build -p:EnableModDeploy=false -p:EnableModZip=false
 
 For a release, bump the version in both `StardewEventTracker.csproj` and `manifest.json`, and update `README.txt` if behaviour, keys or settings changed.
 
-## Console commands
+## Console commands and translations
 
-Type these in the SMAPI console:
-
-| Command | What it does |
-|---|---|
-| `tracker_dump <name>` | Prints every heart event for an NPC (or story event for a location), with each requirement's status and raw code. |
-| `tracker_travel <location>` | Estimates the walk from the player to a location. |
-| `tracker_export` | Writes every event and its status to `exports/events.json` in the mod folder, plus counts of every NPC (befriendable, with heart events). |
-| `tracker_reach` | Lists mod-added areas with no way in yet. Events there show "Not yet" until one opens up. |
-| `tracker_reindex` | Re-reads event data. This also happens each morning and whenever a mod changes events, letters or dialogue. |
-
-## Translations
-
-All text is in `i18n/default.json`. To translate, copy it to a file named after the language (for example `i18n/de.json` or `i18n/pt-BR.json`) and translate the values. Keep the `{{tokens}}` as they are.
+The player-facing console commands (`tracker_dump`, `tracker_export`, etc.) and translation steps are in `README.txt`, under "Troubleshooting" and "Translations".
 
 ## How story flags are explained
 

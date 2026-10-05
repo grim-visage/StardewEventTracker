@@ -16,6 +16,9 @@ FIRST PLAYTHROUGH? The tracker shows where every event happens and what it
 needs, including ones you haven't unlocked yet. If you'd rather discover them
 yourself, turn on spoiler-free mode (see "Spoiler-free mode" below).
 
+SPEAK ANOTHER LANGUAGE? The mod is only in English so far. Translations are
+welcome and easy to make: see "Translations" below.
+
 
 REQUIREMENTS
 ------------
@@ -353,6 +356,43 @@ menu opens it), or in config.json after the first launch.
 Pins are saved separately for each save file and each player.
 
 
+TRANSLATIONS
+------------
+All of the mod's text is in one file, i18n/default.json. To translate it:
+
+  1. Copy it to a file named after your language, e.g. i18n/de.json,
+     i18n/fr.json or i18n/pt-BR.json.
+  2. Translate the text on the right of each line. Leave the names on the
+     left, and anything in {{double braces}}, as they are.
+  3. Start the game in that language to check it.
+
+Share it on GitHub (an issue or pull request) and it'll be included in the
+next release.
+
+
+TROUBLESHOOTING
+---------------
+If an event's status looks wrong, these commands help. Type them in the
+SMAPI console window (the black text window that opens with the game):
+
+  tracker_reindex
+      Re-read all event data. Try this first if an event is missing or out
+      of date. (It also happens each morning and when mods change events.)
+  tracker_dump <name>
+      List every event for an NPC (or a location's story events), with each
+      requirement and whether it's met. E.g. "tracker_dump Leah".
+  tracker_travel <location>
+      Show the walk estimate from where you are to a location.
+  tracker_reach
+      List the areas mods added that you have no way into yet.
+  tracker_export
+      Save every event and its status to exports/events.json in the mod
+      folder. Attach this file to bug reports.
+
+When reporting a bug, please include your SMAPI log (https://smapi.io/log)
+and, if it's about a specific event, the tracker_dump output for that NPC.
+
+
 COMPATIBILITY
 -------------
   * Data Layers also uses F2, so pressing F2 opens both. Rebind one of them
@@ -375,10 +415,9 @@ KNOWN LIMITATIONS
     boats or totems.
 
 
-TRANSLATIONS, HINTS AND DEVELOPMENT
------------------------------------
-Translations, hint contributions, console commands and build instructions
-are covered in DEVELOPMENT.md on GitHub.
+CONTRIBUTING
+------------
+Hint contributions and build instructions are in DEVELOPMENT.md on GitHub.
 
 
 ABOUT THIS MOD
