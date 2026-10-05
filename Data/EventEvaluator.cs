@@ -147,6 +147,10 @@ namespace StardewEventTracker.Data
                     continue;
                 }
 
+                // "wait N days after X": the topic isn't active yet only because X hasn't happened, so the wait hasn't started
+                if (state == ConditionState.Met && WaitNotStarted(condition, flags))
+                    state = ConditionState.Unmet;
+
                 // an NPC who should be there today: when they're there works like a time window
                 if (condition.Is("NpcVisibleHere") && !condition.Negated && state is ConditionState.Met or ConditionState.Unmet && NpcStay(condition, evt, state) is { } stay)
                 {
@@ -284,6 +288,22 @@ namespace StardewEventTracker.Data
 
             // due there by now but not there yet: still on the way
             return next.Start <= now ? next with { Start = Utility.ModifyTime(now, 10) } : next;
+        }
+
+        /// <summary>
+        /// Whether a "conversation topic isn't active" requirement (a wait after an event) is only met because the event
+        /// that starts the topic hasn't been seen yet. Seeing it starts the topic, and the wait, so it isn't really met.
+        /// </summary>
+        private static bool WaitNotStarted(Precondition condition, FlagSources flags)
+        {
+            if (!condition.Is("ActiveDialogueEvent") || !condition.Negated || condition.Args.Length == 0)
+                return false;
+            if (flags.GetTopic(condition.Args[0]) is not { EventKey: { } key })
+                return false;
+
+            // event keys are "<location>|<event ID>"
+            string eventId = key[(key.IndexOf('|') + 1)..];
+            return !Game1.player.eventsSeen.Contains(eventId) && !Game1.player.activeDialogueEvents.ContainsKey(condition.Args[0]);
         }
 
         /// <summary>A mail flag requirement that an earlier event only sets on a path the player didn't take, e.g. another answer to Leah's question.</summary>
