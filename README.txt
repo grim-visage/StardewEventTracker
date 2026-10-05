@@ -153,7 +153,8 @@ Each event shows where it stands right now:
   ... today             day, e.g. the Night Market on the Beach
   Doors are locked for  On festival days every shop and house in the
   today's festival      valley is locked all day
-  Missed today's window Today's time window has passed
+  Missed today's        Today's time window has passed
+  window
   Not yet: ...          Something still needs doing first, e.g. "see
                         Leah's 4-heart event first"
   Special trigger       Started some other way, not by visiting the
