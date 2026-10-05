@@ -96,7 +96,7 @@
   "title-inline.hearts": "{{hearts}}-heart event",
   "title-inline.points": "{{points}}-point event",
   "title-inline.story": "story event",
-  "describe.unknown": "an event its mod hasn't added yet (#{{id}})",
+  "describe.unknown": "an earlier event that isn't available yet (#{{id}})",
   "describe.heart": "{{name}}'s {{title}} at {{location}} (#{{id}})",
   "describe.story": "the {{title}} at {{location}} (#{{id}})",
   "describe.special": "{{label}}, which the mod's code starts",
