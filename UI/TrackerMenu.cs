@@ -661,6 +661,8 @@ namespace StardewEventTracker.UI
 
             if (door.FestivalClosed)
                 this.AddRow("x " + I18n.Get("door.festival"), UnmetColor, indent);
+            if (door.ClosedToday)
+                this.AddRow("x " + I18n.Get("door.closed-wednesday"), UnmetColor, indent);
 
             // who lets you in and when, on one line: "Arthur lets you in 8:00 am-9:00 pm"
             string open = PreconditionFormatter.Time(door.Open), close = PreconditionFormatter.Time(door.Close);

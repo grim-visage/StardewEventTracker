@@ -268,6 +268,9 @@ namespace StardewEventTracker.Data
                 parts.Insert(0, I18n.Get("wait.season", new { seasons = string.Join(or, waitFor.Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
             }
 
+            if (eval.Door is { ClosedToday: true })
+                parts.Add(I18n.Get("wait.not-wednesday"));
+
             return parts.Count > 0 ? string.Join(I18n.Get("join.and"), parts) : I18n.Get("wait.another-day");
         }
 

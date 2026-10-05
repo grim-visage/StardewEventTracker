@@ -188,6 +188,10 @@ namespace StardewEventTracker.Data
             if (npcStay is { } npcHours)
                 openHours = doorHours is { } h ? (Math.Max(h.Open, npcHours.Start), Math.Min(h.Close, npcHours.End)) : (npcHours.Start, npcHours.End);
 
+            // a shop shut for the day (Pierre's on Wednesdays) is a matter of waiting for another day
+            if (door is { ClosedToday: true })
+                calendarUnmet = true;
+
             // nothing inside matters until there's a way there
             bool cantReach = evt.LocationName != EventIndex.AnywhereKey && !AreaAccess.IsReachable(evt.LocationName);
 
@@ -217,7 +221,8 @@ namespace StardewEventTracker.Data
             bool? worksTomorrow = status is EventStatus.WrongDay or EventStatus.GreenRain or EventStatus.FestivalHere or EventStatus.MissedToday
                 ? SafeWorksTomorrow(evt, location)
                 : null;
-            if (worksTomorrow == true && door is { } lockedDoor && DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))))
+            if (worksTomorrow == true && door is { } lockedDoor
+                && (DoorAccess.FestivalClosesTomorrow(lockedDoor.Door, CalendarInfo.GetFestival(SDate.Now().AddDays(1))) || DoorAccess.ClosedForTheDay(lockedDoor.Door, SDate.Now().AddDays(1))))
                 worksTomorrow = false;
 
             return new EventEvaluation(status, states, timeOpen, untilStart, startTime, festival, worksTomorrow, door, doorNeverOpen, cantReach, npcStay);

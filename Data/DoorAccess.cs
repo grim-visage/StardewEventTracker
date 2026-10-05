@@ -20,7 +20,7 @@ namespace StardewEventTracker.Data
     internal readonly record struct DoorLock(string FromLocation, string ToLocation, int Open, int Close, string? Npc, int MinFriendship, string? RequiredMail = null, bool HostMail = false, bool Inner = false);
 
     /// <summary>Whether the player can get through a locked door right now, mirroring <c>GameLocation.lockedDoorWarp</c>.</summary>
-    internal readonly record struct DoorState(DoorLock Door, bool HeartsOk, bool FestivalClosed, int Open, int Close, bool AllDay, bool MailOk = true);
+    internal readonly record struct DoorState(DoorLock Door, bool HeartsOk, bool FestivalClosed, int Open, int Close, bool AllDay, bool MailOk = true, bool ClosedToday = false);
 
     /// <summary>
     /// Finds locations that can only be entered through locked doors (shops and houses with opening hours, or doors
@@ -232,6 +232,19 @@ namespace StardewEventTracker.Data
             return best;
         }
 
+        /// <summary>
+        /// Whether the door stays shut all day on this date whatever the time: Pierre's on Wednesdays, until anyone has
+        /// seen the Community Center's restoration ceremony, unless you have the Town Key (as in the game's lockedDoorWarp).
+        /// </summary>
+        public static bool ClosedForTheDay(DoorLock door, SDate date) =>
+            door.ToLocation == "SeedShop"
+            && date.DayOfWeek == DayOfWeek.Wednesday
+            && !Game1.player.HasTownKey
+            && !Utility.HasAnyPlayerSeenEvent(CommunityCenterCeremony);
+
+        /// <summary>The Community Center's restoration ceremony, after which Pierre opens on Wednesdays.</summary>
+        private const string CommunityCenterCeremony = "191393";
+
         /// <summary>Whether a festival tomorrow will lock this door all day.</summary>
         public static bool FestivalClosesTomorrow(DoorLock door, FestivalInfo? tomorrowsFestival)
         {
@@ -253,7 +266,7 @@ namespace StardewEventTracker.Data
             return (first.Npc, doors.Min(d => d.MinFriendship));
         }
 
-        private static int Rank(DoorState s) => (s.MailOk ? 8 : 0) + (s.HeartsOk ? 4 : 0) + (s.FestivalClosed ? 0 : 2) + (s.AllDay ? 1 : 0);
+        private static int Rank(DoorState s) => (s.MailOk ? 16 : 0) + (s.HeartsOk ? 8 : 0) + (s.FestivalClosed ? 0 : 4) + (s.ClosedToday ? 0 : 2) + (s.AllDay ? 1 : 0);
 
         /// <summary>Applies the game's lockedDoorWarp rules to one door.</summary>
         private static DoorState Evaluate(DoorLock door, int depth)
@@ -283,7 +296,7 @@ namespace StardewEventTracker.Data
                 || (door.Npc != null && Game1.player.friendshipData.TryGetValue(door.Npc, out Friendship? friendship) && friendship.Points >= door.MinFriendship);
 
             bool festivalClosed = GameLocation.AreStoresClosedForFestival() && valley;
-            return new DoorState(door, heartsOk, festivalClosed, open, door.Close, allDay);
+            return new DoorState(door, heartsOk, festivalClosed, open, door.Close, allDay, ClosedToday: ClosedForTheDay(door, SDate.Now()));
         }
 
         private static void ScanLayer(GameLocation location, Layer? layer, string property, MapScan scan)
