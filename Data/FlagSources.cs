@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.GameData;
+using StardewValley.GameData.Museum;
 using StardewValley.GameData.SpecialOrders;
 using StardewValley.TokenizableStrings;
 
@@ -65,6 +66,15 @@ namespace StardewEventTracker.Data
         /// </summary>
         private readonly Dictionary<string, (string Trigger, string Condition)> eventMarkers = new();
 
+        /// <summary>Event-ID markers the museum sets as a donation reward, with the number of donations it needs (the Rusty Key's at 60).</summary>
+        private readonly Dictionary<string, int> museumMarkers = new();
+
+        /// <summary>Event-ID markers the game's own code sets, and the translation key saying what does it.</summary>
+        private static readonly Dictionary<string, string> CodeMarkers = new()
+        {
+            ["321777"] = "marker.grandpa-reevaluation"
+        };
+
         /// <summary>A trigger condition's "has seen event" clause: PLAYER_HAS_SEEN_EVENT &lt;player&gt; &lt;event ID&gt;.</summary>
         private static readonly Regex SeenEventClause = new(@"(?:^|,)\s*PLAYER_HAS_SEEN_EVENT\s+\S+\s+(\S+)", RegexOptions.IgnoreCase);
         /// <summary>The event that sets each flag, and whether only a branch of it does (one answer to a question, or a conditional fork).</summary>
@@ -86,6 +96,7 @@ namespace StardewEventTracker.Data
             this.specialOrders.Clear();
             this.triggerConditions.Clear();
             this.eventMarkers.Clear();
+            this.museumMarkers.Clear();
             this.flagEvents.Clear();
             this.questFlags.Clear();
             this.dialogueFlags.Clear();
@@ -161,6 +172,21 @@ namespace StardewEventTracker.Data
                     {
                         foreach (Match match in OnceDialogue.Matches(line))
                             this.dialogueFlags.TryAdd(match.Groups[1].Value, npc);
+                    }
+                }
+            });
+
+            Try(monitor, "museum rewards", () =>
+            {
+                foreach (MuseumRewards reward in DataLoader.MuseumRewards(Game1.content).Values)
+                {
+                    int count = reward.TargetContextTags?.Where(t => string.IsNullOrWhiteSpace(t.Tag)).Sum(t => t.Count) ?? 0;
+                    foreach (string action in reward.RewardActions ?? new List<string>())
+                    {
+                        // MarkEventSeen <player> <event ID> [seen]
+                        string[] args = ArgUtility.SplitBySpace(action);
+                        if (count > 0 && args.Length >= 3 && args[0].Equals("MarkEventSeen", StringComparison.OrdinalIgnoreCase))
+                            this.museumMarkers.TryAdd(args[2], count);
                     }
                 }
             });
@@ -278,6 +304,17 @@ namespace StardewEventTracker.Data
         /// <summary>The trigger that marks this event ID seen, and its condition, if it's a marker rather than a real event.</summary>
         public (string Trigger, string Condition)? GetEventMarker(string eventId) =>
             this.eventMarkers.TryGetValue(eventId, out var marker) ? marker : null;
+
+        /// <summary>
+        /// What sets an event-ID marker that isn't a trigger action, as a clause ("you've donated 60 items to the
+        /// museum"): a museum reward or the game's own code. Null if neither does.
+        /// </summary>
+        public string? DescribeOtherMarker(string eventId)
+        {
+            if (this.museumMarkers.TryGetValue(eventId, out int count))
+                return I18n.Get("marker.museum", new { count });
+            return CodeMarkers.TryGetValue(eventId, out string? key) ? I18n.Get(key) : null;
+        }
 
         /// <summary>The events a marker's trigger waits for the player to have seen, e.g. the event whose day-end marks it.</summary>
         public IEnumerable<string> GetMarkerSources(string eventId) =>

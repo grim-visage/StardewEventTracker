@@ -32,6 +32,8 @@ namespace StardewEventTracker.Data
                 "season" when a.Length > 0 => I18n.Get("cond.season" + neg, new { seasons = SeasonName(a[0]) }) + Ignored(a, SeasonName),
                 "daysplayed" => I18n.Get("cond.days-played", new { count = all }),
                 "year" => a.FirstOrDefault() == "1" ? I18n.Get("cond.year-one") : I18n.Get("cond.year", new { year = all }),
+                // a mod that wrote "e" (seen event) for "w" (weather) and so on: "sunny" is never an event ID
+                "sawevent" when !c.Negated && a.Any(IsCalendarWord) => I18n.Get("cond.not-an-event", new { id = a.First(IsCalendarWord) }),
                 // an ID a trigger marks seen once something else happens, rather than a real event
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeMarker(a[0], index, forStep: false) is { } marker => marker,
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
@@ -322,6 +324,8 @@ namespace StardewEventTracker.Data
         /// </summary>
         public static string? DescribeMarker(string eventId, EventIndex index, bool forStep)
         {
+            if (index.Flags.DescribeOtherMarker(eventId) is { } other)
+                return I18n.Get(forStep ? "step.marker" : "cond.marker", new { when = other });
             if (index.Flags.GetEventMarker(eventId) is not { } marker || DescribeCondition(marker.Condition, index) is not { } when)
                 return null;
 
@@ -451,6 +455,11 @@ namespace StardewEventTracker.Data
             var list = items.ToList();
             return list.Count <= 2 ? string.Join(conjunction, list) : string.Join(", ", list.Take(list.Count - 1)) + conjunction + list[^1];
         }
+
+        /// <summary>Whether a "seen event" ID is really a weather, season or day word, i.e. a mistake in a mod's data.</summary>
+        public static bool IsCalendarWord(string id) =>
+            id.ToLowerInvariant() is "sunny" or "rainy" or "sun" or "rain" or "storm" or "snow" or "wind" or "spring" or "summer" or "fall" or "winter"
+                or "mon" or "tue" or "wed" or "thu" or "fri" or "sat" or "sun";
 
         /// <summary>Whether an NPC with this internal name exists in the game data (including other mods').</summary>
         public static bool IsCharacter(string name) => Game1.characterData.Keys.Any(k => k.Equals(name, StringComparison.OrdinalIgnoreCase));
