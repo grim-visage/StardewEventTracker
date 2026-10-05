@@ -414,8 +414,11 @@ SMAPI console window (the black text window that opens with the game):
       Save every event and its status to exports/events.json in the mod
       folder. Attach this file to bug reports.
 
-When reporting a bug, please include your SMAPI log (https://smapi.io/log)
-and, if it's about a specific event, the tracker_dump output for that NPC.
+Report bugs on GitHub:
+https://github.com/grim-visage/StardewEventTracker/issues
+
+Please include your SMAPI log (https://smapi.io/log) and, if it's about a
+specific event, the tracker_dump output for that NPC.
 
 
 COMPATIBILITY
@@ -445,12 +448,11 @@ CONTRIBUTING
 Hint contributions and build instructions are in DEVELOPMENT.md on GitHub.
 
 
-ABOUT THIS MOD
---------------
+AI DISCLOSURE
+-------------
 This mod was built with the help of an AI coding assistant (Claude, by
 Anthropic). The design, testing in a real modded playthrough, and ongoing
-maintenance are mine. If something doesn't work, please report it on GitHub:
-https://github.com/grim-visage/StardewEventTracker/issues
+maintenance are mine.
 
 
 LICENSE
