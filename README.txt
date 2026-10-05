@@ -375,9 +375,10 @@ menu opens it), or in config.json after the first launch.
   AlertWhenAvailable     true             Message when an event can happen
                                           now
   TomorrowHeadsUp        true             Evening look-ahead to tomorrow
-  ReminderSound          newArtifact      Sound for reminders and heads-ups
-                                          ("none" for silence)
-  AvailableSound         questcomplete    Sound for "time to visit" messages
+  ReminderSound          dwop             Sound for reminders and heads-ups
+                                          (Soft pop; "none" for silence)
+  AvailableSound         crystal          Sound for "time to visit" messages
+                                          (Crystal chime)
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
   HudX / HudY            16 / 120         Its position on screen, in pixels

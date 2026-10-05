@@ -92,10 +92,10 @@ namespace StardewEventTracker
         public bool AlertWhenAvailable { get; set; } = true;
 
         /// <summary>Sound for reminders and the morning heads-up (a key of <see cref="AllowedSounds"/>).</summary>
-        public string ReminderSound { get; set; } = "newArtifact";
+        public string ReminderSound { get; set; } = "dwop";
 
         /// <summary>Sound for the "time to visit" pop-up (a key of <see cref="AllowedSounds"/>).</summary>
-        public string AvailableSound { get; set; } = "questcomplete";
+        public string AvailableSound { get; set; } = "crystal";
 
         /// <summary>How many seconds reminder pop-ups stay on screen.</summary>
         public int PopupSeconds { get; set; } = 10;
