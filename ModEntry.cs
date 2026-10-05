@@ -747,7 +747,7 @@ namespace StardewEventTracker
             foreach ((string text, bool now) in messages.Take(maxPopups))
                 this.Notify(text, now ? this.Config.AvailableSound : this.Config.ReminderSound);
             if (messages.Count > maxPopups)
-                this.Notify(I18n.Get("msg.unpinned-more", new { count = messages.Count - maxPopups, key = this.Config.OpenMenuKey }), this.Config.ReminderSound);
+                this.Notify(I18n.Get(messages.Count - maxPopups == 1 ? "msg.unpinned-more.1" : "msg.unpinned-more", new { count = messages.Count - maxPopups, key = this.Config.OpenMenuKey }), this.Config.ReminderSound);
         }
 
         private void Notify(string text, string sound)

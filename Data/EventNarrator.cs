@@ -227,11 +227,12 @@ namespace StardewEventTracker.Data
                         dayUnmet |= unmet;
                         break;
 
-                    case "weather" when unmet:
-                        parts.Add(I18n.Get("wait.weather", new { weather = string.Join(or, c.Args.Select(a => PreconditionFormatter.WeatherName(a).ToLower())) }));
+                    // like the game, only the first weather listed counts
+                    case "weather" when unmet && c.Args.Length > 0:
+                        parts.Add(I18n.Get("wait.weather", new { weather = PreconditionFormatter.WeatherName(c.Args[0]).ToLower() }));
                         break;
                     case "dayofmonth" when unmet:
-                        parts.Add(I18n.Get("wait.day-of-month" + neg, new { days = string.Join(or, c.Args) }));
+                        parts.Add(I18n.Get("wait.day-of-month" + neg, new { days = PreconditionFormatter.JoinList(c.Args, or) }));
                         break;
                     case "festivalday" when unmet:
                         parts.Add(I18n.Get("wait.festival-day" + neg));
@@ -252,11 +253,11 @@ namespace StardewEventTracker.Data
             if (dayUnmet && days.Count > 0)
             {
                 // Monday first
-                var ordered = days.OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.DayName(d.ToString()[..3])).ToList();
-                var others = Enum.GetValues<DayOfWeek>().Except(days).OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.DayName(d.ToString()[..3])).ToList();
+                var ordered = days.OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.LongDayName(d.ToString())).ToList();
+                var others = Enum.GetValues<DayOfWeek>().Except(days).OrderBy(d => ((int)d + 6) % 7).Select(d => PreconditionFormatter.LongDayName(d.ToString())).ToList();
                 parts.Insert(0, days.Count <= 3
-                    ? I18n.Get("wait.day-of-week", new { days = string.Join(or, ordered) })
-                    : I18n.Get("wait.day-of-week.not", new { days = string.Join("/", others) }));
+                    ? I18n.Get("wait.day-of-week", new { days = PreconditionFormatter.JoinList(ordered, or) })
+                    : I18n.Get("wait.day-of-week.not", new { days = PreconditionFormatter.JoinList(others, or) }));
             }
             if (seasonUnmet && seasons.Count > 0)
             {
@@ -265,7 +266,7 @@ namespace StardewEventTracker.Data
                 var waitFor = excluded.Count == 1
                     ? new List<Season> { (Season)(((int)excluded[0] + 1) % 4) }
                     : seasons.OrderBy(x => x).ToList();
-                parts.Insert(0, I18n.Get("wait.season", new { seasons = string.Join(or, waitFor.Select(x => PreconditionFormatter.SeasonName(x.ToString()))) }));
+                parts.Insert(0, I18n.Get("wait.season", new { seasons = PreconditionFormatter.JoinList(waitFor.Select(x => PreconditionFormatter.SeasonName(x.ToString())), or) }));
             }
 
             if (eval.Door is { ClosedToday: true })
@@ -284,8 +285,9 @@ namespace StardewEventTracker.Data
             if (possessive > 0)
             {
                 // "Harvey's Clinic" names a person; "Carpenter's Shop" doesn't
-                string owner = name[..possessive];
-                bool isPerson = Game1.characterData.ContainsKey(owner) || Game1.characterData.Keys.Any(k => EventIndex.GetNpcDisplayName(k).Equals(owner, StringComparison.OrdinalIgnoreCase));
+                // "Eli & Dylan's House" names two people
+                string[] owners = name[..possessive].Split(new[] { " & ", " and " }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                bool isPerson = owners.Any(owner => Game1.characterData.ContainsKey(owner) || Game1.characterData.Keys.Any(k => EventIndex.GetNpcDisplayName(k).Equals(owner, StringComparison.OrdinalIgnoreCase)));
                 return isPerson ? name : I18n.Get("place.with-article", new { place = name });
             }
 
@@ -324,7 +326,12 @@ namespace StardewEventTracker.Data
             if (eval.Door is { MailOk: false } letterDoor && letterDoor.Door.RequiredMail?.Split('|')[0] is { } letter)
                 return (index != null ? PreconditionFormatter.ExplainFlag(letter, index, forStep: true) : null) ?? I18n.Get("step.door-letter");
 
-            for (int i = 0; i < evt.Conditions.Count; i++)
+            // a locked event is waiting on friendship, so say that first even if something else is listed earlier
+            IEnumerable<int> order = Enumerable.Range(0, evt.Conditions.Count);
+            if (eval.Status == EventStatus.Locked)
+                order = order.OrderBy(i => evt.Conditions[i].Is("Friendship") || evt.Conditions[i].Is("Dating") || evt.Conditions[i].Is("Spouse") || evt.Conditions[i].Is("Roommate") ? 0 : 1);
+
+            foreach (int i in order)
             {
                 Precondition c = evt.Conditions[i];
                 if (eval.States[i] == ConditionState.Unknown)
@@ -353,11 +360,33 @@ namespace StardewEventTracker.Data
                     "inupgradedhouse" => I18n.Get("step.house-upgrade", new { level = c.Args.Length > 0 ? first : "1" }),
                     "dating" when !c.Negated => I18n.Get("step.dating", new { name = EventIndex.GetNpcDisplayName(first) }),
                     "spouse" when !c.Negated => I18n.Get("step.spouse", new { name = EventIndex.GetNpcDisplayName(first) }),
-                    _ => index != null ? PreconditionFormatter.Describe(c, index, evt) : c.Raw
+                    "roommate" when !c.Negated => I18n.Get("step.roommate", new { name = EventIndex.GetNpcDisplayName(first) }),
+                    "daysplayed" => I18n.Get("step.days-played", new { count = first }),
+                    "jojabundlesdone" => I18n.Get("step.joja-done"),
+                    "communitycenterorwarehousedone" when !c.Negated => I18n.Get("step.cc-or-joja-done"),
+                    "reachedminebottom" => I18n.Get("step.mine-bottom"),
+                    "goldenwalnuts" => I18n.Get("step.golden-walnuts", new { count = first }),
+                    "earnedmoney" => I18n.Get("step.earned-money", new { amount = first }),
+                    "hasmoney" => I18n.Get("step.has-money", new { amount = first }),
+                    "freeinventoryslots" => I18n.Get("step.free-slots", new { count = first }),
+                    "skill" when !c.Negated && c.Args.Length >= 2 => I18n.Get("step.skill", new { skill = first.Length > 0 ? char.ToUpperInvariant(first[0]) + first[1..].ToLowerInvariant() : first, level = c.Args[1] }),
+                    "sawsecretnote" when !c.Negated => I18n.Get("step.secret-note", new { note = first }),
+                    // anything else: the requirement itself, lower-cased to fit after "Not yet:"
+                    _ => LowerFirst(index != null ? PreconditionFormatter.Describe(c, index, evt) : c.Raw)
                 };
             }
 
             return eval.DoorNeverOpen ? I18n.Get("step.door-closed") : I18n.Get("step.unknown");
+        }
+
+        /// <summary>A sentence fragment with its first letter lower-cased, unless it starts with a name or "I".</summary>
+        private static string LowerFirst(string text)
+        {
+            if (text.Length < 2 || !char.IsUpper(text[0]) || char.IsUpper(text[1]))
+                return text;
+            string firstWord = text.Split(' ', 2)[0].TrimEnd('\'', 's', ':', ',');
+            bool isName = Game1.characterData.ContainsKey(firstWord) || Game1.characterData.Keys.Any(k => EventIndex.GetNpcDisplayName(k) == firstWord);
+            return isName ? text : char.ToLowerInvariant(text[0]) + text[1..];
         }
 
         /// <summary>An NPC's possessive pronoun from their gender in the game data ("her", "his", "their").</summary>

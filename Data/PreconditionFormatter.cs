@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using StardewValley;
+using StardewValley.TokenizableStrings;
 
 namespace StardewEventTracker.Data
 {
@@ -26,35 +27,41 @@ namespace StardewEventTracker.Data
                 "time" when a.Length >= 2 => I18n.Get("cond.time", new { start = Time(a[0]), end = Time(a[1]) }),
                 // the game only reads the first weather and season listed, so say which others it ignores
                 "weather" when a.Length > 0 => I18n.Get("cond.weather", new { weather = WeatherName(a[0]) }) + Ignored(a, WeatherName),
-                "dayofweek" => I18n.Get("cond.day-of-week" + neg, new { days = string.Join("/", a.Select(DayName)) }),
-                "dayofmonth" => I18n.Get("cond.day-of-month" + neg, new { days = string.Join(", ", a) }),
+                "dayofweek" => DescribeDays(a, c.Negated),
+                "dayofmonth" => I18n.Get("cond.day-of-month" + neg, new { days = JoinList(a, or) }),
                 "season" when a.Length > 0 => I18n.Get("cond.season" + neg, new { seasons = SeasonName(a[0]) }) + Ignored(a, SeasonName),
                 "daysplayed" => I18n.Get("cond.days-played", new { count = all }),
                 "year" => a.FirstOrDefault() == "1" ? I18n.Get("cond.year-one") : I18n.Get("cond.year", new { year = all }),
-                "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = string.Join(or, a.Select(index.DescribeEvent)) }),
-                "dating" => I18n.Get("cond.dating", new { name = Npc(a) }),
+                "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
+                // a mod that wrote "D" (dating) for "d" (day of week): nobody is called "Mon", so it can never be true
+                "dating" or "spouse" when !c.Negated && a.Length > 0 && !IsCharacter(a[0]) => I18n.Get("cond.not-a-character", new { name = a[0] }),
+                "dating" => I18n.Get("cond.dating" + neg, new { name = Npc(a) }),
                 "spouse" => I18n.Get("cond.spouse" + neg, new { name = Npc(a) }),
                 "roommate" => I18n.Get("cond.roommate" + neg, new { name = Npc(a) }),
                 "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated && a.Length > 0 =>
                     ExplainFlag(a[0], index, forStep: false) ?? I18n.Get("cond.flag", new { flag = HumanizeFlag(a[0]) }),
-                "hostmail" or "hostorlocalmail" or "localmail" => I18n.Get("cond.mail" + neg, new { flag = all }),
-                "worldstate" => I18n.Get("cond.world-state" + neg, new { flag = all }),
+                "hostmail" or "hostorlocalmail" or "localmail" => I18n.Get("cond.mail" + neg, new { flag = a.Length > 0 ? HumanizeFlag(a[0]) : all }),
+                "worldstate" => I18n.Get("cond.world-state" + neg, new { flag = a.Length > 0 ? HumanizeFlag(a[0]) : all }),
                 "hasmoney" => I18n.Get("cond.has-money", new { amount = all }),
                 "freeinventoryslots" => I18n.Get("cond.free-slots", new { count = all }),
                 "spousebed" => I18n.Get("cond.spouse-bed"),
                 "activedialogueevent" => (a.Length > 0 ? ExplainTopic(a[0], c.Negated, index, forStep: false) : null)
                     ?? I18n.Get("cond.conversation-topic" + neg, new { topic = all }),
-                "skill" when a.Length >= 2 => I18n.Get("cond.skill" + neg, new { skill = a[0], level = a[1] }),
+                "skill" when a.Length >= 2 => I18n.Get("cond.skill" + neg, new { skill = SkillName(a[0]), level = a[1] }),
                 "tile" => a.Length >= 2 ? I18n.Get("cond.tile", new { x = a[0], y = a[1] }) : I18n.Get("cond.tile-any"),
                 "ishost" => I18n.Get("cond.is-host"),
                 "earnedmoney" => I18n.Get("cond.earned-money", new { amount = all }),
-                "hasitem" => I18n.Get("cond.has-item", new { items = string.Join(", ", a.Select(ItemName)) }),
+                "hasitem" => I18n.Get("cond.has-item", new { items = JoinList(a.Select(ItemName), I18n.Get("join.and")) }),
                 "shipped" => I18n.Get("cond.shipped", new { items = DescribeShipped(a) }),
                 "random" => double.TryParse(a.FirstOrDefault(), NumberStyles.Float, CultureInfo.InvariantCulture, out double chance)
                     ? I18n.Get("cond.random", new { percent = (chance * 100).ToString("0.#", CultureInfo.InvariantCulture) })
                     : I18n.Get("cond.random-any"),
                 "sendmail" => I18n.Get("cond.send-mail"),
-                "gamestatequery" => I18n.Get("cond.game-state-query", new { query = all }),
+                // a negated query with one clause reads as that clause negated
+                "gamestatequery" => DescribeCondition(c.Negated && !all.Contains(',') ? (all.StartsWith('!') ? all[1..] : "!" + all) : all, index) is { } when
+                    && (!c.Negated || !all.Contains(','))
+                    ? I18n.Get("cond.game-state-query.known", new { when })
+                    : I18n.Get("cond.game-state-query", new { query = all }),
                 "gender" => I18n.Get("cond.gender", new { gender = all }),
                 "festivalday" => I18n.Get("cond.festival-day" + neg),
                 "upcomingfestival" => I18n.Get("cond.upcoming-festival" + neg, new { days = all }),
@@ -68,8 +75,8 @@ namespace StardewEventTracker.Data
                     : I18n.Get("cond.npc-here", new { name = Npc(a) }),
                 "npcvisible" => I18n.Get("cond.npc-around", new { name = Npc(a) }),
                 "sawsecretnote" => I18n.Get("cond.secret-note", new { note = all }),
-                "chosedialogueanswers" => I18n.Get("cond.dialogue-answer", new { answer = all }),
-                "missingpet" => I18n.Get("cond.pet"),
+                "chosedialogueanswers" => I18n.Get(a.Length > 1 ? "cond.dialogue-answers" : "cond.dialogue-answer"),
+                "missingpet" => a.Length > 0 ? I18n.Get("cond.pet-type", new { type = a[0].ToLowerInvariant() }) : I18n.Get("cond.pet"),
                 _ => null
             };
 
@@ -78,9 +85,10 @@ namespace StardewEventTracker.Data
                 return Hints.ForPrecondition(c.Name) is { } hint ? hint.Text : I18n.Get("cond.other", new { raw = c.Raw });
 
             // conditions whose text above doesn't already reflect negation
-            bool handlesNegation = c.Name.ToLowerInvariant() is "dayofweek" or "dayofmonth" or "season" or "sawevent"
+            bool handlesNegation = c.Name.ToLowerInvariant() is "dayofweek" or "dayofmonth" or "season" or "sawevent" or "dating"
                 or "spouse" or "roommate" or "hostmail" or "hostorlocalmail" or "localmail" or "festivalday" or "upcomingfestival"
-                or "worldstate" or "activedialogueevent" or "skill" or "communitycenterorwarehousedone";
+                or "worldstate" or "activedialogueevent" or "skill" or "communitycenterorwarehousedone"
+                || (c.Is("GameStateQuery") && !string.Join(" ", c.Args).Contains(','));
             return c.Negated && !handlesNegation ? I18n.Get("cond.negated", new { text }) : text;
         }
 
@@ -192,33 +200,57 @@ namespace StardewEventTracker.Data
                     continue;
 
                 string neg = negated ? ".not" : "";
+                string? Player(int i) => t.Length > i && t[i].Equals("Any", StringComparison.OrdinalIgnoreCase) ? I18n.Get("gsq.anyone") : null;
+                string Name(string npc) => npc.Equals("Any", StringComparison.OrdinalIgnoreCase) ? I18n.Get("someone") : EventIndex.GetNpcDisplayName(npc);
                 string? clause = t[0].ToUpperInvariant() switch
                 {
                     // ANY "query" "query": any one of them
                     "ANY" when !negated => t.Skip(1).Select(q => DescribeCondition(q, index)).OfType<string>().Distinct().ToList() is { Count: > 0 } any
-                        ? string.Join(I18n.Get("join.or"), any)
+                        ? JoinAlternatives(any)
                         : null,
                     "PLAYER_HAS_ITEM" when t.Length >= 3 => I18n.Get("gsq.has-item" + neg, new { item = ItemName(t[2]) }),
                     "PLAYER_FRIENDSHIP_POINTS" when !negated && t.Length >= 4 && int.TryParse(t[3], out int points) =>
                         points % NPC.friendshipPointsPerHeartLevel == 0
-                            ? I18n.Get("gsq.hearts", new { hearts = points / NPC.friendshipPointsPerHeartLevel, name = EventIndex.GetNpcDisplayName(t[2]) })
-                            : I18n.Get("gsq.points", new { points, name = EventIndex.GetNpcDisplayName(t[2]) }),
-                    "PLAYER_HEARTS" when !negated && t.Length >= 4 => I18n.Get("gsq.hearts", new { hearts = t[3], name = EventIndex.GetNpcDisplayName(t[2]) }),
-                    "PLAYER_HAS_SEEN_EVENT" when !negated && t.Length >= 3 => index.FindById(t[2]) != null
-                        ? I18n.Get("gsq.seen-event", new { @event = index.DescribeEventShort(t[2]) })
-                        : null,
-                    "PLAYER_HAS_MAIL" when !negated && t.Length >= 3 => ExplainFlag(t[2], index, forStep: true, depth: 1),
+                            ? Hearts("gsq.hearts", points / NPC.friendshipPointsPerHeartLevel, Name(t[2]))
+                            : I18n.Get("gsq.points", new { points, name = Name(t[2]) }),
+                    "PLAYER_HEARTS" when !negated && t.Length >= 4 && int.TryParse(t[3], out int hearts) => Hearts("gsq.hearts", hearts, Name(t[2])),
+                    "PLAYER_HAS_SEEN_EVENT" when t.Length >= 3 && index.FindById(t[2]) != null =>
+                        I18n.Get("gsq.seen-event" + neg + (Player(1) != null ? ".anyone" : ""), new { @event = index.DescribeEventShort(t[2]) }),
+                    "PLAYER_HAS_MAIL" when !negated && t.Length >= 3 => ExplainFlag(t[2], index, forStep: true, depth: 1) is { } mail
+                        ? I18n.Get("gsq.via", new { step = mail })
+                        : I18n.Get("gsq.flag", new { flag = HumanizeFlag(t[2]) }),
+                    "PLAYER_HAS_MAIL" when t.Length >= 3 => I18n.Get("gsq.flag.not", new { flag = HumanizeFlag(t[2]) }),
+                    "PLAYER_HAS_MET" when t.Length >= 3 => I18n.Get("gsq.met" + neg, new { name = Name(t[2]) }),
 
                     // secret notes from 1000 up are Ginger Island's journal scraps
                     "PLAYER_HAS_SECRET_NOTE" when !negated && t.Length >= 3 && int.TryParse(t[2], out int note) => note >= 1000
                         ? I18n.Get("gsq.journal-scrap", new { number = note - 1000 })
                         : I18n.Get("gsq.secret-note", new { number = note }),
-                    "PLAYER_NPC_RELATIONSHIP" when !negated && t.Length >= 4 => I18n.Get("gsq.relationship", new
+                    "PLAYER_NPC_RELATIONSHIP" when t.Length >= 4 => I18n.Get("gsq.relationship" + neg, new
                     {
-                        types = string.Join(I18n.Get("join.or"), t.Skip(3).Select(type => I18n.GetOr($"relationship.{type.ToLowerInvariant()}", type.ToLowerInvariant()))),
-                        name = EventIndex.GetNpcDisplayName(t[2])
+                        types = JoinList(t.Skip(3).Select(type => I18n.GetOr($"relationship.{type.ToLowerInvariant()}", type.ToLowerInvariant())), I18n.Get("join.or")),
+                        name = negated && t[2].Equals("Any", StringComparison.OrdinalIgnoreCase) ? I18n.Get("gsq.anyone") : Name(t[2])
                     }),
-                    "SEASON" when t.Length >= 2 => I18n.Get("gsq.season" + neg, new { seasons = string.Join(I18n.Get("join.or"), t.Skip(1).Select(SeasonName)) }),
+                    "PLAYER_STAT" when !negated && t.Length >= 4 => I18n.Get("gsq.stat", new { stat = HumanizeFlag(t[2]).ToLowerInvariant(), count = t[3] }),
+                    "PLAYER_VISITED_LOCATION" when t.Length >= 3 => I18n.Get("gsq.visited" + neg, new
+                    {
+                        place = JoinList(t.Skip(2).Select(l => EventNarrator.WithArticle(EventIndex.GetLocationDisplayName(l))), I18n.Get("join.or"))
+                    }),
+                    "PLAYER_SHIPPED_BASIC_ITEM" when !negated && t.Length >= 3 => I18n.Get("gsq.shipped", new { item = ItemName(t[2]), count = t.Length >= 4 ? t[3] : "1" }),
+                    "BUILDINGS_CONSTRUCTED" when !negated && t.Length >= 3 => I18n.Get("gsq.built", new { building = BuildingName(t[2]) }),
+                    "IS_PASSIVE_FESTIVAL_TODAY" when t.Length >= 2 => I18n.Get("gsq.passive-festival" + neg, new { festival = PassiveFestivalName(t[1]) }),
+                    "SEASON" when t.Length >= 2 => I18n.Get("gsq.season" + neg, new { seasons = JoinList(t.Skip(1).Select(SeasonName), I18n.Get("join.or")) }),
+                    "SEASON_DAY" when t.Length >= 3 => I18n.Get("gsq.season-day" + neg, new
+                    {
+                        dates = JoinList(Enumerable.Range(0, (t.Length - 1) / 2).Select(i => $"{SeasonName(t[1 + i * 2])} {t[2 + i * 2]}"), I18n.Get("join.or"))
+                    }),
+                    "DAY_OF_MONTH" when t.Length >= 2 => t[1].ToLowerInvariant() switch
+                    {
+                        "even" => I18n.Get("gsq.even-day" + neg),
+                        "odd" => I18n.Get("gsq.odd-day" + neg),
+                        _ => I18n.Get("gsq.day-of-month" + neg, new { days = JoinList(t.Skip(1), I18n.Get("join.or")) })
+                    },
+                    "WEATHER" when t.Length >= 3 => I18n.Get("gsq.weather" + neg, new { weather = JoinList(t.Skip(2).Select(w => WeatherName(w).ToLowerInvariant()), I18n.Get("join.or")) }),
                     _ => null
                 };
                 if (clause != null && !clauses.Contains(clause))
@@ -229,6 +261,57 @@ namespace StardewEventTracker.Data
             if (clauses.Count > 3)
                 clauses = clauses.Take(3).Append(I18n.Get("gsq.more")).ToList();
             return clauses.Count > 0 ? string.Join(I18n.Get("join.and"), clauses) : null;
+        }
+
+        /// <summary>
+        /// Alternatives as one phrase, without repeating their shared start: "complete the special order 'A', 'B' or
+        /// 'C'" rather than "complete the special order 'A' or complete the special order 'B' or ...".
+        /// </summary>
+        private static string JoinAlternatives(List<string> options)
+        {
+            string or = I18n.Get("join.or");
+            int quote = options[0].IndexOf('\'');
+            if (options.Count > 1 && quote > 0)
+            {
+                string shared = options[0][..quote];
+                if (options.All(o => o.StartsWith(shared, StringComparison.Ordinal) && o.Length > shared.Length && o[shared.Length] == '\''))
+                    return shared + JoinList(options.Select(o => o[shared.Length..]), or);
+            }
+            return JoinList(options, or);
+        }
+
+        /// <summary>"have 1 heart" or "have 4 hearts".</summary>
+        private static string Hearts(string key, int hearts, string name) =>
+            I18n.Get(hearts == 1 ? key + ".1" : key, new { hearts, name });
+
+        /// <summary>A building's display name from its type ID, e.g. a mod's "Broom Closet".</summary>
+        private static string BuildingName(string type)
+        {
+            try
+            {
+                if (Game1.buildingData.TryGetValue(type, out var data) && TokenParser.ParseText(data.Name) is { Length: > 0 } name)
+                    return name;
+            }
+            catch (Exception)
+            {
+                // fall back to the ID
+            }
+            return HumanizeFlag(type[(type.LastIndexOf('.') + 1)..]);
+        }
+
+        /// <summary>A passive festival's display name, e.g. "SquidFest" -> "SquidFest" as the game names it.</summary>
+        private static string PassiveFestivalName(string id)
+        {
+            try
+            {
+                if (DataLoader.PassiveFestivals(Game1.content).TryGetValue(id, out var data) && TokenParser.ParseText(data.DisplayName) is { Length: > 0 } name)
+                    return name;
+            }
+            catch (Exception)
+            {
+                // fall back to the ID
+            }
+            return HumanizeFlag(id);
         }
 
         /// <summary>A flag ID as words: "HasCherryPitInInventory" -> "Has cherry pit in inventory".</summary>
@@ -292,7 +375,7 @@ namespace StardewEventTracker.Data
             string name = EventIndex.GetNpcDisplayName(npc);
             bool isHearts = points % NPC.friendshipPointsPerHeartLevel == 0;
             string requirement = isHearts
-                ? I18n.Get("cond.hearts", new { hearts = points / NPC.friendshipPointsPerHeartLevel, name })
+                ? Hearts("cond.hearts", points / NPC.friendshipPointsPerHeartLevel, name)
                 : I18n.Get("cond.points", new { points, name });
 
             string? more = MoreFriendship(npc, points);
@@ -326,7 +409,38 @@ namespace StardewEventTracker.Data
 
         public static string SeasonName(string raw) => I18n.GetOr($"season.{raw.ToLowerInvariant()}", Capitalize(raw));
 
-        public static string DayName(string raw) => I18n.GetOr($"day.{raw.ToLowerInvariant()}", Capitalize(raw));
+        /// <summary>A day of the week, short ("Mon"); also takes full names ("Friday"), which some mods use.</summary>
+        public static string DayName(string raw) => I18n.GetOr($"day.{DayKey(raw)}", Capitalize(raw));
+
+        /// <summary>A day of the week in full ("Monday"), for sentences like "Wait for a Monday".</summary>
+        public static string LongDayName(string raw) => I18n.GetOr($"day.long.{DayKey(raw)}", DayName(raw));
+
+        private static string DayKey(string raw) => raw.Length > 3 ? raw[..3].ToLowerInvariant() : raw.ToLowerInvariant();
+
+        /// <summary>"On Mon/Thu", or for a long list the days it leaves out: "Not on Mon/Wed/Thu/Fri/Sat/Sun" reads better as "On Tue".</summary>
+        private static string DescribeDays(string[] days, bool negated)
+        {
+            var week = new[] { "mon", "tue", "wed", "thu", "fri", "sat", "sun" };
+            var listed = days.Select(DayKey).Where(week.Contains).Distinct().ToList();
+            var others = week.Except(listed).ToList();
+            if (listed.Count > 0 && others.Count > 0 && others.Count < listed.Count)
+                (listed, negated) = (others, !negated);
+            var ordered = week.Where(listed.Contains).Select(DayName);
+            return I18n.Get(negated ? "cond.day-of-week.not" : "cond.day-of-week", new { days = string.Join("/", ordered) });
+        }
+
+        /// <summary>A list as words: "A", "A or B", "A, B or C".</summary>
+        public static string JoinList(IEnumerable<string> items, string conjunction)
+        {
+            var list = items.ToList();
+            return list.Count <= 2 ? string.Join(conjunction, list) : string.Join(", ", list.Take(list.Count - 1)) + conjunction + list[^1];
+        }
+
+        /// <summary>Whether an NPC with this internal name exists in the game data (including other mods').</summary>
+        public static bool IsCharacter(string name) => Game1.characterData.Keys.Any(k => k.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        /// <summary>A skill's name as the game shows it ("Fishing"), from its internal name.</summary>
+        private static string SkillName(string raw) => Capitalize(raw.ToLowerInvariant());
 
         public static string Time(int time) => Game1.getTimeOfDayString(time);
 

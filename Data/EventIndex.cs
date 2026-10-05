@@ -378,7 +378,7 @@ namespace StardewEventTracker.Data
             if (info == null)
                 return I18n.Get("describe.unknown", new { id });
 
-            var tokens = new { name = GetNpcDisplayName(info.Owner), title = info.TitleInline, location = info.LocationDisplayName, id };
+            var tokens = new { name = GetNpcDisplayName(info.Owner), title = info.TitleInline, location = EventNarrator.WithArticle(info.LocationDisplayName), id };
             string label = I18n.Get(info.IsStory ? "describe.story" : "describe.heart", tokens);
             return info.IsSpecial ? I18n.Get("describe.special", new { label }) : label;
         }

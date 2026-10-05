@@ -161,7 +161,9 @@ namespace StardewEventTracker.Data
                 if (state != ConditionState.Unmet)
                     continue;
 
-                if (!condition.Negated && (condition.Is("Friendship") || condition.Is("Dating") || condition.Is("Spouse") || condition.Is("Roommate")))
+                if (!condition.Negated && (condition.Is("Dating") || condition.Is("Spouse")) && condition.Args.Length > 0 && !PreconditionFormatter.IsCharacter(condition.Args[0]))
+                    unreachable = true;
+                else if (!condition.Negated && (condition.Is("Friendship") || condition.Is("Dating") || condition.Is("Spouse") || condition.Is("Roommate")))
                     locked = true;
                 else if (condition.Is("SawEvent") && condition.Negated)
                     unreachable = true;

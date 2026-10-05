@@ -343,7 +343,7 @@ namespace StardewEventTracker.UI
             if (allSeen > 0)
             {
                 this.AddSpacer(12);
-                this.AddRow(I18n.Get("menu.hearts.all-seen", new { count = allSeen }), MutedColor);
+                this.AddRow(I18n.Get(allSeen == 1 ? "menu.hearts.all-seen.1" : "menu.hearts.all-seen", new { count = allSeen }), MutedColor);
             }
         }
 
@@ -545,7 +545,7 @@ namespace StardewEventTracker.UI
             }
 
             if (pending.Unreachable > 0)
-                this.AddRow(I18n.Get("menu.unreachable", new { count = pending.Unreachable }), MutedColor, indent);
+                this.AddRow(I18n.Get(pending.Unreachable == 1 ? "menu.unreachable.1" : "menu.unreachable", new { count = pending.Unreachable }), MutedColor, indent);
         }
 
         private void AddEventDetail(EventInfo evt, EventEvaluation eval, int indent, bool showLocation, bool defaultOpen = true)
