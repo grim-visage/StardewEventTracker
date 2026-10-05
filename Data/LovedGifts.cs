@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Locations;
 using StardewValley.Objects;
@@ -33,22 +34,19 @@ namespace StardewEventTracker.Data
         /// <summary>Each NPC's loved gifts, by NPC name and whether only tastes the player has discovered count.</summary>
         private readonly Dictionary<(string Npc, bool KnownOnly), IReadOnlyList<OwnedGift>> perNpc = new();
 
-        /// <summary>The fewest real milliseconds between scans set off by chests changing (mods like Automate move items all the time).</summary>
-        private const double ChestScanIntervalMs = 2000;
+        private readonly IMonitor monitor;
 
         private bool dirty = true;
 
-        /// <summary>Whether the next scan should happen straight away rather than waiting out <see cref="ChestScanIntervalMs"/>.</summary>
-        private bool urgent = true;
+        public LovedGifts(IMonitor monitor)
+        {
+            this.monitor = monitor;
+        }
 
-        private double lastScanMs = double.MinValue;
-
-        /// <summary>Forgets what's owned, so it's scanned again (the inventory or a chest changed, or a new day).</summary>
-        /// <param name="now">Scan on next use, e.g. the player's own inventory changed or the menu opened; otherwise at most every couple of seconds.</param>
-        public void Invalidate(bool now = false)
+        /// <summary>Forgets what's owned, so it's scanned again on next use (the inventory changed, the menu opened, or a new day).</summary>
+        public void Invalidate()
         {
             this.dirty = true;
-            this.urgent |= now;
         }
 
         /// <summary>Up to <see cref="MaxShown"/> loved gifts the player owns for this NPC: carried ones first, then the most plentiful.</summary>
@@ -108,11 +106,8 @@ namespace StardewEventTracker.Data
         {
             if (!this.dirty)
                 return;
-            double nowMs = Game1.currentGameTime?.TotalGameTime.TotalMilliseconds ?? 0;
-            if (!this.urgent && nowMs - this.lastScanMs < ChestScanIntervalMs)
-                return;
-            this.dirty = this.urgent = false;
-            this.lastScanMs = nowMs;
+            this.dirty = false;
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             this.owned.Clear();
             this.counts.Clear();
             this.carried.Clear();
@@ -148,6 +143,7 @@ namespace StardewEventTracker.Data
                 }
                 return true;
             });
+            this.monitor.Log($"Scanned for loved gifts: {this.owned.Count} giftable items owned ({timer.ElapsedMilliseconds}ms).");
         }
 
         private void Add(Item? item, bool carried)

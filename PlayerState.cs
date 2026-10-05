@@ -43,7 +43,7 @@ namespace StardewEventTracker
         public TravelEstimator Travel { get; } = new();
 
         /// <summary>Loved gifts this player owns, for each NPC.</summary>
-        public LovedGifts Gifts { get; } = new();
+        public LovedGifts Gifts { get; }
 
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
@@ -51,6 +51,7 @@ namespace StardewEventTracker
         public PlayerState(IMonitor monitor)
         {
             this.Index = new EventIndex(monitor);
+            this.Gifts = new LovedGifts(monitor);
         }
 
         /// <summary>Clears what only lasts for the current day.</summary>

@@ -69,10 +69,9 @@ namespace StardewEventTracker
             helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
             helper.Events.Content.AssetsInvalidated += this.OnAssetsInvalidated;
 
-            // what's owned changed, so the loved gifts shown may have too
-            helper.Events.Player.InventoryChanged += (_, e) => { if (e.IsLocalPlayer) this.State.Gifts.Invalidate(now: true); };
-            helper.Events.World.ChestInventoryChanged += (_, _) => this.State.Gifts.Invalidate();
-            helper.Events.World.ObjectListChanged += (_, _) => this.State.Gifts.Invalidate();
+            // what's carried changed, so the loved gifts shown may have too; chests are scanned again whenever the menu
+            // opens, so their changes (Automate moves items every second) don't need to set off a scan of the whole world
+            helper.Events.Player.InventoryChanged += (_, e) => { if (e.IsLocalPlayer) this.State.Gifts.Invalidate(); };
             helper.Events.GameLoop.UpdateTicked += (_, _) =>
             {
                 if (!Context.IsWorldReady)
@@ -323,7 +322,7 @@ namespace StardewEventTracker
             this.dataChangedTick.Value = null;
             this.Index.Rebuild();
             this.State.StartDay();
-            this.State.Gifts.Invalidate(now: true);
+            this.State.Gifts.Invalidate();
             this.AutoPinPartners();
             this.DropSeenStoryPins();
             this.RunReminders(morning: true);
@@ -502,7 +501,7 @@ namespace StardewEventTracker
         private void OpenTrackerMenu(string? focusNpc = null)
         {
             this.Index.Invalidate();
-            this.State.Gifts.Invalidate(now: true);
+            this.State.Gifts.Invalidate();
             this.menuFocus.Value = focusNpc;
             if (this.Config.SpoilerPromptShown || this.Config.SpoilerFree)
             {
