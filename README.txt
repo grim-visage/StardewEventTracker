@@ -3,18 +3,42 @@
              Heart and story event tracking for Stardew Valley 1.6
 ================================================================================
 
-Lists the heart and story events you haven't seen, where and when each one
-can take place, and which requirements are still unmet.
+Stardew Valley's heart and story events each depend on a mix of conditions:
+friendship, location, time of day, weather, season, and earlier events. This
+mod reads those conditions from the game and shows, for every event you
+haven't seen, exactly what is met, what is missing, and when it can happen.
 
-Features:
-  * Event details: location, time window, and the status of each
-    requirement (hearts, weather, day, season, earlier events, story flags)
-  * Pinning, with an on-screen tracker, timed reminders and map markers for
-    the NPCs and events you choose to follow
-  * Loved gifts you own for each NPC, and whether a gift can be given today
-  * Support for content mods such as Stardew Valley Expanded, Ridgeside
-    Village and East Scarp, whose events are read from the game's data
-  * An optional spoiler-free mode that hides details of locked events
+FEATURES
+
+  Event tracking
+    * Every unseen heart and story event, grouped by NPC or location
+    * Each requirement marked as met or unmet, in plain language, including
+      hidden story flags, letters, quests and special orders
+    * Live status: available now, later today, a different day, or what
+      still needs doing first
+    * Accounts for shop hours, door access, festivals, Green Rain and NPC
+      schedules, and checks tomorrow's forecast
+    * Walking time from your current position
+
+  Staying on schedule
+    * Pin NPCs and story events to follow; partners are pinned
+      automatically
+    * On-screen tracker with several themes and a compact layout
+    * Reminders before an event can start, when it's time to leave, and
+      when it becomes available
+    * Map markers where pinned events can happen today
+
+  Social tab integration
+    * NPC portraits in the tracker, linking to each NPC's profile
+    * Open the tracker or pin an NPC directly from the Social tab
+    * Loved gifts you own for each NPC, and whether you can give one today
+
+  Compatibility and options
+    * Includes events from content mods such as Stardew Valley Expanded,
+      Ridgeside Village and East Scarp
+    * Optional spoiler-free mode for first playthroughs
+    * Split-screen co-op support
+    * In-game settings through Generic Mod Config Menu
 
 The mod is currently available in English. Translations are welcome; see
 "Translations" below.
