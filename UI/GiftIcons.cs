@@ -43,8 +43,7 @@ namespace StardewEventTracker.UI
         {
             var lines = new List<string> { I18n.Get("gifts.tooltip") };
             lines.AddRange(gifts.Select(g => I18n.Get(g.Carried ? "gifts.carried" : "gifts.stored", new { item = g.Item.DisplayName, count = g.Count })));
-            if (!LovedGifts.CanGiftToday(npc))
-                lines.Add(I18n.Get("gifts.cant-today", new { name = EventIndex.GetNpcDisplayName(npc) }));
+            lines.Add(I18n.Get(LovedGifts.GiftReason(npc).ReasonKey, new { name = EventIndex.GetNpcDisplayName(npc) }));
             return string.Join("\n", lines);
         }
     }

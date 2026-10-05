@@ -83,15 +83,25 @@ namespace StardewEventTracker.Data
         }
 
         /// <summary>Whether the player can give this NPC a gift today: one a day, two a week (more on their birthday, or for a spouse).</summary>
-        public static bool CanGiftToday(string npcName)
+        public static bool CanGiftToday(string npcName) => GiftReason(npcName).Can;
+
+        /// <summary>Whether the player can give this NPC a gift today, and the translation key saying why (or why not).</summary>
+        public static (bool Can, string ReasonKey) GiftReason(string npcName)
         {
+            bool birthday = Game1.getCharacterFromName(npcName)?.isBirthday() == true;
             if (!Game1.player.friendshipData.TryGetValue(npcName, out Friendship? friendship))
-                return true;
+                return (true, birthday ? "gifts.birthday" : "gifts.can");
             if (friendship.GiftsToday >= 1)
-                return false;
-            if (friendship.GiftsThisWeek < 2 || friendship.IsMarried() || friendship.IsRoommate())
-                return true;
-            return Game1.getCharacterFromName(npcName)?.isBirthday() == true;
+                return (false, "gifts.given-today");
+            if (birthday)
+                return (true, "gifts.birthday");
+            if (friendship.GiftsThisWeek < 2)
+                return (true, friendship.GiftsThisWeek == 1 ? "gifts.can-one-more" : "gifts.can");
+            if (friendship.IsMarried() || friendship.IsRoommate())
+                return (true, "gifts.spouse");
+
+            // the weekly count resets when a new week starts on Sunday
+            return (false, "gifts.week-full");
         }
 
         private void Refresh()

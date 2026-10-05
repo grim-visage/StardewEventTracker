@@ -274,7 +274,6 @@
   "gifts.tooltip": "Loved gifts you have:",
   "gifts.carried": "{{item}} (x{{count}}, carrying)",
   "gifts.stored": "{{item}} (x{{count}}, in storage)",
-  "gifts.cant-today": "You can't give {{name}} a gift today.",
   "config.spoiler-free.tip": "Hide where events happen, their requirements and what they lead to until they're unlocked. Good for a first playthrough.",
   "config.section.reminders": "Reminders",
   "config.section.reminders.tip": "Messages for pinned NPCs' events. Times are in-game time.",
@@ -547,5 +546,11 @@
   "cond.missing-event": "Can't happen: it needs an event no installed mod has (switched off, or left over from an older version of the mod)",
   "cond.tile-marker": "Once you check a spot in {{place}} ({{x}}, {{y}})",
   "step.tile-marker": "once you check a spot in {{place}} ({{x}}, {{y}})",
-  "added.tile-when": " when {{when}}"
+  "added.tile-when": " when {{when}}",
+  "gifts.can": "You can give {{name}} a gift today.",
+  "gifts.can-one-more": "You can give {{name}} one more gift this week.",
+  "gifts.birthday": "It's {{name}}'s birthday: a gift today counts 8 times as much, and the weekly limit doesn't apply.",
+  "gifts.spouse": "{{name}} is your spouse, so there's no weekly limit.",
+  "gifts.given-today": "You've already given {{name}} a gift today.",
+  "gifts.week-full": "You've already given {{name}} two gifts this week. That resets on Sunday."
 }
