@@ -242,12 +242,15 @@ namespace StardewEventTracker.Data
                         dayUnmet |= unmet;
                         break;
 
-                    // like the game, only the first weather listed counts; "not rainy" is the game's "sunny" and vice versa
+                    // like the game, only the first weather listed counts; its "sunny" just means not raining, so "not rainy" is
+                    // the same thing, and "not sunny" is "rainy"
                     case "weather" when unmet && c.Args.Length > 0:
                         string weather = c.Args[0];
                         if (c.Negated && weather is "rainy" or "sunny")
                             (weather, neg) = (weather == "rainy" ? "sunny" : "rainy", "");
-                        parts.Add(I18n.Get("wait.weather" + neg, new { weather = PreconditionFormatter.WeatherName(weather).ToLower() }));
+                        parts.Add(weather == "sunny" && neg == ""
+                            ? I18n.Get("wait.weather.dry")
+                            : I18n.Get("wait.weather" + neg, new { weather = PreconditionFormatter.WeatherName(weather).ToLower() }));
                         break;
                     case "dayofmonth" when unmet:
                         parts.Add(I18n.Get("wait.day-of-month" + neg, new { days = PreconditionFormatter.JoinList(c.Args, or) }));

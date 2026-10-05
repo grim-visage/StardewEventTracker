@@ -145,7 +145,7 @@ Each event shows where it stands right now:
   Later today           Everything is met; it can start later today
   Plays when you next   A story event with no requirements: it plays the
   go there              next time you enter that place
-  Wait for ...          Needs a different day ("a sunny day"), or an NPC
+  Wait for ...          Needs a different day ("a rainy day"), or an NPC
                         to arrive ("Alex to be at the Beach")
   No events during      Green Rain stops every location event that day
   Green Rain
@@ -216,7 +216,7 @@ where it happens, and a short status.
   Get ready           It starts within your longest reminder (2 hours by
                       default)
   Later today         It starts later today
-  Wait for ...        Needs a different day, e.g. "a sunny day"
+  Wait for ...        Needs a different day, e.g. "a rainy day"
   Green Rain today    No events today because of Green Rain
   Festival here       A festival blocks it today
   today
