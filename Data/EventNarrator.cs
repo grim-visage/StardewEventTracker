@@ -25,6 +25,9 @@ namespace StardewEventTracker.Data
             if (evt.IsStory)
                 return Pick(evt, "msg.available.story", 2, new { place = Place(evt) });
 
+            if (OwnerAway(evt, Game1.timeOfDay))
+                return I18n.Get("msg.event.available", EventTokens(evt));
+
             var w = new Words(evt);
             return w.IsHome ? Pick(evt, "msg.available.home", 2, w.Tokens())
                 : w.Rainy ? Pick(evt, "msg.available.rainy", 1, w.Tokens())
@@ -39,6 +42,9 @@ namespace StardewEventTracker.Data
             string time = StartTime(evt, eval);
             if (evt.IsStory)
                 return I18n.Get("msg.reminder.story", new { place = Place(evt), time });
+
+            if (OwnerAway(evt, eval.StartTime ?? evt.Window?.Start))
+                return I18n.Get(minutesLeft >= 60 ? "msg.event.reminder" : "msg.event.reminder.soon", EventTokens(evt, time));
 
             var w = new Words(evt);
             object tokens = w.Tokens(time: time, where: I18n.Get(w.IsHome ? "msg.where.home" : "msg.where.at", new { place = w.Place }));
@@ -59,6 +65,9 @@ namespace StardewEventTracker.Data
             if (evt.IsStory)
                 return I18n.Get("msg.leave.story", new { place = Place(evt), time, away });
 
+            if (OwnerAway(evt, eval.StartTime ?? evt.Window?.Start))
+                return I18n.Get("msg.event.leave", EventTokens(evt, time, away));
+
             var w = new Words(evt);
             return Pick(evt, "msg.leave", 2, w.Tokens(time: time, away: away));
         }
@@ -71,6 +80,9 @@ namespace StardewEventTracker.Data
                 : "";
             if (evt.IsStory)
                 return I18n.Get("msg.morning.story", new { place = Place(evt), window });
+
+            if (OwnerAway(evt, evt.Window?.Start))
+                return I18n.Get("msg.event.morning", new { name = EventIndex.GetNpcDisplayName(evt.Owner), @event = evt.TitleInline, place = Place(evt), window });
 
             var w = new Words(evt);
             return I18n.Get(w.Rainy ? "msg.morning.rainy" : "msg.morning", w.Tokens(window: window));
@@ -298,6 +310,25 @@ namespace StardewEventTracker.Data
         ** Helpers
         ****/
         private static string Place(EventInfo evt) => WithArticle(evt.LocationDisplayName);
+
+        /// <summary>
+        /// Whether today's schedule has the event's NPC somewhere else when it can start (or all day, if there's no
+        /// start time). Events don't need their cast to be there unless they say so, e.g. SVE's Maru 2-heart event still
+        /// plays while her family is at the Night Market, so messages shouldn't say the NPC will be there. False if their
+        /// schedule can't be read.
+        /// </summary>
+        private static bool OwnerAway(EventInfo evt, int? time)
+        {
+            if (NpcPresence.Today(evt.Owner, evt.LocationName) is not { } stays)
+                return false;
+            return time is { } at
+                ? !stays.Any(s => s.Start <= at && at < s.End)
+                : stays.Count == 0;
+        }
+
+        /// <summary>Tokens for messages about the event rather than where its NPC is: {{name}}, {{event}} ("2-heart event"), {{place}}, {{time}}, {{away}}.</summary>
+        private static object EventTokens(EventInfo evt, string time = "", string away = "") =>
+            new { name = EventIndex.GetNpcDisplayName(evt.Owner), @event = evt.TitleInline, place = Place(evt), time, away };
 
         private static string StartTime(EventInfo evt, EventEvaluation eval) =>
             eval.StartTime is { } start ? PreconditionFormatter.Time(start)
