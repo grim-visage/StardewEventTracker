@@ -240,6 +240,7 @@ namespace StardewEventTracker.Data
         /// <summary>Drops cached evaluations; call when time, location, weather or friendship may have changed.</summary>
         public void Invalidate()
         {
+            this.possible.Clear();
             this.evaluations.Clear();
             this.pending.Clear();
             this.searchText.Clear();
@@ -261,13 +262,36 @@ namespace StardewEventTracker.Data
 
         public EventInfo? FindById(string id) => this.byId.TryGetValue(id, out EventInfo? info) ? info : null;
 
-        /// <summary>An NPC's heart events.</summary>
+        /// <summary>An NPC's heart events, leaving out any that can never happen (see <see cref="IsImpossible"/>).</summary>
         public IReadOnlyList<EventInfo> GetEvents(string owner) =>
-            this.byOwner.TryGetValue(owner, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
+            this.Possible("hearts:" + owner, this.byOwner.TryGetValue(owner, out List<EventInfo>? list) ? list : null);
 
-        /// <summary>A location's story events.</summary>
+        /// <summary>A location's story events, leaving out any that can never happen (see <see cref="IsImpossible"/>).</summary>
         public IReadOnlyList<EventInfo> GetStoryEvents(string location) =>
-            this.storyByLocation.TryGetValue(location, out List<EventInfo>? list) ? list : Array.Empty<EventInfo>();
+            this.Possible("story:" + location, this.storyByLocation.TryGetValue(location, out List<EventInfo>? list) ? list : null);
+
+        /// <summary>
+        /// Whether an unseen event can never happen because of its mod's data, so it isn't tracked at all: it needs an
+        /// event no installed mod has (switched off, or left over from an older version), or names someone who isn't a
+        /// character ("D Mon") or a weather word as an event ("e sunny"). Events the player closed off by their own
+        /// choices aren't this; they count as "can no longer happen".
+        /// </summary>
+        public bool IsImpossible(EventInfo evt) =>
+            !evt.Seen && evt.Conditions.Any(c => !c.Negated && c.Args.Length > 0 && (
+                (c.Is("SawEvent") && (c.Args.Any(PreconditionFormatter.IsCalendarWord) || c.Args.All(id => PreconditionFormatter.IsMissingForGood(id, this))))
+                || ((c.Is("Dating") || c.Is("Spouse")) && !PreconditionFormatter.IsCharacter(c.Args[0]))));
+
+        /// <summary>Events that can happen, by list, until the next <see cref="Invalidate"/>.</summary>
+        private readonly Dictionary<string, List<EventInfo>> possible = new();
+
+        private IReadOnlyList<EventInfo> Possible(string key, List<EventInfo>? events)
+        {
+            if (events == null)
+                return Array.Empty<EventInfo>();
+            if (!this.possible.TryGetValue(key, out List<EventInfo>? result))
+                this.possible[key] = result = events.Where(e => !this.IsImpossible(e)).ToList();
+            return result;
+        }
 
         /// <summary>Finds an NPC with heart events by internal or display name, ignoring case.</summary>
         public string? FindOwner(string name)

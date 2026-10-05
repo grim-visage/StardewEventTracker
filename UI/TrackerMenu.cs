@@ -311,7 +311,9 @@ namespace StardewEventTracker.UI
 
         private void BuildHeartsTab()
         {
+            // NPCs whose events can all never happen aren't listed
             var owners = this.Index.ByOwner.Keys
+                .Where(k => this.Index.GetEvents(k).Count > 0)
                 .OrderBy(k => !this.mod.PinnedNpcs.Contains(k))
                 .ThenBy(EventIndex.GetNpcDisplayName)
                 .ToList();
@@ -403,8 +405,8 @@ namespace StardewEventTracker.UI
         {
             bool story = EventFilter.CompletedShowsStory;
             var groups = (story
-                    ? this.Index.StoryByLocation.Select(p => (Key: p.Key, Name: this.Index.GetLocationName(p.Key), Events: p.Value))
-                    : this.Index.ByOwner.Select(p => (Key: p.Key, Name: EventIndex.GetNpcDisplayName(p.Key), Events: p.Value)))
+                    ? this.Index.StoryByLocation.Keys.Select(k => (Key: k, Name: this.Index.GetLocationName(k), Events: this.Index.GetStoryEvents(k)))
+                    : this.Index.ByOwner.Keys.Select(k => (Key: k, Name: EventIndex.GetNpcDisplayName(k), Events: this.Index.GetEvents(k))))
                 .Select(g => (g.Key, g.Name, Events: EventIndex.Distinct(g.Events).ToList()))
                 .Select(g => (g.Key, g.Name, Seen: g.Events.Where(e => e.Seen).ToList(), Total: g.Events.Count))
                 .Where(g => g.Seen.Count > 0)
