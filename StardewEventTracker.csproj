@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>StardewEventTracker</AssemblyName>
     <RootNamespace>StardewEventTracker</RootNamespace>
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
