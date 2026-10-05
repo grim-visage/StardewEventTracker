@@ -13,6 +13,13 @@ namespace StardewEventTracker.Data
         public string? Url { get; set; }
     }
 
+    /// <summary>Whose heart event an event is, where the tracker's guess (the first NPC it needs friendship with) is wrong.</summary>
+    internal sealed class OwnerHint
+    {
+        public string Npc { get; set; } = "";
+        public string? Source { get; set; }
+    }
+
     /// <summary>The model for <c>assets/hints.json</c>.</summary>
     internal sealed class HintFile
     {
@@ -26,6 +33,9 @@ namespace StardewEventTracker.Data
 
         /// <summary>Event requirements other mods register with the game, by name, e.g. Ridgeside's "rsvRidingHorse".</summary>
         public Dictionary<string, Hint> Preconditions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Whose heart event an event is, by event ID, e.g. SVE's family dinner that needs 2 hearts with Maru but is Sebastian's.</summary>
+        public Dictionary<string, OwnerHint> EventOwners { get; set; } = new();
     }
 
     /// <summary>
@@ -44,7 +54,8 @@ namespace StardewEventTracker.Data
             file.Topics = WithoutNulls(file.Topics, StringComparer.Ordinal);
             file.Preconditions = WithoutNulls(file.Preconditions, StringComparer.OrdinalIgnoreCase);
             file.Locations = WithoutNulls(file.Locations, StringComparer.OrdinalIgnoreCase);
-            monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints, {file.Preconditions.Count} requirement hints and {file.Locations.Count} location hints.", LogLevel.Trace);
+            file.EventOwners = new((file.EventOwners ?? new Dictionary<string, OwnerHint>()).Where(p => !string.IsNullOrWhiteSpace(p.Value?.Npc)));
+            monitor.Log($"Loaded {file.Flags.Count} flag hints, {file.Topics.Count} topic hints, {file.Preconditions.Count} requirement hints, {file.Locations.Count} location hints and {file.EventOwners.Count} event owners.", LogLevel.Trace);
         }
 
         /// <summary>A section of the file without the null sections or entries a typo can leave.</summary>
@@ -59,6 +70,10 @@ namespace StardewEventTracker.Data
 
         public static Hint? ForLocation(string location) =>
             file.Locations.TryGetValue(location, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;
+
+        /// <summary>The NPC whose heart event this is, if the hints say so.</summary>
+        public static string? OwnerOf(string eventId) =>
+            file.EventOwners.TryGetValue(eventId, out OwnerHint? hint) ? hint.Npc : null;
 
         public static Hint? ForFlag(string flag) =>
             file.Flags.TryGetValue(flag, out Hint? hint) && !string.IsNullOrWhiteSpace(hint.Text) ? hint : null;

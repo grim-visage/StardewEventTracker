@@ -548,7 +548,10 @@ namespace StardewEventTracker.Data
                 .ToArray();
 
             string[] actors = ParseActors(script);
-            string? owner = FindRelationshipOwner(conditions);
+            // a hand-written owner wins, as long as the event does need friendship with them
+            string? owner = Hints.OwnerOf(id) is { } hinted && conditions.Any(c => !c.Negated && c.Is("Friendship") && EventInfo.FriendshipPairs(c).Any(p => p.Npc == hinted))
+                ? hinted
+                : FindRelationshipOwner(conditions);
             int doorPoints = 0;
 
             // behind a door that needs their friendship (Caroline's Sunroom): their heart event, with the door's hearts

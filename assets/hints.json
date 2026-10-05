@@ -172,5 +172,11 @@
       "Text": "Complete Marlon's special order \"Marlon's Boat\" (deliver 100 Void Essence), then take his boat from the Adventurer's Summit",
       "Source": "Stardew Valley Expanded data"
     }
+  },
+  "EventOwners": {
+    "0573751": {
+      "Npc": "Sebastian",
+      "Source": "Stardew Valley Expanded data (code/NPCs/Sebastian.json)"
+    }
   }
 }
