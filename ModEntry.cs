@@ -35,6 +35,10 @@ namespace StardewEventTracker
         private readonly PerScreen<Point?> hudDragOffset = new();
 
         internal PlayerState State => this.screen.Value;
+
+        /// <summary>Up to three loved gifts the player owns for an NPC, or none if that's turned off. In spoiler-free mode, only tastes they've discovered.</summary>
+        internal IReadOnlyList<OwnedGift> LovedGiftsFor(string npc) =>
+            this.Config.ShowLovedGifts ? this.State.Gifts.For(npc, knownOnly: this.Config.SpoilerFree) : Array.Empty<OwnedGift>();
         internal EventIndex Index => this.State.Index;
         internal HashSet<string> PinnedNpcs => this.State.PinnedNpcs;
         private HashSet<string> alertedToday => this.State.AlertedToday;
@@ -64,6 +68,11 @@ namespace StardewEventTracker
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
             helper.Events.Content.AssetsInvalidated += this.OnAssetsInvalidated;
+
+            // what's owned changed, so the loved gifts shown may have too
+            helper.Events.Player.InventoryChanged += (_, e) => { if (e.IsLocalPlayer) this.State.Gifts.Invalidate(now: true); };
+            helper.Events.World.ChestInventoryChanged += (_, _) => this.State.Gifts.Invalidate();
+            helper.Events.World.ObjectListChanged += (_, _) => this.State.Gifts.Invalidate();
             helper.Events.GameLoop.UpdateTicked += (_, _) =>
             {
                 if (!Context.IsWorldReady)
@@ -226,6 +235,7 @@ namespace StardewEventTracker
             gmcm.AddKeybindList(m, () => this.Config.PinKey, v => this.Config.PinKey = v, () => I18n.Get("config.pin-key"), () => I18n.Get("config.pin-key.tip"));
             gmcm.AddBoolOption(m, () => this.Config.AutoPinPartners, v => this.Config.AutoPinPartners = v, () => I18n.Get("config.auto-pin"), () => I18n.Get("config.auto-pin.tip"));
             gmcm.AddBoolOption(m, () => this.Config.SpoilerFree, v => this.Config.SpoilerFree = v, () => I18n.Get("config.spoiler-free"), () => I18n.Get("config.spoiler-free.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.ShowLovedGifts, v => this.Config.ShowLovedGifts = v, () => I18n.Get("config.loved-gifts"), () => I18n.Get("config.loved-gifts.tip"));
 
             gmcm.AddSectionTitle(m, () => I18n.Get("config.section.reminders"), () => I18n.Get("config.section.reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.StoryReminders, v => this.Config.StoryReminders = v, () => I18n.Get("config.story-reminders"), () => I18n.Get("config.story-reminders.tip"));
@@ -310,6 +320,7 @@ namespace StardewEventTracker
             this.dataChangedTick.Value = null;
             this.Index.Rebuild();
             this.State.StartDay();
+            this.State.Gifts.Invalidate(now: true);
             this.AutoPinPartners();
             this.DropSeenStoryPins();
             this.RunReminders(morning: true);
@@ -481,6 +492,7 @@ namespace StardewEventTracker
         private void OpenTrackerMenu()
         {
             this.Index.Invalidate();
+            this.State.Gifts.Invalidate(now: true);
             if (this.Config.SpoilerPromptShown || this.Config.SpoilerFree)
             {
                 Game1.activeClickableMenu = new TrackerMenu(this);

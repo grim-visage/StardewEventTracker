@@ -42,6 +42,9 @@ namespace StardewEventTracker
         /// <summary>Walking-time estimates from this player's position.</summary>
         public TravelEstimator Travel { get; } = new();
 
+        /// <summary>Loved gifts this player owns, for each NPC.</summary>
+        public LovedGifts Gifts { get; } = new();
+
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
 

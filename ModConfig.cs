@@ -64,6 +64,9 @@ namespace StardewEventTracker
         /// <summary>Hide the details of events that aren't unlocked yet (location, requirements, what they lead to).</summary>
         public bool SpoilerFree { get; set; }
 
+        /// <summary>Show up to three loved gifts you own (carried or stored) next to each NPC in the menu and on the HUD.</summary>
+        public bool ShowLovedGifts { get; set; } = true;
+
         /// <summary>Whether the player has been asked, on first opening the menu, if they want spoiler-free mode.</summary>
         public bool SpoilerPromptShown { get; set; }
 

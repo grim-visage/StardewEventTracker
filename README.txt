@@ -345,6 +345,19 @@ can happen all day. At most two pop-ups come at once; the rest are summed up
 as "+3 more events coming up".
 
 
+Loved gifts
+~~~~~~~~~~~
+Next to each NPC on the Hearts and Pinned tabs, and next to pinned NPCs on
+the HUD, you'll see up to three items they love that you have: in your
+inventory, or in any chest, fridge, mini-fridge or Junimo chest. Things you're
+carrying come first. Hover over them in the menu to see what they are, how
+many you have and whether they're with you or in storage.
+
+The icons fade when you can't give that NPC a gift today (you've already given
+one today, or two this week). In spoiler-free mode they only show gifts you've
+already found out the NPC loves. Turn them off with ShowLovedGifts.
+
+
 Spoiler-free mode
 ~~~~~~~~~~~~~~~~~
 Turn on SpoilerFree for a first playthrough. Events that aren't unlocked yet
@@ -378,6 +391,7 @@ takes you back to the tracker.
   AutoPinPartners        true             Pin your spouse, roommate and
                                           partners automatically
   SpoilerFree            false            Hide details of locked events
+  ShowLovedGifts         true             Show loved gifts you own next to NPCs
   ShowHud                true             Whether the HUD tracker is visible
   HudFade                true             Fade the HUD while you or the
                                           mouse are under it

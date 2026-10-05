@@ -76,6 +76,12 @@ namespace StardewEventTracker.UI
         private readonly ModEntry mod;
         private readonly List<Row> rows = new();
         private readonly List<(Rectangle Area, Action Action)> hitAreas = new();
+
+        /// <summary>Areas with hover text, e.g. the loved gift icons; filled while drawing.</summary>
+        private readonly List<(Rectangle Area, string Text)> hoverAreas = new();
+
+        /// <summary>The size of a loved gift icon next to an NPC's hearts.</summary>
+        private const int GiftSize = 36;
         private readonly List<Chip> chips = new();
         private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
@@ -481,7 +487,14 @@ namespace StardewEventTracker.UI
             // (finding the NPC searches every location, so it's done once here rather than every frame)
             NPC? character = Game1.getCharacterFromName(owner);
             int maxHearts = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
-            this.rows[^1].DrawAfter = (b, at, maxRight) => DrawHearts(b, owner, maxHearts, at, maxRight);
+            this.rows[^1].DrawAfter = (b, at, maxRight) =>
+            {
+                // the gifts keep their room; the hearts get smaller first if the name is long
+                IReadOnlyList<OwnedGift> gifts = this.mod.LovedGiftsFor(owner);
+                int giftsWidth = gifts.Count > 0 ? GiftIcons.Width(gifts.Count, GiftSize) + 16 : 0;
+                float heartsEnd = DrawHearts(b, owner, maxHearts, at, maxRight - giftsWidth);
+                this.DrawGifts(b, owner, gifts, (int)heartsEnd + 16, (int)at.Y, maxRight);
+            };
             this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
         }
 
@@ -489,7 +502,8 @@ namespace StardewEventTracker.UI
         /// A row of hearts like the game's Social tab: red up to the current level, empty after, and darkened past 8 for
         /// someone you could date but aren't dating yet. "Not met" instead until you've introduced yourself.
         /// </summary>
-        private static void DrawHearts(SpriteBatch b, string npc, int max, Vector2 at, int maxRight)
+        /// <returns>Where the hearts (or "Not met") end.</returns>
+        private static float DrawHearts(SpriteBatch b, string npc, int max, Vector2 at, int maxRight)
         {
             // no friendship until you've introduced yourself: say so instead of an empty bar
             if (!Game1.player.friendshipData.TryGetValue(npc, out Friendship? friendship))
@@ -497,7 +511,7 @@ namespace StardewEventTracker.UI
                 string notMet = I18n.Get("menu.npc.not-met");
                 Vector2 size = Game1.smallFont.MeasureString(notMet);
                 Utility.drawTextWithShadow(b, notMet, Game1.smallFont, new Vector2(at.X, at.Y - size.Y / 2), MutedColor, shadowIntensity: 0f);
-                return;
+                return at.X + size.X;
             }
 
             int level = friendship.Points / NPC.friendshipPointsPerHeartLevel;
@@ -516,6 +530,22 @@ namespace StardewEventTracker.UI
                 var position = new Vector2(at.X + i * step, at.Y - 3 * scale);
                 b.Draw(Game1.mouseCursors, position, new Rectangle(sourceX, 428, 7, 6), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.88f);
             }
+            return at.X + max * step;
+        }
+
+        /// <summary>The NPC's loved gifts the player owns, faded if they can't take a gift today, with the list as hover text.</summary>
+        private void DrawGifts(SpriteBatch b, string npc, IReadOnlyList<OwnedGift> gifts, int x, int centerY, int maxRight)
+        {
+            if (gifts.Count == 0)
+                return;
+
+            float alpha = LovedGifts.CanGiftToday(npc) ? 1f : GiftIcons.CantGiftAlpha;
+            List<Rectangle> areas = GiftIcons.Draw(b, gifts, x, centerY, GiftSize, alpha, maxRight);
+            if (areas.Count == 0)
+                return;
+            string tooltip = GiftIcons.Tooltip(npc, gifts);
+            foreach (Rectangle area in areas)
+                this.hoverAreas.Add((area, tooltip));
         }
 
         private void AddEventList(PendingEvents pending, List<(EventInfo Event, EventEvaluation Eval)> visible, int indent, bool showLocation)
@@ -832,7 +862,9 @@ namespace StardewEventTracker.UI
         public override void performHoverAction(int x, int y)
         {
             base.performHoverAction(x, y);
-            this.hoverText = this.chips.FirstOrDefault(c => c.Area.Contains(x, y))?.Tooltip ?? "";
+            this.hoverText = this.chips.FirstOrDefault(c => c.Area.Contains(x, y))?.Tooltip
+                ?? this.hoverAreas.Where(h => h.Area.Contains(x, y)).Select(h => h.Text).FirstOrDefault()
+                ?? "";
         }
 
         public override void receiveScrollWheelAction(int direction)
@@ -950,6 +982,7 @@ namespace StardewEventTracker.UI
 
             // rows
             this.hitAreas.Clear();
+            this.hoverAreas.Clear();
             Rectangle content = this.ContentArea;
             int y = content.Y - this.scrollY;
             foreach (Row row in this.rows)
