@@ -129,10 +129,11 @@ namespace StardewEventTracker.Data
                     }
                 }
 
-                // the kitchen fridge isn't a placed object
+                // the kitchen fridge isn't a placed object; in multiplayer, only this player's own home's
                 Chest? fridge = location switch
                 {
-                    FarmHouse house => house.fridge.Value,
+                    FarmHouse house when house.owner?.UniqueMultiplayerID == playerId => house.fridge.Value,
+                    FarmHouse => null,
                     IslandFarmHouse islandHouse => islandHouse.fridge.Value,
                     _ => null
                 };

@@ -41,12 +41,18 @@ namespace StardewEventTracker.Data
         /// <summary>Anything in a pack that marks an event ID seen: a trigger or dialogue action, an event command, a map tile action.</summary>
         private static readonly Regex SetsEventSeen = new(@"(?:MarkEventSeen\s+\S+|MessageOnce|\beventSeen)\s+([^\s""'/\\]+)", RegexOptions.IgnoreCase);
 
+        /// <summary>Every file below a folder, skipping folders that can't be read (so one locked folder doesn't stop the scan).</summary>
+        private static readonly EnumerationOptions AllAccessible = new() { RecurseSubdirectories = true, IgnoreInaccessible = true };
+
         private static volatile Dictionary<string, List<PackEvent>> byId = new();
         private static volatile Dictionary<string, TileMarker> tileMarkers = new();
         private static volatile HashSet<string> setSomewhere = new();
 
+        private static volatile bool ready;
+
         /// <summary>Whether the packs have been read, so an event none of them adds really isn't added by any.</summary>
-        public static bool Ready { get; private set; }
+        /// <remarks>Volatile, and set after the results, so the main thread never sees it before them.</remarks>
+        public static bool Ready => ready;
 
         /// <summary>The map tile that marks this event ID seen, if a pack adds one.</summary>
         public static TileMarker? GetTileMarker(string id) => tileMarkers.TryGetValue(id, out TileMarker? marker) ? marker : null;
@@ -76,17 +82,25 @@ namespace StardewEventTracker.Data
                     foreach ((string dir, string name) in FindContentPatcherPacks(helper))
                     {
                         packs++;
-                        foreach (string file in Directory.EnumerateFiles(dir, "*.json", SearchOption.AllDirectories))
+                        foreach (string file in Directory.EnumerateFiles(dir, "*.json", AllAccessible))
                         {
                             if (Path.GetFileName(file).Equals("manifest.json", StringComparison.OrdinalIgnoreCase) || file.Contains($"{Path.DirectorySeparatorChar}i18n{Path.DirectorySeparatorChar}"))
                                 continue;
-                            ReadPatches(file, name, found, tiles, setters);
+                            // one odd file (a token where a number goes) shouldn't stop the rest from being read
+                            try
+                            {
+                                ReadPatches(file, name, found, tiles, setters);
+                            }
+                            catch (Exception ex)
+                            {
+                                monitor.Log($"Skipped {file} while reading Content Patcher packs: {ex.Message}", LogLevel.Trace);
+                            }
                         }
                     }
                     byId = found;
                     tileMarkers = tiles;
                     setSomewhere = setters;
-                    Ready = true;
+                    ready = true;
                     monitor.Log($"Read {found.Count} conditionally added events from {packs} Content Patcher packs.", LogLevel.Trace);
                 }
                 catch (Exception ex)
@@ -99,7 +113,7 @@ namespace StardewEventTracker.Data
         /// <summary>The main DLL of every loaded C# mod (except this one).</summary>
         private static IEnumerable<string> FindCodeMods(IModHelper helper)
         {
-            foreach (string manifestPath in Directory.EnumerateFiles(ModsFolder(helper), "manifest.json", SearchOption.AllDirectories))
+            foreach (string manifestPath in Directory.EnumerateFiles(ModsFolder(helper), "manifest.json", AllAccessible))
             {
                 if (manifestPath.Split(Path.DirectorySeparatorChar).Any(part => part.StartsWith('.')) || Parse(SafeRead(manifestPath)) is not JObject manifest)
                     continue;
@@ -164,7 +178,7 @@ namespace StardewEventTracker.Data
                     continue;
                 }
 
-                foreach (string sub in Directory.EnumerateDirectories(dir))
+                foreach (string sub in Directory.EnumerateDirectories(dir, "*", new EnumerationOptions { IgnoreInaccessible = true }))
                 {
                     if (!Path.GetFileName(sub).StartsWith('.'))
                         pending.Push(sub);

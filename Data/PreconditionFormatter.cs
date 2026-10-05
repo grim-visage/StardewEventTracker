@@ -520,6 +520,8 @@ namespace StardewEventTracker.Data
         private static string FarmhouseQuery(List<string> values, string player)
         {
             var levels = values.Select(v => int.TryParse(v, out int n) ? n : -1).Where(n => n >= 0).Distinct().OrderBy(n => n).ToList();
+            if (levels.Count == 0)
+                return $"PLAYER_FARMHOUSE_UPGRADE {player} 0";
             bool fromStart = levels[0] == 0 && levels.SequenceEqual(Enumerable.Range(0, levels.Count));
             return fromStart && levels[^1] < 3
                 ? $"!PLAYER_FARMHOUSE_UPGRADE {player} {levels[^1] + 1}"

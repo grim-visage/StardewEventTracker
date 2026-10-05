@@ -818,6 +818,9 @@ namespace StardewEventTracker
             messages = messages.OrderByDescending(m => m.Now).ToList();
             foreach ((string text, bool now) in messages.Take(maxPopups))
                 this.Notify(text, now ? this.Config.AvailableSound : this.Config.ReminderSound);
+            // the rest still go in today's messages, so the player can see what "+N more" was
+            foreach ((string text, _) in messages.Skip(maxPopups))
+                this.State.MessagesToday.Add((Game1.timeOfDay, text));
             if (messages.Count > maxPopups)
                 this.Notify(I18n.Get(messages.Count - maxPopups == 1 ? "msg.unpinned-more.1" : "msg.unpinned-more", new { count = messages.Count - maxPopups, key = this.Config.OpenMenuKey }), this.Config.ReminderSound);
         }
