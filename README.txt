@@ -23,12 +23,18 @@ FEATURES
   Staying on schedule
     * Pin NPCs and story events to follow; partners are pinned
       automatically
-    * On-screen tracker with several themes and a compact layout
+    * On-screen tracker (HUD) with a compact layout
     * Reminders before an event can start, when it's time to leave, and
       when it becomes available
     * Map markers where pinned events can happen today
     * Loved gifts you own for each NPC, shown in the tracker menu, and
       whether you can give one today
+
+  HUD themes
+    * Community Center, with Junimos who cheer when an event can happen
+    * Joja "Social Planner" and Spirit's Eve
+    * Spring, Summer, Fall and Winter in light or dark, or Seasonal to
+      follow the calendar
 
   Social tab integration (the game's own Social tab in the Esc menu)
     * NPC portraits in the tracker that open the NPC's profile on the
