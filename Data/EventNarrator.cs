@@ -97,6 +97,9 @@ namespace StardewEventTracker.Data
             if (evt.IsStory)
                 return I18n.Get("msg.tomorrow.story", new { lead, place = Place(evt) });
 
+            if (!OwnerInScene(evt))
+                return I18n.Get("msg.event.tomorrow", new { lead, name = EventIndex.GetNpcDisplayName(evt.Owner), @event = evt.TitleInline, place = Place(evt) });
+
             var w = new Words(evt);
             return Pick(evt, "msg.tomorrow", 2, w.Tokens(lead: lead));
         }
@@ -314,17 +317,24 @@ namespace StardewEventTracker.Data
         /// <summary>
         /// Whether today's schedule has the event's NPC somewhere else when it can start (or all day, if there's no
         /// start time). Events don't need their cast to be there unless they say so, e.g. SVE's Maru 2-heart event still
-        /// plays while her family is at the Night Market, so messages shouldn't say the NPC will be there. False if their
-        /// schedule can't be read.
+        /// plays while her family is at the Night Market, so messages shouldn't say the NPC will be there. Also true when
+        /// the NPC isn't in the scene at all, e.g. Ridgeside's Lenny 2-heart event only needs her friendship and stars
+        /// Raeriyala and Belinda. False if their schedule can't be read.
         /// </summary>
         private static bool OwnerAway(EventInfo evt, int? time)
         {
+            if (!OwnerInScene(evt))
+                return true;
             if (NpcPresence.Today(evt.Owner, evt.LocationName) is not { } stays)
                 return false;
             return time is { } at
                 ? !stays.Any(s => s.Start <= at && at < s.End)
                 : stays.Count == 0;
         }
+
+        /// <summary>Whether the event's NPC is in its opening cast, or the cast is unknown (no NPCs parsed from the script).</summary>
+        private static bool OwnerInScene(EventInfo evt) =>
+            evt.Actors.Count == 0 || evt.Actors.Contains(evt.Owner);
 
         /// <summary>Tokens for messages about the event rather than where its NPC is: {{name}}, {{event}} ("2-heart event"), {{place}}, {{time}}, {{away}}.</summary>
         private static object EventTokens(EventInfo evt, string time = "", string away = "") =>

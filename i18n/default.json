@@ -156,6 +156,7 @@
   "msg.event.reminder.soon": "{{name}}'s {{event}} can start at {{place}} soon, around {{time}}. Hurry!",
   "msg.event.leave": "Time to head out: {{name}}'s {{event}} can start at {{place}} around {{time}}, about {{away}} away.",
   "msg.event.morning": "{{name}}'s {{event}} can happen at {{place}} today{{window}}.",
+  "msg.event.tomorrow": "{{lead}} {{name}}'s {{event}} might happen at {{place}}.",
   "msg.leave.story": "Time to head out to {{place}} (about {{away}} away). Something might happen there around {{time}}.",
   "msg.leave.1": "Time to head out: {{name}} should be at {{place}} around {{time}}, about {{away}} away.",
   "msg.leave.2": "{{place}} is about {{away}} away. Leave now to catch {{name}} around {{time}}!",
