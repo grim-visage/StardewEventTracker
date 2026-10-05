@@ -32,6 +32,8 @@ namespace StardewEventTracker.Data
                 "season" when a.Length > 0 => I18n.Get("cond.season" + neg, new { seasons = SeasonName(a[0]) }) + Ignored(a, SeasonName),
                 "daysplayed" => I18n.Get("cond.days-played", new { count = all }),
                 "year" => a.FirstOrDefault() == "1" ? I18n.Get("cond.year-one") : I18n.Get("cond.year", new { year = all }),
+                // an ID a trigger marks seen once something else happens, rather than a real event
+                "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeMarker(a[0], index, forStep: false) is { } marker => marker,
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
                 // a mod that wrote "D" (dating) for "d" (day of week): nobody is called "Mon", so it can never be true
                 "dating" or "spouse" when !c.Negated && a.Length > 0 && !IsCharacter(a[0]) => I18n.Get("cond.not-a-character", new { name = a[0] }),
@@ -312,6 +314,20 @@ namespace StardewEventTracker.Data
                 // fall back to the ID
             }
             return HumanizeFlag(id);
+        }
+
+        /// <summary>
+        /// What an event-ID marker stands for, from the trigger action that marks it seen: "Once you've seen Jasper's
+        /// 6-heart event (it counts from the next day)". Null if it isn't a marker or its condition can't be described.
+        /// </summary>
+        public static string? DescribeMarker(string eventId, EventIndex index, bool forStep)
+        {
+            if (index.Flags.GetEventMarker(eventId) is not { } marker || DescribeCondition(marker.Condition, index) is not { } when)
+                return null;
+
+            // day-end triggers run overnight, so it counts from the next morning
+            string nextDay = marker.Trigger.Equals("DayEnding", StringComparison.OrdinalIgnoreCase) ? ".next-day" : "";
+            return I18n.Get((forStep ? "step.marker" : "cond.marker") + nextDay, new { when });
         }
 
         /// <summary>A flag ID as words: "HasCherryPitInInventory" -> "Has cherry pit in inventory".</summary>

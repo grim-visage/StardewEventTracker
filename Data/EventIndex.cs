@@ -220,7 +220,9 @@ namespace StardewEventTracker.Data
             {
                 foreach (Precondition c in info.Conditions.Where(c => c.Is("SawEvent") && !c.Negated))
                 {
-                    foreach (string id in c.Args.Distinct())
+                    // a marker ID stands for the events its trigger waits for, so those lead here
+                    var needed = c.Args.SelectMany(id => this.byId.ContainsKey(id) ? new[] { id } : this.Flags.GetMarkerSources(id).Append(id)).Distinct();
+                    foreach (string id in needed)
                     {
                         if (!this.unlockedBy.TryGetValue(id, out List<EventInfo>? list))
                             this.unlockedBy[id] = list = new List<EventInfo>();

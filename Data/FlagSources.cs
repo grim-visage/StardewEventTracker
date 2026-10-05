@@ -58,6 +58,15 @@ namespace StardewEventTracker.Data
         private readonly Dictionary<string, string> letterTitles = new();
         private readonly Dictionary<string, (string Name, string? Objective)> specialOrders = new();
         private readonly Dictionary<string, string> triggerConditions = new();
+
+        /// <summary>
+        /// Event IDs that aren't real events but markers a trigger action sets with MarkEventSeen (e.g. East Scarp
+        /// marks one seen at the end of the day you see another), with the trigger and its condition.
+        /// </summary>
+        private readonly Dictionary<string, (string Trigger, string Condition)> eventMarkers = new();
+
+        /// <summary>A trigger condition's "has seen event" clause: PLAYER_HAS_SEEN_EVENT &lt;player&gt; &lt;event ID&gt;.</summary>
+        private static readonly Regex SeenEventClause = new(@"(?:^|,)\s*PLAYER_HAS_SEEN_EVENT\s+\S+\s+(\S+)", RegexOptions.IgnoreCase);
         /// <summary>The event that sets each flag, and whether only a branch of it does (one answer to a question, or a conditional fork).</summary>
         private readonly Dictionary<string, (string EventKey, bool BranchOnly)> flagEvents = new();
         private readonly Dictionary<string, string> questFlags = new();
@@ -76,6 +85,7 @@ namespace StardewEventTracker.Data
             this.letterTitles.Clear();
             this.specialOrders.Clear();
             this.triggerConditions.Clear();
+            this.eventMarkers.Clear();
             this.flagEvents.Clear();
             this.questFlags.Clear();
             this.dialogueFlags.Clear();
@@ -166,6 +176,10 @@ namespace StardewEventTracker.Data
                         string[] args = ArgUtility.SplitBySpace(action);
                         if (args.Length >= 3 && args[0].Equals("AddMail", StringComparison.OrdinalIgnoreCase))
                             this.triggerConditions.TryAdd(args[2], trigger.Condition ?? "");
+
+                        // MarkEventSeen <player> <event ID> [seen]
+                        if (args.Length >= 3 && args[0].Equals("MarkEventSeen", StringComparison.OrdinalIgnoreCase) && (args.Length < 4 || !args[3].Equals("false", StringComparison.OrdinalIgnoreCase)))
+                            this.eventMarkers.TryAdd(args[2], (trigger.Trigger ?? "", trigger.Condition ?? ""));
                     }
                 }
             });
@@ -260,6 +274,16 @@ namespace StardewEventTracker.Data
             string eventId = source.EventKey[(source.EventKey.IndexOf('|') + 1)..];
             return player.eventsSeen.Contains(eventId);
         }
+
+        /// <summary>The trigger that marks this event ID seen, and its condition, if it's a marker rather than a real event.</summary>
+        public (string Trigger, string Condition)? GetEventMarker(string eventId) =>
+            this.eventMarkers.TryGetValue(eventId, out var marker) ? marker : null;
+
+        /// <summary>The events a marker's trigger waits for the player to have seen, e.g. the event whose day-end marks it.</summary>
+        public IEnumerable<string> GetMarkerSources(string eventId) =>
+            this.eventMarkers.TryGetValue(eventId, out var marker)
+                ? SeenEventClause.Matches(marker.Condition).Select(m => m.Groups[1].Value).Where(id => id != eventId)
+                : Enumerable.Empty<string>();
 
         public TopicSource? GetTopic(string topic) => this.topics.TryGetValue(topic, out TopicSource? source) ? source : null;
 
