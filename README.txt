@@ -347,9 +347,9 @@ as "+3 more events coming up".
 
 Loved gifts
 ~~~~~~~~~~~
-Next to each NPC on the Hearts and Pinned tabs, and next to pinned NPCs on
-the HUD, you'll see up to three items they love that you have: in your
-inventory, or in any chest, fridge, mini-fridge or Junimo chest. Things you're
+Next to each NPC on the Hearts and Pinned tabs, you'll see up to three items
+they love that you have: in your inventory, or in any chest, fridge,
+mini-fridge or Junimo chest. Things you're
 carrying come first. Hover over them in the menu to see what they are, how
 many you have and whether they're with you or in storage.
 

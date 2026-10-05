@@ -32,14 +32,10 @@ namespace StardewEventTracker.UI
         }
 
         /// <summary>One pinned NPC or story event on the HUD.</summary>
-        /// <param name="Npc">The pinned NPC the entry is for, whose loved gifts go after its first line; null for story events.</param>
-        private sealed record Entry(Urgency Urgency, int Minutes, string SortName, bool IsStory, List<(string Text, Color Color)> Lines, string? Npc = null);
+        private sealed record Entry(Urgency Urgency, int Minutes, string SortName, bool IsStory, List<(string Text, Color Color)> Lines);
 
         private readonly ModEntry mod;
         private List<(string Text, Color Color)> lines = new();
-
-        /// <summary>The NPC whose loved gifts follow each line that starts an NPC's entry, by line index.</summary>
-        private Dictionary<int, string> giftLines = new();
         private int builtVersion = -1;
         private int pinCount = -1;
         private int builtForHeight = -1;
@@ -90,10 +86,7 @@ namespace StardewEventTracker.UI
             SpriteFont font = Game1.smallFont;
             int lineHeight = LineHeight;
             int padding = theme.Padding;
-            int giftSize = Math.Min(32, lineHeight - 4);
-            int LineWidth(int i) => (int)font.MeasureString(this.lines[i].Text).X
-                + (this.giftLines.TryGetValue(i, out string? giftNpc) && this.mod.LovedGiftsFor(giftNpc) is { Count: > 0 } owned ? 8 + GiftIcons.Width(owned.Count, giftSize) : 0);
-            int textWidth = this.lines.Count > 0 ? Enumerable.Range(0, this.lines.Count).Max(LineWidth) : 0;
+            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => font.MeasureString(l.Text).X) : 0;
             int width = Math.Max(textWidth + padding * 2, theme.MinBoxWidth);
             int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2 + theme.FooterInside;
 
@@ -113,15 +106,7 @@ namespace StardewEventTracker.UI
                 theme.DrawBox(b, box, this.Dragging);
                 int top = y + padding + theme.TitleInside;
                 for (int i = 0; i < this.lines.Count; i++)
-                {
                     theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
-                    if (this.giftLines.TryGetValue(i, out string? npc) && this.mod.LovedGiftsFor(npc) is { Count: > 0 } gifts)
-                    {
-                        float alpha = (LovedGifts.CanGiftToday(npc) ? 1f : GiftIcons.CantGiftAlpha) * HudTheme.Opacity;
-                        int giftX = x + padding + (int)font.MeasureString(this.lines[i].Text).X + 8;
-                        GiftIcons.Draw(b, gifts, giftX, top + i * lineHeight + lineHeight / 2, giftSize, alpha, box.Right - padding / 2);
-                    }
-                }
                 theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
             }
             finally
@@ -184,7 +169,6 @@ namespace StardewEventTracker.UI
             // fit as many entries as the setting allows and the screen has room for, keeping a line for the overflow note
             HudTheme theme = this.Theme;
             var lines = new List<(string, Color)>();
-            var giftLines = new Dictionary<int, string>();
             int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
             int boxY = Math.Max(theme.TitleAbove, this.mod.Config.HudY);
             int maxLines = Math.Max(2, (Game1.uiViewport.Height - boxY - theme.Padding * 2 - theme.TitleInside - theme.FooterInside) / LineHeight);
@@ -195,8 +179,6 @@ namespace StardewEventTracker.UI
                 bool fits = shown < maxEntries && lines.Count + entry.Lines.Count + (moreAfter ? 1 : 0) <= maxLines;
                 if (!fits && shown > 0)
                     break;
-                if (entry.Npc != null)
-                    giftLines[lines.Count] = entry.Npc;
                 lines.AddRange(entry.Lines);
                 shown++;
             }
@@ -214,7 +196,6 @@ namespace StardewEventTracker.UI
             }
 
             this.lines = lines;
-            this.giftLines = giftLines;
             this.builtVersion = this.mod.Index.Version;
             this.pinCount = this.PinCount;
             this.builtForHeight = Game1.uiViewport.Height;
@@ -223,9 +204,7 @@ namespace StardewEventTracker.UI
             this.anyAvailableNow = entries.Any(e => e.Urgency == Urgency.Now);
         }
 
-        private Entry BuildNpcEntry(string npc) => this.BuildNpcEntryLines(npc) with { Npc = npc };
-
-        private Entry BuildNpcEntryLines(string npc)
+        private Entry BuildNpcEntry(string npc)
         {
             string name = EventIndex.GetNpcDisplayName(npc);
             PendingEvents pending = this.mod.Index.GetPending(npc);
