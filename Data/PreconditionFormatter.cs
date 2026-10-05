@@ -344,32 +344,15 @@ namespace StardewEventTracker.Data
                 .ToList();
             (PackEvent pack, List<string> unmet, bool understood) = options[0];
 
-            string place = EventNarrator.WithArticle(EventIndex.GetLocationDisplayName(pack.Location));
-            string? owner = PackEventOwner(pack);
-            string label = owner != null
-                ? I18n.Get("added.event-heart", new { name = EventIndex.GetNpcDisplayName(owner), place, id = eventId })
-                : I18n.Get("added.event-story", new { place, id = eventId });
-
+            // just what has to happen for the requirement to be met: what makes the event appear, then what it needs
             string? when = unmet.Count > 0 ? DescribeCondition(string.Join(", ", unmet), index) : null;
-            string adds = when != null ? I18n.Get("added.once", new { mod = pack.ModName, when })
-                : understood ? I18n.Get("added.soon", new { mod = pack.ModName })
-                : I18n.Get("added.later", new { mod = pack.ModName });
-
             string? needs = DescribePackEventNeeds(pack, index);
-            string text = I18n.Get(forStep ? "step.added" : "cond.added", new { @event = label, adds });
-            return needs != null ? text + I18n.Get("added.then", new { needs }) : text;
-        }
-
-        /// <summary>The NPC whose heart event this is, if it needs friendship with exactly one NPC.</summary>
-        private static string? PackEventOwner(PackEvent pack)
-        {
-            var npcs = Event.SplitPreconditions(pack.Key).Skip(1)
-                .Select(Precondition.Parse)
-                .Where(c => c.Is("Friendship") && !c.Negated)
-                .SelectMany(c => EventInfo.FriendshipPairs(c).Select(p => p.Npc))
-                .Distinct()
-                .ToList();
-            return npcs.Count == 1 ? npcs[0] : null;
+            string prefix = forStep ? "step" : "cond";
+            if (when != null)
+                return I18n.Get($"{prefix}.added-once", new { when }) + (needs != null ? I18n.Get("added.also-needs", new { needs }) : "");
+            if (needs != null)
+                return I18n.Get($"{prefix}.added-needs", new { needs });
+            return I18n.Get(understood ? $"{prefix}.added-soon" : $"{prefix}.story-progress");
         }
 
         /// <summary>The added event's own requirements that aren't met yet, e.g. "8 hearts with Gunther and year 2 or later".</summary>
