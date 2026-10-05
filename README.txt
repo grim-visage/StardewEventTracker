@@ -3,10 +3,10 @@
              Heart and story event tracking for Stardew Valley 1.6
 ================================================================================
 
-Stardew Valley's heart and story events each depend on a mix of conditions:
-friendship, location, time of day, weather, season, and earlier events. This
-mod reads those conditions from the game and shows, for every event you
-haven't seen, exactly what is met, what is missing, and when it can happen.
+Heart events are easy to miss. Many only happen in one place, at a certain
+time, in certain weather, or after another event. The tracker shows every
+event you haven't seen yet, what you still need to do, and where and when to
+be so it plays.
 
 FEATURES
 
