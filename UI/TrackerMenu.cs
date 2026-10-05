@@ -674,7 +674,7 @@ namespace StardewEventTracker.UI
             // what seeing this event leads to
             var unlocks = this.mod.Config.SpoilerFree
                 ? new List<EventInfo>()
-                : this.Index.GetUnlocks(evt.Id).Where(u => !u.Seen).ToList();
+                : this.Index.GetUnlocks(evt.Id).Where(u => !u.Seen && !this.Index.IsImpossible(u)).ToList();
             if (unlocks.Count > 0)
             {
                 string next = string.Join("; ", unlocks.Take(2).Select(u => this.Index.DescribeEvent(u.Id)));
