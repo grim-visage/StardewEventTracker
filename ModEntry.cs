@@ -18,8 +18,8 @@ namespace StardewEventTracker
     {
         internal ModConfig Config { get; private set; } = new();
 
-        /// <summary>Generic Mod Config Menu's API, if it's installed.</summary>
-        private IGenericModConfigMenuApi? configMenu;
+        /// <summary>Generic Mod Config Menu's way to open the config page over the tracker menu, if it's installed and new enough (1.14.1).</summary>
+        private IGenericModConfigMenuChildApi? configMenu;
 
         /// <summary>Whether the config page can be opened from the tracker menu.</summary>
         internal bool HasConfigMenu => this.configMenu != null;
@@ -226,9 +226,11 @@ namespace StardewEventTracker
             // what content packs add later, to explain events that are needed but not in the game yet
             ContentPackEvents.ScanInBackground(this.Helper, this.Monitor);
 
-            var gmcm = this.configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            var gmcm = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (gmcm == null)
                 return;
+            if (this.Helper.ModRegistry.Get("spacechase0.GenericModConfigMenu")?.Manifest.Version.IsOlderThan("1.14.1") == false)
+                this.configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuChildApi>("spacechase0.GenericModConfigMenu");
 
             var m = this.ModManifest;
             gmcm.Register(m, () => this.Config = new ModConfig(), () => this.Helper.WriteConfig(this.Config));

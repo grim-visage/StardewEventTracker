@@ -21,7 +21,15 @@ namespace StardewEventTracker.Integrations
         void OnFieldChanged(IManifest mod, Action<string, object> onChange);
 
         void AddKeybindList(IManifest mod, Func<KeybindList> getValue, Action<KeybindList> setValue, Func<string> name, Func<string>? tooltip = null, string? fieldId = null);
+    }
 
+    /// <summary>
+    /// Generic Mod Config Menu's way to open a config page over the current menu, added in GMCM 1.14.1. It's asked for
+    /// on its own so an older GMCM still gets the settings (SMAPI can't connect an interface the API doesn't fully
+    /// have), just without the tracker menu's Settings button.
+    /// </summary>
+    public interface IGenericModConfigMenuChildApi
+    {
         /// <summary>Opens a mod's config page over the current menu, which comes back when it's closed.</summary>
         void OpenModMenuAsChildMenu(IManifest mod);
     }

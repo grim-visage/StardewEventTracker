@@ -49,7 +49,8 @@ REQUIREMENTS
   * Stardew Valley 1.6 or later
   * SMAPI 4.0 or later (https://smapi.io)
   * Optional: Generic Mod Config Menu for in-game settings
-    (https://www.nexusmods.com/stardewvalley/mods/5098)
+    (https://www.nexusmods.com/stardewvalley/mods/5098). The tracker menu's
+    Settings button needs version 1.14.1 or later.
 
 
 INSTALLATION
