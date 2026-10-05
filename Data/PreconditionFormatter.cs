@@ -36,6 +36,8 @@ namespace StardewEventTracker.Data
                 "sawevent" when !c.Negated && a.Any(IsCalendarWord) => I18n.Get("cond.not-an-event", new { id = a.First(IsCalendarWord) }),
                 // an ID a trigger marks seen once something else happens, rather than a real event
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeMarker(a[0], index, forStep: false) is { } marker => marker,
+                // an event a content pack adds once its conditions are met: say what those are
+                "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeAddedLater(a[0], index, forStep: false) is { } later => later,
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
                 // a mod that wrote "D" (dating) for "d" (day of week): nobody is called "Mon", so it can never be true
                 "dating" or "spouse" when !c.Negated && a.Length > 0 && !IsCharacter(a[0]) => I18n.Get("cond.not-a-character", new { name = a[0] }),
@@ -254,6 +256,12 @@ namespace StardewEventTracker.Data
                         "odd" => I18n.Get("gsq.odd-day" + neg),
                         _ => I18n.Get("gsq.day-of-month" + neg, new { days = JoinList(t.Skip(1), I18n.Get("join.or")) })
                     },
+                    "PLAYER_FARMHOUSE_UPGRADE" when t.Length >= 3 => I18n.Get("gsq.farmhouse" + neg, new { level = t[2] }),
+                    "DAY_OF_WEEK" when t.Length >= 2 => I18n.Get("gsq.day-of-week" + neg, new { days = JoinList(t.Skip(1).Select(LongDayName), I18n.Get("join.or")) }),
+                    "YEAR" when t.Length >= 2 => I18n.Get("gsq.year" + neg, new { year = t[1] }),
+                    "DAYS_PLAYED" when !negated && t.Length >= 2 => I18n.Get("gsq.days-played", new { count = t[1] }),
+                    "IS_COMMUNITY_CENTER_COMPLETE" => I18n.Get("gsq.cc-complete" + neg),
+                    "IS_JOJA_MART_COMPLETE" => I18n.Get("gsq.joja-complete" + neg),
                     "WEATHER" when t.Length >= 3 => I18n.Get("gsq.weather" + neg, new { weather = JoinList(t.Skip(2).Select(w => WeatherName(w).ToLowerInvariant()), I18n.Get("join.or")) }),
                     _ => null
                 };
@@ -316,6 +324,194 @@ namespace StardewEventTracker.Data
                 // fall back to the ID
             }
             return HumanizeFlag(id);
+        }
+
+        /// <summary>
+        /// An event a Content Patcher pack only adds under some conditions, and what's still needed: "Seen the story
+        /// event at the Farm (#123), which Stardew Valley Expanded adds once you've seen ...; then it needs 8 hearts with
+        /// Gunther". Null if no loaded pack adds it.
+        /// </summary>
+        public static string? DescribeAddedLater(string eventId, EventIndex index, bool forStep)
+        {
+            if (ContentPackEvents.Get(eventId) is not { Count: > 0 } versions)
+                return null;
+
+            // the version that's closest to being added
+            var options = versions
+                .Select(v => (Event: v, Unmet: UnmetPatchConditions(v.When, out bool known, out int read), Known: known && read > 0))
+                .OrderByDescending(o => o.Known)
+                .ThenBy(o => o.Unmet.Count)
+                .ToList();
+            (PackEvent pack, List<string> unmet, bool understood) = options[0];
+
+            string place = EventNarrator.WithArticle(EventIndex.GetLocationDisplayName(pack.Location));
+            string? owner = PackEventOwner(pack);
+            string label = owner != null
+                ? I18n.Get("added.event-heart", new { name = EventIndex.GetNpcDisplayName(owner), place, id = eventId })
+                : I18n.Get("added.event-story", new { place, id = eventId });
+
+            string? when = unmet.Count > 0 ? DescribeCondition(string.Join(", ", unmet), index) : null;
+            string adds = when != null ? I18n.Get("added.once", new { mod = pack.ModName, when })
+                : understood ? I18n.Get("added.soon", new { mod = pack.ModName })
+                : I18n.Get("added.later", new { mod = pack.ModName });
+
+            string? needs = DescribePackEventNeeds(pack, index);
+            string text = I18n.Get(forStep ? "step.added" : "cond.added", new { @event = label, adds });
+            return needs != null ? text + I18n.Get("added.then", new { needs }) : text;
+        }
+
+        /// <summary>The NPC whose heart event this is, if it needs friendship with exactly one NPC.</summary>
+        private static string? PackEventOwner(PackEvent pack)
+        {
+            var npcs = Event.SplitPreconditions(pack.Key).Skip(1)
+                .Select(Precondition.Parse)
+                .Where(c => c.Is("Friendship") && !c.Negated)
+                .SelectMany(c => EventInfo.FriendshipPairs(c).Select(p => p.Npc))
+                .Distinct()
+                .ToList();
+            return npcs.Count == 1 ? npcs[0] : null;
+        }
+
+        /// <summary>The added event's own requirements that aren't met yet, e.g. "8 hearts with Gunther and year 2 or later".</summary>
+        private static string? DescribePackEventNeeds(PackEvent pack, EventIndex index)
+        {
+            GameLocation location = Game1.getLocationFromName(pack.Location) ?? Game1.currentLocation;
+            var needs = new List<string>();
+            foreach (Precondition c in Event.SplitPreconditions(pack.Key).Skip(1).Where(s => !string.IsNullOrWhiteSpace(s)).Select(Precondition.Parse))
+            {
+                // when it can play is shown once it's in the game; what's missing matters now
+                if (c.Category != ConditionCategory.Progress || c.IsNeverTrue)
+                    continue;
+                try
+                {
+                    if (Event.CheckPrecondition(location, pack.Id, c.Raw))
+                        continue;
+                }
+                catch (Exception)
+                {
+                    // can't tell, so list it
+                }
+                string text = Describe(c, index);
+                needs.Add(text.Length > 1 && char.IsUpper(text[0]) && char.IsLower(text[1]) && !IsCharacter(text.Split(' ')[0].TrimEnd('\'', 's')) ? char.ToLowerInvariant(text[0]) + text[1..] : text);
+            }
+            return needs.Count > 0 ? JoinList(needs.Take(3), I18n.Get("join.and")) + (needs.Count > 3 ? I18n.Get("join.and") + I18n.Get("gsq.more") : "") : null;
+        }
+
+        /// <summary>
+        /// A Content Patcher patch's conditions as game state queries, keeping the ones that aren't met yet.
+        /// <paramref name="understood"/> is false if some condition couldn't be read (a mod setting, or a token this doesn't know).
+        /// </summary>
+        /// <param name="read">How many conditions could be read; with none, there's no telling when it's added.</param>
+        private static List<string> UnmetPatchConditions(IReadOnlyDictionary<string, string> when, out bool understood, out int read)
+        {
+            understood = true;
+            read = 0;
+            var unmet = new List<string>();
+            foreach ((string key, string value) in when)
+            {
+                // which mods are installed is settled by now
+                if (key.StartsWith("HasMod", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (PatchConditionToQuery(key, value) is not { } query)
+                {
+                    understood = false;
+                    continue;
+                }
+                read++;
+                bool met;
+                try
+                {
+                    met = GameStateQuery.CheckConditions(query);
+                }
+                catch (Exception)
+                {
+                    met = false;
+                }
+                if (!met)
+                    unmet.Add(query);
+            }
+            return unmet;
+        }
+
+        /// <summary>One Content Patcher condition ("HasFlag": "x", "HasSeenEvent |contains=123": false...) as a game state query, or null if it can't be.</summary>
+        private static string? PatchConditionToQuery(string key, string value)
+        {
+            string token = key.Trim();
+            bool negated = false;
+            List<string> values;
+
+            // "Token |contains=X": true/false
+            int bar = token.IndexOf('|');
+            if (bar >= 0)
+            {
+                string option = token[(bar + 1)..].Trim();
+                token = token[..bar].Trim();
+                if (!option.StartsWith("contains=", StringComparison.OrdinalIgnoreCase))
+                    return null;
+                // "contains=A, B" is true if any of them is there
+                values = option[9..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                negated = value.Trim().Equals("false", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+                values = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+            if (values.Count == 0 || values.Any(v => v.Contains("{{")))
+                return null;
+
+            string? input = null;
+            int colon = token.IndexOf(':');
+            if (colon >= 0)
+            {
+                input = token[(colon + 1)..].Trim();
+                token = token[..colon].Trim();
+            }
+            string player = input?.ToLowerInvariant() switch
+            {
+                "hostplayer" or "host" => "Host",
+                "anyplayer" or "any" => "Any",
+                _ => "Current"
+            };
+            int Min() => values.Select(v => int.TryParse(v, out int n) ? n : int.MaxValue).Min();
+
+            // Content Patcher ignores case ("jojaMember"), the game's mail check doesn't ("JojaMember")
+            string Flag(string flag) => Game1.player.mailReceived.FirstOrDefault(m => m.Equals(flag, StringComparison.OrdinalIgnoreCase)) ?? flag;
+            string Any(Func<string, string> query) => values.Count == 1 ? query(values[0]) : "ANY " + string.Join(" ", values.Select(v => $"\"{query(v)}\""));
+
+            string? result = token.ToLowerInvariant() switch
+            {
+                "hasflag" => Any(v => $"PLAYER_HAS_MAIL {player} {Flag(v)}"),
+                "hasseenevent" => Any(v => $"PLAYER_HAS_SEEN_EVENT {player} {v}"),
+                "farmhouseupgrade" when Min() != int.MaxValue => FarmhouseQuery(values, player),
+                "hearts" when input != null && Min() != int.MaxValue => $"PLAYER_HEARTS Current {input} {Min()}",
+                "relationship" when input != null => $"PLAYER_NPC_RELATIONSHIP Current {input} {string.Join(" ", values)}",
+                "spouse" => Any(v => $"PLAYER_NPC_RELATIONSHIP Current {v} Married"),
+                "season" => $"SEASON {string.Join(" ", values)}",
+                "dayofweek" => $"DAY_OF_WEEK {string.Join(" ", values)}",
+                // the token's input is a location context: the valley by default
+                "weather" => $"WEATHER {(input?.Equals("Island", StringComparison.OrdinalIgnoreCase) == true ? "IslandSouth" : "Town")} {string.Join(" ", values)}",
+                "day" => $"DAY_OF_MONTH {string.Join(" ", values)}",
+                "year" when Min() != int.MaxValue => $"YEAR {Min()}",
+                "daysplayed" when Min() != int.MaxValue => $"DAYS_PLAYED {Min()}",
+                "iscommunitycentercomplete" => values[0].Equals("true", StringComparison.OrdinalIgnoreCase) ? "IS_COMMUNITY_CENTER_COMPLETE" : "!IS_COMMUNITY_CENTER_COMPLETE",
+                "isjojamartcomplete" => values[0].Equals("true", StringComparison.OrdinalIgnoreCase) ? "IS_JOJA_MART_COMPLETE" : "!IS_JOJA_MART_COMPLETE",
+                _ => null
+            };
+            if (result == null)
+                return null;
+            return negated ? (result.StartsWith('!') ? result[1..] : "!" + result) : result;
+        }
+
+        /// <summary>
+        /// Farmhouse levels as a query: the game's checks "at least", so "2, 3" is at least 2 and "0, 1" is below 2. A
+        /// single level in between is read as at least that.
+        /// </summary>
+        private static string FarmhouseQuery(List<string> values, string player)
+        {
+            var levels = values.Select(v => int.TryParse(v, out int n) ? n : -1).Where(n => n >= 0).Distinct().OrderBy(n => n).ToList();
+            bool fromStart = levels[0] == 0 && levels.SequenceEqual(Enumerable.Range(0, levels.Count));
+            return fromStart && levels[^1] < 3
+                ? $"!PLAYER_FARMHOUSE_UPGRADE {player} {levels[^1] + 1}"
+                : $"PLAYER_FARMHOUSE_UPGRADE {player} {levels[0]}";
         }
 
         /// <summary>

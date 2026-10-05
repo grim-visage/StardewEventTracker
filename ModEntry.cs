@@ -222,6 +222,9 @@ namespace StardewEventTracker
         ****/
         private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
         {
+            // what content packs add later, to explain events that are needed but not in the game yet
+            ContentPackEvents.ScanInBackground(this.Helper, this.Monitor);
+
             var gmcm = this.configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (gmcm == null)
                 return;

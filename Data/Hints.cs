@@ -39,7 +39,8 @@ namespace StardewEventTracker.Data
         public static void Load(IModHelper helper, IMonitor monitor)
         {
             file = helper.Data.ReadJsonFile<HintFile>("assets/hints.json") ?? new HintFile();
-            file.Flags = WithoutNulls(file.Flags, StringComparer.Ordinal);
+            // Content Patcher packs write flags in any case ("jojaMember"), so match hints the same way
+            file.Flags = WithoutNulls(file.Flags, StringComparer.OrdinalIgnoreCase);
             file.Topics = WithoutNulls(file.Topics, StringComparer.Ordinal);
             file.Preconditions = WithoutNulls(file.Preconditions, StringComparer.OrdinalIgnoreCase);
             file.Locations = WithoutNulls(file.Locations, StringComparer.OrdinalIgnoreCase);

@@ -116,6 +116,18 @@
     "GiEXbundle.combat.done": {
       "Text": "Complete the Combat bundle on Ginger Island",
       "Source": "GI Extra Locations data"
+    },
+    "museumComplete": {
+      "Text": "Donate every artifact and mineral to the museum",
+      "Source": "game code"
+    },
+    "JojaMember": {
+      "Text": "Buy a Joja membership at JojaMart",
+      "Source": "game code"
+    },
+    "galaxySword": {
+      "Text": "Get the Galaxy Sword by holding a Prismatic Shard in the Three Pillars in the desert",
+      "Source": "game code"
     }
   },
   "Topics": {

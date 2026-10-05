@@ -352,7 +352,8 @@ namespace StardewEventTracker.Data
                     // events the index doesn't know are usually started by a mod's own code: just more story to go
                     "sawevent" when !c.Negated => index?.FindById(first) != null
                         ? I18n.Get("step.see-event", new { @event = index.DescribeEventShort(first) })
-                        : (index != null ? PreconditionFormatter.DescribeMarker(first, index, forStep: true) : null) ?? I18n.Get("step.story-progress"),
+                        : (index != null ? PreconditionFormatter.DescribeMarker(first, index, forStep: true) ?? PreconditionFormatter.DescribeAddedLater(first, index, forStep: true) : null)
+                            ?? I18n.Get("step.story-progress"),
                     "hostmail" or "hostorlocalmail" or "localmail" or "worldstate" when !c.Negated =>
                         (index != null ? PreconditionFormatter.ExplainFlag(first, index, forStep: true) : null) ?? I18n.Get("step.story-progress"),
                     "activedialogueevent" when index != null && PreconditionFormatter.ExplainTopic(first, c.Negated, index, forStep: true) is { } wait => wait,
