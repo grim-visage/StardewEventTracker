@@ -45,6 +45,9 @@ namespace StardewEventTracker
         /// <summary>Loved gifts this player owns, for each NPC.</summary>
         public LovedGifts Gifts { get; }
 
+        /// <summary>NPCs whose dialogue a mod changed, to read again on the next tick.</summary>
+        public HashSet<string> PendingDialogue { get; } = new();
+
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
 
@@ -70,6 +73,7 @@ namespace StardewEventTracker
             this.PinnedNpcs.Clear();
             this.PinnedStoryEvents.Clear();
             this.AutoPinDismissed.Clear();
+            this.PendingDialogue.Clear();
             this.Index.Clear();
         }
     }

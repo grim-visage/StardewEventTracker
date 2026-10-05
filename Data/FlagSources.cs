@@ -164,16 +164,7 @@ namespace StardewEventTracker.Data
             Try(monitor, "dialogue", () =>
             {
                 foreach (string npc in Game1.characterData.Keys)
-                {
-                    string asset = "Characters\\Dialogue\\" + npc;
-                    if (!Game1.content.DoesAssetExist<Dictionary<string, string>>(asset))
-                        continue;
-                    foreach (string line in Game1.content.Load<Dictionary<string, string>>(asset).Values)
-                    {
-                        foreach (Match match in OnceDialogue.Matches(line))
-                            this.dialogueFlags.TryAdd(match.Groups[1].Value, npc);
-                    }
-                }
+                    this.ScanDialogue(npc);
             });
 
             Try(monitor, "museum rewards", () =>
@@ -330,6 +321,29 @@ namespace StardewEventTracker.Data
                 return null;
             string parsed = TokenParser.ParseText(text);
             return string.IsNullOrWhiteSpace(parsed) ? null : parsed.Trim();
+        }
+
+        /// <summary>
+        /// Reads one NPC's dialogue again after a mod changed it. Some content packs reload an NPC's dialogue on every
+        /// warp, so this is all that's redone rather than the whole index.
+        /// </summary>
+        public void RescanDialogue(IMonitor monitor, string npc)
+        {
+            foreach (string flag in this.dialogueFlags.Where(p => p.Value == npc).Select(p => p.Key).ToList())
+                this.dialogueFlags.Remove(flag);
+            Try(monitor, $"{npc}'s dialogue", () => this.ScanDialogue(npc));
+        }
+
+        private void ScanDialogue(string npc)
+        {
+            string asset = "Characters\\Dialogue\\" + npc;
+            if (!Game1.content.DoesAssetExist<Dictionary<string, string>>(asset))
+                return;
+            foreach (string line in Game1.content.Load<Dictionary<string, string>>(asset).Values)
+            {
+                foreach (Match match in OnceDialogue.Matches(line))
+                    this.dialogueFlags.TryAdd(match.Groups[1].Value, npc);
+            }
         }
 
         private static void Try(IMonitor monitor, string what, Action action)

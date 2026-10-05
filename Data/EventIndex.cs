@@ -250,7 +250,7 @@ namespace StardewEventTracker.Data
         public EventEvaluation Evaluate(EventInfo evt)
         {
             if (!this.evaluations.TryGetValue(evt.EntryKey, out EventEvaluation? eval))
-                this.evaluations[evt.EntryKey] = eval = EventEvaluator.Evaluate(evt, this);
+                this.evaluations[evt.EntryKey] = eval = Perf.Eval(() => EventEvaluator.Evaluate(evt, this));
             return eval;
         }
 

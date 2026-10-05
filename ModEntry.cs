@@ -57,6 +57,7 @@ namespace StardewEventTracker
         public override void Entry(IModHelper helper)
         {
             I18n.Init(helper.Translation);
+            Perf.Init(this.Monitor);
             Hints.Load(helper, this.Monitor);
             this.Config = helper.ReadConfig<ModConfig>();
             this.NormalizeConfig();
@@ -66,19 +67,20 @@ namespace StardewEventTracker
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
-            helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
-            helper.Events.Content.AssetsInvalidated += this.OnAssetsInvalidated;
+            helper.Events.GameLoop.TimeChanged += (s, e) => Perf.Run("time changed handler", () => this.OnTimeChanged(s, e));
+            helper.Events.Content.AssetsInvalidated += (s, e) => Perf.Run("assets invalidated handler", () => this.OnAssetsInvalidated(s, e));
 
             // what's carried changed, so the loved gifts shown may have too; chests are scanned again whenever the menu
             // opens, so their changes (Automate moves items every second) don't need to set off a scan of the whole world
             helper.Events.Player.InventoryChanged += (_, e) => { if (e.IsLocalPlayer) this.State.Gifts.Invalidate(); };
             helper.Events.GameLoop.UpdateTicked += (_, _) =>
             {
+                Perf.FlushTick();
                 if (!Context.IsWorldReady)
                     return;
-                this.ReindexIfDataChanged();
-                this.RescanIfMapsChanged();
-                this.State.Travel.OnUpdateTicked();
+                Perf.Run("reindex check", this.ReindexIfDataChanged);
+                Perf.Run("map rescan check", this.RescanIfMapsChanged);
+                Perf.Run("travel clock", this.State.Travel.OnUpdateTicked);
                 this.UpdateHudDrag();
                 if (this.openMenuNextTick.Value && Game1.activeClickableMenu == null && !Game1.dialogueUp)
                 {
@@ -88,14 +90,14 @@ namespace StardewEventTracker
             };
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
-            helper.Events.Player.Warped += this.OnWarped;
-            helper.Events.Display.MenuChanged += this.OnMenuChanged;
-            helper.Events.Display.RenderedHud += (_, e) => this.hud.Value.Draw(e.SpriteBatch);
+            helper.Events.Player.Warped += (s, e) => Perf.Run("warp handler", () => this.OnWarped(s, e));
+            helper.Events.Display.MenuChanged += (s, e) => Perf.Run("menu changed handler", () => this.OnMenuChanged(s, e));
+            helper.Events.Display.RenderedHud += (_, e) => Perf.Run("HUD draw", () => this.hud.Value.Draw(e.SpriteBatch));
             var mapMarkers = new MapMarkers(this);
             helper.Events.Display.RenderedActiveMenu += (_, e) =>
             {
                 if (Context.IsWorldReady && this.Config.ShowMapMarkers)
-                    mapMarkers.Draw(e.SpriteBatch);
+                    Perf.Run("map markers draw", () => mapMarkers.Draw(e.SpriteBatch));
             };
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
@@ -341,7 +343,18 @@ namespace StardewEventTracker
             if (DoorAccess.MapsChanged(e.NamesWithoutLocale.Where(name => name.StartsWith("Maps/")).Select(name => name.Name)))
                 this.mapsChangedTick ??= Game1.ticks;
 
-            if (!e.NamesWithoutLocale.Any(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))))
+            // a changed NPC dialogue file only means reading that NPC's dialogue again (Eli & Dylan reloads Eli's on every warp)
+            var changed = e.NamesWithoutLocale.Where(name => IndexedAssets.Any(prefix => name.StartsWith(prefix))).ToList();
+            var dialogue = changed.Where(name => name.StartsWith(DialoguePrefix)).ToList();
+            foreach (IAssetName name in dialogue)
+            {
+                string npc = name.Name[DialoguePrefix.Length..];
+                if (!Game1.characterData.ContainsKey(npc))
+                    continue;
+                foreach ((_, PlayerState state) in this.screen.GetActiveValues())
+                    state.PendingDialogue.Add(npc);
+            }
+            if (changed.Count == dialogue.Count)
                 return;
 
             // each split-screen player has their own index
@@ -349,6 +362,8 @@ namespace StardewEventTracker
                 this.dataChangedTick.SetValueForScreen(screen, Game1.ticks);
             this.dataChangedTick.Value = Game1.ticks;
         }
+
+        private const string DialoguePrefix = "Characters/Dialogue/";
 
         /// <summary>The assets the index reads, by name prefix.</summary>
         private static readonly string[] IndexedAssets =
@@ -375,6 +390,14 @@ namespace StardewEventTracker
 
         private void ReindexIfDataChanged()
         {
+            if (this.State.PendingDialogue.Count > 0 && !Game1.eventUp)
+            {
+                foreach (string npc in this.State.PendingDialogue)
+                    this.Index.Flags.RescanDialogue(this.Monitor, npc);
+                this.State.PendingDialogue.Clear();
+                this.Index.Invalidate();
+            }
+
             // wait a moment so a burst of changes means one rebuild, and don't stall a cutscene
             if (this.dataChangedTick.Value is not { } changed || Game1.ticks - changed < 30 || Game1.eventUp)
                 return;
