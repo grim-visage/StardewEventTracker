@@ -38,7 +38,11 @@ namespace StardewEventTracker.Data
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeMarker(a[0], index, forStep: false) is { } marker => marker,
                 // an event a content pack adds once its conditions are met: say what those are
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeAddedLater(a[0], index, forStep: false) is { } later => later,
-                // nothing says what it is: an event a mod's own code handles
+                // a map tile that marks it seen when you check it
+                "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeTileMarker(a[0], index, forStep: false) is { } tile => tile,
+                // nothing in any installed mod adds or sets it: switched off, or left over from an older version
+                "sawevent" when !c.Negated && a.Length == 1 && IsMissingForGood(a[0], index) => I18n.Get("cond.missing-event"),
+                // something sets it, but there's no telling what
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null => I18n.Get("cond.story-progress"),
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
                 // a mod that wrote "D" (dating) for "d" (day of week): nobody is called "Mon", so it can never be true
@@ -356,6 +360,33 @@ namespace StardewEventTracker.Data
                 return I18n.Get($"{prefix}.added-needs", new { needs });
             return I18n.Get(understood ? $"{prefix}.added-soon" : $"{prefix}.story-progress");
         }
+
+        /// <summary>"Once you check a spot in Ridgeside Village (57, 42) when the weather is sunny or windy", for an event ID a map tile marks seen. Null if none does.</summary>
+        public static string? DescribeTileMarker(string eventId, EventIndex index, bool forStep)
+        {
+            if (ContentPackEvents.GetTileMarker(eventId) is not { } marker)
+                return null;
+
+            List<string> unmet = UnmetPatchConditions(marker.When, out _, out _);
+            string? when = unmet.Count > 0 ? DescribeCondition(string.Join(", ", unmet), index) : null;
+            string place = EventNarrator.WithArticle(EventIndex.GetLocationDisplayName(marker.Map));
+            string text = I18n.Get(forStep ? "step.tile-marker" : "cond.tile-marker", new { place, x = marker.X, y = marker.Y });
+            return when != null ? text + I18n.Get("added.tile-when", new { when }) : text;
+        }
+
+        /// <summary>
+        /// Whether a required event ID can never be seen: no event, marker, map tile or pack data adds or sets it, and the
+        /// player hasn't seen it. Mods use this to switch events off, and old versions leave such IDs behind.
+        /// </summary>
+        public static bool IsMissingForGood(string eventId, EventIndex index) =>
+            ContentPackEvents.Ready
+            && index.FindById(eventId) == null
+            && !Game1.player.eventsSeen.Contains(eventId)
+            && index.Flags.GetEventMarker(eventId) == null
+            && index.Flags.DescribeOtherMarker(eventId) == null
+            && ContentPackEvents.Get(eventId).Count == 0
+            && ContentPackEvents.GetTileMarker(eventId) == null
+            && !ContentPackEvents.IsSetSomewhere(eventId);
 
         /// <summary>The added event's own requirements that aren't met yet, e.g. "8 hearts with Gunther and year 2 or later".</summary>
         private static string? DescribePackEventNeeds(PackEvent pack, EventIndex index)

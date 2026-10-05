@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -18,6 +21,10 @@ namespace StardewEventTracker.Data
     /// <param name="When">The patch's conditions (Content Patcher tokens).</param>
     internal sealed record PackEvent(string Id, string Location, string Key, string ModName, IReadOnlyDictionary<string, string> When);
 
+    /// <summary>A map tile a pack adds that marks an event ID seen when checked ("MessageOnce &lt;id&gt; &lt;message&gt;").</summary>
+    /// <param name="Map">The map the patch edits, usually the location's name.</param>
+    internal sealed record TileMarker(string Id, string Map, int X, int Y, IReadOnlyDictionary<string, string> When);
+
     /// <summary>
     /// Reads the loaded Content Patcher packs for events they add to location event data, so an event that's needed
     /// but not in the game yet (its patch's conditions aren't met) can be explained: what makes the mod add it.
@@ -28,7 +35,24 @@ namespace StardewEventTracker.Data
         /// <summary>A patch target for a location's events: "Data/Events/Farm".</summary>
         private static readonly Regex EventsTarget = new(@"^Data[/\\]Events[/\\]([^/\\{}]+)$", RegexOptions.IgnoreCase);
 
+        /// <summary>A patch target for a map: "Maps/Custom_Ridgeside_RidgesideVillage".</summary>
+        private static readonly Regex MapTarget = new(@"^Maps[/\\]([^/\\{}]+)$", RegexOptions.IgnoreCase);
+
+        /// <summary>Anything in a pack that marks an event ID seen: a trigger or dialogue action, an event command, a map tile action.</summary>
+        private static readonly Regex SetsEventSeen = new(@"(?:MarkEventSeen\s+\S+|MessageOnce|\beventSeen)\s+([^\s""'/\\]+)", RegexOptions.IgnoreCase);
+
         private static volatile Dictionary<string, List<PackEvent>> byId = new();
+        private static volatile Dictionary<string, TileMarker> tileMarkers = new();
+        private static volatile HashSet<string> setSomewhere = new();
+
+        /// <summary>Whether the packs have been read, so an event none of them adds really isn't added by any.</summary>
+        public static bool Ready { get; private set; }
+
+        /// <summary>The map tile that marks this event ID seen, if a pack adds one.</summary>
+        public static TileMarker? GetTileMarker(string id) => tileMarkers.TryGetValue(id, out TileMarker? marker) ? marker : null;
+
+        /// <summary>Whether anything in a pack marks this event ID seen (a trigger, dialogue, event command or map tile).</summary>
+        public static bool IsSetSomewhere(string id) => setSomewhere.Contains(id);
 
         /// <summary>The conditional versions of an event, from every pack that adds it; empty if none (or the scan hasn't finished).</summary>
         public static IReadOnlyList<PackEvent> Get(string id) =>
@@ -42,7 +66,13 @@ namespace StardewEventTracker.Data
                 try
                 {
                     var found = new Dictionary<string, List<PackEvent>>();
+                    var tiles = new Dictionary<string, TileMarker>();
+                    var setters = new HashSet<string>();
                     int packs = 0;
+                    // C# mods can mark events seen in code, so an ID they mention isn't ruled out
+                    foreach (string dll in FindCodeMods(helper))
+                        ReadCodeStrings(dll, setters);
+
                     foreach ((string dir, string name) in FindContentPatcherPacks(helper))
                     {
                         packs++;
@@ -50,10 +80,13 @@ namespace StardewEventTracker.Data
                         {
                             if (Path.GetFileName(file).Equals("manifest.json", StringComparison.OrdinalIgnoreCase) || file.Contains($"{Path.DirectorySeparatorChar}i18n{Path.DirectorySeparatorChar}"))
                                 continue;
-                            ReadPatches(file, name, found);
+                            ReadPatches(file, name, found, tiles, setters);
                         }
                     }
                     byId = found;
+                    tileMarkers = tiles;
+                    setSomewhere = setters;
+                    Ready = true;
                     monitor.Log($"Read {found.Count} conditionally added events from {packs} Content Patcher packs.", LogLevel.Trace);
                 }
                 catch (Exception ex)
@@ -61,6 +94,56 @@ namespace StardewEventTracker.Data
                     monitor.Log($"Couldn't read Content Patcher packs to explain events they add later: {ex.Message}", LogLevel.Trace);
                 }
             });
+        }
+
+        /// <summary>The main DLL of every loaded C# mod (except this one).</summary>
+        private static IEnumerable<string> FindCodeMods(IModHelper helper)
+        {
+            foreach (string manifestPath in Directory.EnumerateFiles(ModsFolder(helper), "manifest.json", SearchOption.AllDirectories))
+            {
+                if (manifestPath.Split(Path.DirectorySeparatorChar).Any(part => part.StartsWith('.')) || Parse(SafeRead(manifestPath)) is not JObject manifest)
+                    continue;
+                string? id = manifest.Value<string>("UniqueID");
+                string? entryDll = manifest.Value<string>("EntryDll");
+                if (id == null || entryDll == null || id == helper.ModRegistry.ModID || !helper.ModRegistry.IsLoaded(id))
+                    continue;
+                string dll = Path.Combine(Path.GetDirectoryName(manifestPath)!, entryDll);
+                if (File.Exists(dll))
+                    yield return dll;
+            }
+        }
+
+        /// <summary>Adds the string literals in a DLL's code, read from its metadata without loading it.</summary>
+        private static void ReadCodeStrings(string dll, HashSet<string> strings)
+        {
+            try
+            {
+                using var stream = File.OpenRead(dll);
+                using var pe = new PEReader(stream);
+                MetadataReader metadata = pe.GetMetadataReader();
+                for (UserStringHandle handle = MetadataTokens.UserStringHandle(1); !handle.IsNil; handle = metadata.GetNextHandle(handle))
+                {
+                    string value = metadata.GetUserString(handle);
+                    if (value.Length is > 0 and < 100)
+                        strings.Add(value);
+                }
+            }
+            catch (Exception)
+            {
+                // not a .NET assembly we can read
+            }
+        }
+
+        private static string SafeRead(string path)
+        {
+            try
+            {
+                return File.ReadAllText(path);
+            }
+            catch (Exception)
+            {
+                return "";
+            }
         }
 
         /// <summary>The folder and name of every loaded content pack for Content Patcher (folders starting with '.' are disabled, as in SMAPI).</summary>
@@ -106,7 +189,16 @@ namespace StardewEventTracker.Data
         private static bool TryReadManifest(string path, out string? id, out string? name, out string? packFor)
         {
             id = name = packFor = null;
-            if (Parse(path) is not JObject manifest)
+            string text;
+            try
+            {
+                text = File.ReadAllText(path);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            if (Parse(text) is not JObject manifest)
                 return false;
             id = manifest.Value<string>("UniqueID");
             name = manifest.Value<string>("Name");
@@ -115,13 +207,30 @@ namespace StardewEventTracker.Data
         }
 
         /// <summary>Records the location events each EditData patch in the file adds, with the patch's conditions.</summary>
-        private static void ReadPatches(string file, string modName, Dictionary<string, List<PackEvent>> found)
+        private static void ReadPatches(string file, string modName, Dictionary<string, List<PackEvent>> found, Dictionary<string, TileMarker> tiles, HashSet<string> setters)
         {
-            if (Parse(file) is not JObject { } root || root["Changes"] is not JArray changes)
+            string text;
+            try
+            {
+                text = File.ReadAllText(file);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            foreach (Match match in SetsEventSeen.Matches(text))
+                setters.Add(match.Groups[1].Value);
+
+            if (Parse(text) is not JObject { } root || root["Changes"] is not JArray changes)
                 return;
 
             foreach (JObject patch in changes.OfType<JObject>())
             {
+                if (string.Equals(patch.Value<string>("Action"), "EditMap", StringComparison.OrdinalIgnoreCase))
+                {
+                    ReadTileMarkers(patch, tiles);
+                    continue;
+                }
                 if (!string.Equals(patch.Value<string>("Action"), "EditData", StringComparison.OrdinalIgnoreCase) || patch["Entries"] is not JObject entries)
                     continue;
 
@@ -134,9 +243,7 @@ namespace StardewEventTracker.Data
                 if (locations.Count == 0)
                     continue;
 
-                var when = (patch["When"] as JObject)?.Properties()
-                    .ToDictionary(p => p.Name, p => p.Value.Type == JTokenType.Boolean ? p.Value.ToString().ToLowerInvariant() : p.Value.ToString(), StringComparer.OrdinalIgnoreCase)
-                    ?? new Dictionary<string, string>();
+                IReadOnlyDictionary<string, string> when = ReadWhen(patch);
 
                 foreach (JProperty entry in entries.Properties())
                 {
@@ -154,11 +261,34 @@ namespace StardewEventTracker.Data
             }
         }
 
-        private static JToken? Parse(string path)
+        /// <summary>Records map tiles the patch adds whose action marks an event seen when checked (MessageOnce).</summary>
+        private static void ReadTileMarkers(JObject patch, Dictionary<string, TileMarker> tiles)
+        {
+            Match target = MapTarget.Match(patch.Value<string>("Target") ?? "");
+            if (!target.Success || patch["MapTiles"] is not JArray mapTiles)
+                return;
+
+            IReadOnlyDictionary<string, string> when = ReadWhen(patch);
+            foreach (JObject tile in mapTiles.OfType<JObject>())
+            {
+                string action = (tile["SetProperties"] as JObject)?.Value<string>("Action") ?? "";
+                string[] words = action.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length < 2 || !words[0].Equals("MessageOnce", StringComparison.OrdinalIgnoreCase) || tile["Position"] is not JObject position)
+                    continue;
+                tiles.TryAdd(words[1], new TileMarker(words[1], target.Groups[1].Value, position.Value<int>("X"), position.Value<int>("Y"), when));
+            }
+        }
+
+        private static IReadOnlyDictionary<string, string> ReadWhen(JObject patch) =>
+            (patch["When"] as JObject)?.Properties()
+                .ToDictionary(p => p.Name, p => p.Value.Type == JTokenType.Boolean ? p.Value.ToString().ToLowerInvariant() : p.Value.ToString(), StringComparer.OrdinalIgnoreCase)
+            ?? new Dictionary<string, string>();
+
+        private static JToken? Parse(string text)
         {
             try
             {
-                using var reader = new JsonTextReader(new StreamReader(path));
+                using var reader = new JsonTextReader(new StringReader(text));
                 return JToken.ReadFrom(reader, new JsonLoadSettings { CommentHandling = CommentHandling.Ignore, DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Ignore });
             }
             catch (Exception)

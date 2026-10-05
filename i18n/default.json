@@ -543,5 +543,9 @@
   "cond.added-needs": "Needs {{needs}}",
   "step.added-needs": "needs {{needs}}",
   "cond.added-soon": "Should be possible from tomorrow",
-  "step.added-soon": "should be possible from tomorrow"
+  "step.added-soon": "should be possible from tomorrow",
+  "cond.missing-event": "Can't happen: it needs an event no installed mod has (switched off, or left over from an older version of the mod)",
+  "cond.tile-marker": "Once you check a spot in {{place}} ({{x}}, {{y}})",
+  "step.tile-marker": "once you check a spot in {{place}} ({{x}}, {{y}})",
+  "added.tile-when": " when {{when}}"
 }
