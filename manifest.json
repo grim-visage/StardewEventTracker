@@ -1,7 +1,7 @@
 {
   "Name": "Stardew Event Tracker",
   "Author": "grim-visage",
-  "Version": "1.4.0",
+  "Version": "1.4.1",
   "Description": "Tracks heart and story events: what's pending, where and when each can happen, what you still need, and reminders for what you pin.",
   "UniqueID": "grim-visage.StardewEventTracker",
   "EntryDll": "StardewEventTracker.dll",
