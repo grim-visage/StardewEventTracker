@@ -1,17 +1,17 @@
 ================================================================================
                              STARDEW EVENT TRACKER
-             Heart and story event tracking for Stardew Valley 1.6
+                     Event tracking for Stardew Valley 1.6
 ================================================================================
 
-Heart and story events are easy to miss. Many only happen in one place, at a
-certain time, in certain weather, or after another event. I created Stardew
-Event Tracker to show every event you haven't seen yet, what you still need
-to do, and where and when to be so it plays.
+Events are easy to miss. Many only happen in one place, at a certain time,
+in certain weather, or after another event. I created Stardew Event Tracker
+to show every event you haven't seen yet, what you still need to do, and
+where and when to be so it plays.
 
 FEATURES
 
   Event tracking
-    * Every unseen heart and story event, grouped by NPC or location
+    * Every unseen event, grouped by NPC or location
     * Each requirement marked as met or unmet, in plain language, including
       hidden story flags, letters, quests and special orders
     * Live status: available now, later today, a different day, or what
