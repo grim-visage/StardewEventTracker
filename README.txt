@@ -27,11 +27,13 @@ FEATURES
     * Reminders before an event can start, when it's time to leave, and
       when it becomes available
     * Map markers where pinned events can happen today
+    * Loved gifts you own for each NPC, shown in the tracker menu, and
+      whether you can give one today
 
-  Social tab integration
-    * NPC portraits in the tracker, linking to each NPC's profile
-    * Open the tracker or pin an NPC directly from the Social tab
-    * Loved gifts you own for each NPC, and whether you can give one today
+  Social tab integration (the game's own Social tab in the Esc menu)
+    * NPC portraits in the tracker that open the NPC's profile on the
+      Social tab
+    * Open the tracker or pin an NPC straight from the Social tab
 
   Compatibility and options
     * Includes events from content mods such as Stardew Valley Expanded,
@@ -65,11 +67,11 @@ HOW TO USE IT
 -------------
   Key                 Action
   ------------------  ---------------------------------------------------
-  F2                  Open or close the tracker menu (on the Social tab:
-                      open it at the NPC under your cursor)
+  F2                  Open or close the tracker menu (on the game's Social
+                      tab: open it at the NPC under your cursor)
   Shift + F2          Show or hide the HUD tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
-                      or on the Social tab)
+                      or on the game's Social tab)
   Right-click + drag  Move the HUD tracker
 
 
@@ -80,7 +82,8 @@ and map markers cover what you've pinned. You can pin someone by:
 
   * clicking "Pin" next to their name on the Hearts tab
   * pointing at them in the world and pressing Ctrl + F2
-  * hovering their row on the Social tab and pressing Ctrl + F2
+  * hovering their row on the game's Social tab (Esc menu) and pressing
+    Ctrl + F2
 
 Your spouse, roommate and anyone you're dating are pinned automatically. If
 you unpin one of them, they stay unpinned.
@@ -96,8 +99,8 @@ Tracker menu (F2)
                and a "Today's messages" list of every reminder from today.
   * Hearts     Every NPC with heart events you haven't seen, with their
                portrait and hearts. Click the arrow or the row to expand
-               it, or the portrait or name to open their Social tab
-               profile (close it to come back).
+               it, or the portrait or name to open their profile on the
+               game's Social tab (close it to come back).
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
   * Completed  Events you've already seen. Switch between Hearts and Story
@@ -295,11 +298,12 @@ with a start time ("before it starts" and "ready" reminders only).
 
 Loved gifts
 ~~~~~~~~~~~
-On the Hearts and Pinned tabs, each NPC shows up to three items they love
-that you own: carried, or in any chest, fridge or Junimo chest. Hover over
-them to see what they are, where they are, and whether you can give that
-NPC a gift today (one a day and two a week; birthdays and spouses are
-exceptions). The icons fade when you can't.
+In the tracker menu (F2), each NPC on the Hearts and Pinned tabs shows up
+to three items they love that you own: carried, or in any chest, fridge or
+Junimo chest. Hover over them to see what they are, where they are, and
+whether you can give that NPC a gift today (one a day and two a week;
+birthdays and spouses are exceptions). The icons fade when you can't.
+Loved gifts appear only in the tracker menu, not on the game's Social tab.
 
 In spoiler-free mode they only show gifts you've already found out the NPC
 loves.
@@ -336,7 +340,7 @@ menu opens it), or in config.json after the first launch.
                                           partners automatically
   SpoilerFree            false            Hide details of locked events
   ShowLovedGifts         true             Show loved gifts you own next to
-                                          NPCs
+                                          NPCs in the tracker menu
   ShowHud                true             Whether the HUD tracker is visible
   HudFade                true             Fade the HUD while you or the
                                           mouse are under it

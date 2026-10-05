@@ -278,7 +278,7 @@
   "config.auto-pin.tip": "Pin your spouse, roommate and anyone you're dating automatically. Unpinning them sticks.",
   "config.spoiler-free": "Spoiler-free mode",
   "config.loved-gifts": "Show loved gifts you own",
-  "config.loved-gifts.tip": "Show up to three items each NPC loves that you have, in your inventory or any chest or fridge, next to them on the Hearts tab. They fade when you can't give that NPC a gift today. In spoiler-free mode, only gifts you've found out they love.",
+  "config.loved-gifts.tip": "Show up to three items each NPC loves that you have, in your inventory or any chest or fridge, next to them on the tracker's Hearts and Pinned tabs. They fade when you can't give that NPC a gift today. In spoiler-free mode, only gifts you've found out they love.",
   "gifts.tooltip": "Loved gifts you have:",
   "gifts.carried": "{{item}} (x{{count}}, carrying)",
   "gifts.stored": "{{item}} (x{{count}}, in storage)",
