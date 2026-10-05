@@ -33,6 +33,21 @@ namespace StardewEventTracker.UI
 
             /// <summary>Drawn after the text, e.g. an NPC's hearts; given where the text ends and the row's vertical centre.</summary>
             public Action<SpriteBatch, Vector2, int>? DrawAfter;
+
+            /// <summary>Drawn in the indent before the text (an NPC's expand arrow and portrait); the row's click area covers it too.</summary>
+            public Action<SpriteBatch, Rectangle>? DrawLead;
+
+            /// <summary>Clicking the portrait or name rather than the rest of the row, e.g. to open the NPC's profile.</summary>
+            public Action? OnNameClick;
+
+            /// <summary>Where the portrait starts in the indent; clicks left of it (the arrow) go to <see cref="OnClick"/>.</summary>
+            public int NameClickFrom;
+
+            /// <summary>Hover text for <see cref="OnNameClick"/>.</summary>
+            public string? NameHover;
+
+            /// <summary>The NPC the row introduces, so the menu can scroll to them.</summary>
+            public string? Owner;
         }
 
         /// <summary>A toggle button in the toolbar next to the search box.</summary>
@@ -82,6 +97,18 @@ namespace StardewEventTracker.UI
 
         /// <summary>The size of a loved gift icon next to an NPC's hearts.</summary>
         private const int GiftSize = 36;
+
+        /// <summary>The size of an NPC's portrait next to their name, and the space after it.</summary>
+        private const int PortraitSize = 64, PortraitGap = 12;
+
+        /// <summary>The width of an NPC's expand arrow.</summary>
+        private const int ArrowWidth = 28;
+
+        /// <summary>The game's options-menu button box.</summary>
+        private static readonly Rectangle ButtonSource = new(432, 439, 9, 9);
+
+        /// <summary>The NPC to scroll to once the rows are built (opened from their Social tab entry).</summary>
+        private string? scrollTo;
         private readonly List<Chip> chips = new();
         private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
@@ -106,9 +133,20 @@ namespace StardewEventTracker.UI
             this.width - Padding * 2 - 24,
             this.yPositionOnScreen + this.height - Padding - this.contentTop);
 
-        public TrackerMenu(ModEntry mod)
+        /// <param name="focusNpc">An NPC to open the Hearts tab at, expanded (e.g. pressing the menu key on their Social tab entry).</param>
+        public TrackerMenu(ModEntry mod, string? focusNpc = null)
         {
             this.mod = mod;
+            if (focusNpc != null)
+            {
+                this.tab = LastTab.Value = Tab.Hearts;
+                string key = "hearts:" + focusNpc;
+                if (EventFilter.AutoExpands)
+                    Collapsed.Remove(key);
+                else
+                    Expanded.Add(key);
+                this.scrollTo = focusNpc;
+            }
             this.searchBox = new TextBox(Game1.content.Load<Texture2D>("LooseSprites\\textBox"), null, Game1.smallFont, Game1.textColor)
             {
                 Text = EventFilter.SearchText,
@@ -475,12 +513,14 @@ namespace StardewEventTracker.UI
                 + (later > 0 ? I18n.Get("menu.count.later", new { count = later }) : "")
                 + (pending.LockedEvents.Count > 0 ? I18n.Get("menu.count.locked", new { count = pending.LockedEvents.Count }) : "")
                 + I18n.Get("menu.count.seen", new { count = seen });
-            string prefix = expandable ? (expanded ? "v " : "> ") : "";
-
             bool isPinned = this.mod.PinnedNpcs.Contains(owner);
+            int arrow = expandable ? ArrowWidth : 0;
+            int lead = arrow + PortraitSize + PortraitGap;
+            Color nameColor = now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor;
             this.AddRow(
-                prefix + name,
-                now > 0 ? ReadyColor : later > 0 ? SoonColor : Game1.textColor,
+                name,
+                nameColor,
+                indent: lead,
                 font: Game1.dialogueFont,
                 onClick: expandable && key != null ? () => ToggleExpanded(key, EventFilter.AutoExpands) : null,
                 button: I18n.Get(isPinned ? "menu.button.unpin" : "menu.button.pin"),
@@ -488,6 +528,21 @@ namespace StardewEventTracker.UI
             // everyone listed here has heart events, so show hearts even before they can be befriended
             // (finding the NPC searches every location, so it's done once here rather than every frame)
             NPC? character = Game1.getCharacterFromName(owner);
+            Row header = this.rows[^1];
+            header.Owner = owner;
+            header.NameClickFrom = arrow;
+            header.OnNameClick = () => this.OpenProfile(owner);
+            header.NameHover = I18n.Get("menu.profile.tip", new { name });
+            header.DrawLead = (b, area) =>
+            {
+                if (expandable)
+                {
+                    string glyph = expanded ? "v" : ">";
+                    Vector2 size = Game1.dialogueFont.MeasureString(glyph);
+                    Utility.drawTextWithShadow(b, glyph, Game1.dialogueFont, new Vector2(area.X, area.Y + (area.Height - size.Y) / 2), nameColor, shadowIntensity: 0.25f);
+                }
+                DrawPortrait(b, owner, character, new Rectangle(area.X + arrow, area.Y + 4, PortraitSize, PortraitSize));
+            };
             int maxHearts = Math.Max(10, character != null ? Utility.GetMaximumHeartsForCharacter(character) : 10);
             this.rows[^1].DrawAfter = (b, at, maxRight) =>
             {
@@ -497,7 +552,69 @@ namespace StardewEventTracker.UI
                 float heartsEnd = DrawHearts(b, owner, maxHearts, at, maxRight - giftsWidth);
                 this.DrawGifts(b, owner, gifts, (int)heartsEnd + 16, (int)at.Y, maxRight);
             };
-            this.AddRow(counts, MutedColor, indent: expandable ? 28 : 0);
+            this.AddRow(counts, MutedColor, indent: lead);
+
+            // room under the counts for the rest of the portrait
+            int used = header.Height + this.rows[^1].Height;
+            if (used < PortraitSize + 8)
+                this.AddSpacer(PortraitSize + 8 - used);
+        }
+
+        /// <summary>
+        /// The NPC's portrait, as on their profile; their sprite's face if they have no portrait. Darkened until you've
+        /// met them, like the Social tab.
+        /// </summary>
+        private static void DrawPortrait(SpriteBatch b, string npc, NPC? character, Rectangle area)
+        {
+            if (character == null)
+                return;
+            Color tint = Game1.player.friendshipData.ContainsKey(npc) ? Color.White : Color.Black * 0.45f;
+            try
+            {
+                if (character.Portrait is { } portrait)
+                {
+                    b.Draw(portrait, area, new Rectangle(0, 0, 64, 64), tint, 0f, Vector2.Zero, SpriteEffects.None, 0.88f);
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                // no portrait: use the sprite
+            }
+            try
+            {
+                Rectangle face = character.getMugShotSourceRect();
+                float scale = Math.Min(area.Width / (float)face.Width, area.Height / (float)face.Height);
+                var size = new Vector2(face.Width * scale, face.Height * scale);
+                b.Draw(character.Sprite.Texture, new Vector2(area.Center.X - size.X / 2, area.Center.Y - size.Y / 2), face, tint, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.88f);
+            }
+            catch (Exception)
+            {
+                // nothing to draw
+            }
+        }
+
+        /// <summary>
+        /// Opens the NPC's profile from the game's Social tab over the tracker; closing it comes back here. Only for
+        /// NPCs you've met, as on the Social tab.
+        /// </summary>
+        private void OpenProfile(string npc)
+        {
+            string name = EventIndex.GetNpcDisplayName(npc);
+            if (!Game1.player.friendshipData.ContainsKey(npc))
+            {
+                Game1.showRedMessage(I18n.Get("menu.profile.not-met", new { name }));
+                return;
+            }
+
+            var social = new SocialPage(this.xPositionOnScreen, this.yPositionOnScreen, this.width, this.height);
+            if (social.SocialEntries.FirstOrDefault(e => e.InternalName == npc) is not { } entry)
+            {
+                Game1.showRedMessage(I18n.Get("menu.profile.none", new { name }));
+                return;
+            }
+            Game1.playSound("bigSelect");
+            this.SetChildMenu(new ProfileMenu(entry, social.SocialEntries));
         }
 
         /// <summary>
@@ -952,6 +1069,22 @@ namespace StardewEventTracker.UI
             if (this.builtVersion != this.Index.Version)
                 this.RebuildRows();
 
+            // opened from an NPC's Social tab entry: scroll to them once
+            if (this.scrollTo != null)
+            {
+                int offset = 0;
+                foreach (Row row in this.rows)
+                {
+                    if (row.Owner == this.scrollTo)
+                    {
+                        this.scrollY = Math.Clamp(offset - 8, 0, this.MaxScroll);
+                        break;
+                    }
+                    offset += row.Height;
+                }
+                this.scrollTo = null;
+            }
+
             int mouseX = Game1.getMouseX(), mouseY = Game1.getMouseY();
 
             b.Draw(Game1.fadeToBlackRect, new Rectangle(0, 0, Game1.uiViewport.Width, Game1.uiViewport.Height), Color.Black * 0.5f);
@@ -962,13 +1095,11 @@ namespace StardewEventTracker.UI
             {
                 Rectangle area = this.tabAreas[i];
                 bool selected = (int)this.tab == i;
-                DrawBox(b, area, selected ? Color.White : area.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
-                DrawCentered(b, TabLabels[i], area, Game1.textColor);
+                DrawButton(b, area, TabLabels[i], active: selected, hovered: area.Contains(mouseX, mouseY));
             }
             if (!this.settingsArea.IsEmpty)
             {
-                DrawBox(b, this.settingsArea, this.settingsArea.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
-                DrawCentered(b, I18n.Get("menu.settings"), this.settingsArea, Game1.textColor);
+                DrawButton(b, this.settingsArea, I18n.Get("menu.settings"), active: false, hovered: this.settingsArea.Contains(mouseX, mouseY));
             }
 
             // toolbar
@@ -978,8 +1109,7 @@ namespace StardewEventTracker.UI
             foreach (Chip chip in this.chips)
             {
                 bool on = chip.IsOn();
-                DrawBox(b, chip.Area, on ? Color.White : chip.Area.Contains(mouseX, mouseY) ? Color.Wheat : Color.White * 0.55f);
-                DrawCentered(b, chip.Label, chip.Area, on ? ReadyColor : MutedColor);
+                DrawButton(b, chip.Area, chip.Label, active: on, hovered: chip.Area.Contains(mouseX, mouseY));
             }
 
             // rows
@@ -991,7 +1121,9 @@ namespace StardewEventTracker.UI
             {
                 if (y >= content.Y && y + row.Height <= content.Bottom && row.Text.Length > 0)
                 {
-                    var rowArea = new Rectangle(content.X + row.Indent, y, content.Width - row.Indent, row.Height);
+                    // a row with an arrow and portrait is clickable from its left edge
+                    int clickFrom = row.DrawLead != null ? 0 : row.Indent;
+                    var rowArea = new Rectangle(content.X + clickFrom, y, content.Width - clickFrom, row.Height);
                     if (row.OnClick != null)
                     {
                         if (rowArea.Contains(mouseX, mouseY))
@@ -1001,7 +1133,19 @@ namespace StardewEventTracker.UI
 
                     Vector2 textSize = row.Font.MeasureString(row.Text);
                     int textY = y + (row.Button != null || row.Button2 != null ? (row.Height - (int)textSize.Y) / 2 : 0);
+                    row.DrawLead?.Invoke(b, new Rectangle(content.X, y, row.Indent, row.Height));
                     Utility.drawTextWithShadow(b, row.Text, row.Font, new Vector2(content.X + row.Indent, textY), row.Color, shadowIntensity: 0.25f);
+
+                    // the portrait and name open the NPC's profile; underline the name while pointing at it
+                    if (row.OnNameClick != null)
+                    {
+                        var nameArea = new Rectangle(content.X + row.NameClickFrom, y, row.Indent - row.NameClickFrom + (int)textSize.X, row.Height);
+                        this.hitAreas.Add((nameArea, row.OnNameClick));
+                        if (row.NameHover != null)
+                            this.hoverAreas.Add((nameArea, row.NameHover));
+                        if (nameArea.Contains(mouseX, mouseY))
+                            b.Draw(Game1.staminaRect, new Rectangle(content.X + row.Indent, textY + (int)textSize.Y - 6, (int)textSize.X, 3), row.Color * 0.7f);
+                    }
                     int buttonsWidth = ((row.Button != null ? 1 : 0) + (row.Button2 != null ? 1 : 0)) * (ButtonWidth + 16);
                     row.DrawAfter?.Invoke(b, new Vector2(content.X + row.Indent + textSize.X + 24, textY + textSize.Y / 2), content.Right - buttonsWidth);
 
@@ -1011,8 +1155,7 @@ namespace StardewEventTracker.UI
                         if (label == null || action == null)
                             continue;
                         var buttonArea = new Rectangle(buttonRight - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48);
-                        DrawBox(b, buttonArea, buttonArea.Contains(mouseX, mouseY) ? Color.Wheat : Color.White);
-                        DrawCentered(b, label, buttonArea, Game1.textColor);
+                        DrawButton(b, buttonArea, label, active: true, hovered: buttonArea.Contains(mouseX, mouseY));
                         this.hitAreas.Add((buttonArea, action));
                         buttonRight -= ButtonWidth + 12;
                     }
@@ -1036,15 +1179,22 @@ namespace StardewEventTracker.UI
             this.drawMouse(b);
         }
 
-        private static void DrawBox(SpriteBatch b, Rectangle area, Color color)
+        /// <summary>
+        /// A button in the game's options-menu style, its label centred and shrunk to fit. Active ones (the open tab, a
+        /// filter that's on, a row's button) are bright; the rest are muted until pointed at.
+        /// </summary>
+        private static void DrawButton(SpriteBatch b, Rectangle area, string label, bool active, bool hovered)
         {
-            drawTextureBox(b, Game1.mouseCursors, new Rectangle(384, 373, 18, 18), area.X, area.Y, area.Width, area.Height, color, 4f, drawShadow: false);
-        }
+            Color box = hovered ? Color.Wheat : active ? Color.White : Color.White * 0.6f;
+            drawTextureBox(b, Game1.mouseCursors, ButtonSource, area.X, area.Y, area.Width, area.Height, box, 4f, drawShadow: active);
 
-        private static void DrawCentered(SpriteBatch b, string text, Rectangle area, Color color)
-        {
-            Vector2 size = Game1.smallFont.MeasureString(text);
-            Utility.drawTextWithShadow(b, text, Game1.smallFont, new Vector2(area.Center.X - size.X / 2, area.Center.Y - size.Y / 2), color);
+            SpriteFont font = Game1.smallFont;
+            Vector2 size = font.MeasureString(label);
+            float scale = Math.Min(1f, (area.Width - 24) / size.X);
+            var position = new Vector2(area.Center.X - size.X * scale / 2, area.Center.Y - size.Y * scale / 2 + 2);
+            Color text = Game1.textColor * (active || hovered ? 1f : 0.7f);
+            b.DrawString(font, label, position + new Vector2(2, 2) * scale, Game1.textShadowColor * (active || hovered ? 0.8f : 0.4f), 0f, Vector2.Zero, scale, SpriteEffects.None, 0.89f);
+            b.DrawString(font, label, position, text, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.9f);
         }
     }
 }

@@ -40,7 +40,8 @@ HOW TO USE IT
 -------------
   Key                 Action
   ------------------  ---------------------------------------------------
-  F2                  Open or close the tracker menu
+  F2                  Open or close the tracker menu (on the Social tab:
+                      open it at the NPC under your cursor)
   Shift + F2          Show or hide the HUD tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
                       or on the Social tab)
@@ -70,10 +71,12 @@ Tracker menu (F2)
   * Pinned     Pending heart events for the NPCs you've pinned, your pinned
                story events, and a "Today's messages" list of every
                reminder from today.
-  * Hearts     Every NPC with heart events, with their hearts shown like on
-               the game's Social tab ("Not met" until you meet them).
-               Click a name to expand it. NPCs whose events you've all
-               seen move to the Completed tab.
+  * Hearts     Every NPC with heart events, with their portrait and hearts
+               shown like on the game's Social tab ("Not met" until you
+               meet them). Click the arrow or the row to expand it, or the
+               portrait or name to open their Social tab profile (close it
+               to come back). NPCs whose events you've all seen move to
+               the Completed tab.
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
   * Completed  Events you've already seen. Switch between Hearts and Story

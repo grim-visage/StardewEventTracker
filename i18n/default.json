@@ -552,5 +552,8 @@
   "gifts.birthday": "It's {{name}}'s birthday: a gift today counts 8 times as much, and the weekly limit doesn't apply.",
   "gifts.spouse": "{{name}} is your spouse, so there's no weekly limit.",
   "gifts.given-today": "You've already given {{name}} a gift today.",
-  "gifts.week-full": "You've already given {{name}} two gifts this week. That resets on Sunday."
+  "gifts.week-full": "You've already given {{name}} two gifts this week. That resets on Sunday.",
+  "menu.profile.tip": "Open {{name}}'s profile",
+  "menu.profile.not-met": "You haven't met {{name}} yet.",
+  "menu.profile.none": "{{name}} doesn't have a profile on the Social tab."
 }

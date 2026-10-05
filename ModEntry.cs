@@ -84,7 +84,7 @@ namespace StardewEventTracker
                 if (this.openMenuNextTick.Value && Game1.activeClickableMenu == null && !Game1.dialogueUp)
                 {
                     this.openMenuNextTick.Value = false;
-                    Game1.activeClickableMenu = new TrackerMenu(this);
+                    Game1.activeClickableMenu = new TrackerMenu(this, this.TakeMenuFocus());
                 }
             };
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
@@ -483,6 +483,12 @@ namespace StardewEventTracker
             {
                 if (Game1.activeClickableMenu is TrackerMenu menu)
                     menu.exitThisMenu();
+                // from the Social tab, open at the NPC under the cursor
+                else if (Game1.activeClickableMenu is GameMenu gameMenu && gameMenu.GetCurrentPage() is SocialPage social && GetHoveredSocialEntry(social) is { } npc)
+                {
+                    gameMenu.exitThisMenu(playSound: false);
+                    this.OpenTrackerMenu(npc);
+                }
                 else if (Context.IsPlayerFree)
                     this.OpenTrackerMenu();
             }
@@ -492,13 +498,15 @@ namespace StardewEventTracker
         ** Helpers
         ****/
         /// <summary>Opens the tracker menu, first asking once whether the player wants spoiler-free mode.</summary>
-        private void OpenTrackerMenu()
+        /// <param name="focusNpc">An NPC to open the Hearts tab at (opened from their Social tab entry).</param>
+        private void OpenTrackerMenu(string? focusNpc = null)
         {
             this.Index.Invalidate();
             this.State.Gifts.Invalidate(now: true);
+            this.menuFocus.Value = focusNpc;
             if (this.Config.SpoilerPromptShown || this.Config.SpoilerFree)
             {
-                Game1.activeClickableMenu = new TrackerMenu(this);
+                Game1.activeClickableMenu = new TrackerMenu(this, this.TakeMenuFocus());
                 return;
             }
 
@@ -551,6 +559,16 @@ namespace StardewEventTracker
             this.TogglePin(npc);
             Game1.playSound("smallSelect");
             ShowToast(I18n.Get(this.PinnedNpcs.Contains(npc) ? "toast.pinned" : "toast.unpinned", new { name }));
+        }
+
+        /// <summary>The NPC the next tracker menu should open at, cleared once it's used.</summary>
+        private readonly PerScreen<string?> menuFocus = new();
+
+        private string? TakeMenuFocus()
+        {
+            string? npc = this.menuFocus.Value;
+            this.menuFocus.Value = null;
+            return npc;
         }
 
         private static string? GetHoveredSocialEntry(SocialPage page)
