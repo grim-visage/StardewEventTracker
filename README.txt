@@ -411,8 +411,8 @@ SMAPI console window (the black text window that opens with the game):
   tracker_reach
       List the areas mods added that you have no way into yet.
   tracker_export
-      Save every event and its status to exports/events.json in the mod
-      folder. Attach this file to bug reports.
+      Save every event and its status to a file you can attach to bug
+      reports: Stardew Valley/Mods/StardewEventTracker/exports/events.json
 
 Report bugs on GitHub:
 https://github.com/grim-visage/StardewEventTracker/issues
