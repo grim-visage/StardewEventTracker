@@ -320,7 +320,7 @@
   "door.letter-flag": "needs story flag '{{flag}}'",
   "door.letter.ok": "Unlocked",
   "door.town-key": "Your Town Key opens it any time",
-  "door.town-key.resident": "Your Town Key opens it any time (and you're friends with {{name}})",
+  "door.town-key.resident": "Your Town Key opens it any time if you're friends with {{name}}",
   "door.hours": "Open {{open}}-{{close}}",
   "door.hours.resident": "{{name}} lets you in {{open}}-{{close}}",
   "door.never-open": "Locked at that time of day (open {{open}}-{{close}}). The Town Key would open it.",
