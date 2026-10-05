@@ -202,6 +202,10 @@ namespace StardewEventTracker.Data
             if (door is { ClosedToday: true })
                 calendarUnmet = true;
 
+            // the game sends everyone going there somewhere else for good (Pam's old trailer, once it's upgraded)
+            if (EventIndex.IsReplacedForGood(evt.LocationName))
+                unreachable = true;
+
             // a passive festival that replaces the location sends everyone to its own map all day
             string? takenOverBy = CalendarInfo.PassiveFestivalReplacing(evt.LocationName, SDate.Now());
 

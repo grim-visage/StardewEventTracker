@@ -360,16 +360,33 @@ namespace StardewEventTracker.Data
         private IEnumerable<(EventInfo Event, EventEvaluation Eval)> BestVersions(IEnumerable<EventInfo> events)
         {
             return events
-                .GroupBy(e => e.Key)
+                .GroupBy(SameEventKey)
                 .Select(g => g
                     .Select(e => (Event: e, Eval: this.Evaluate(e)))
-                    .OrderBy(p => p.Eval.Status)
+                    // the copy in the location the game actually uses today, e.g. Pam's house rather than her old trailer
+                    .OrderBy(p => IsReplacedForGood(p.Event.LocationName) || IsNotBuiltYet(p.Event.LocationName) ? 1 : 0)
+                    .ThenBy(p => p.Eval.Status)
                     .ThenBy(p => p.Eval.UnmetCount)
                     .First());
         }
 
         /// <summary>Each event once, dropping the extra versions some mods list (see <see cref="BestVersions"/>).</summary>
-        public static IEnumerable<EventInfo> Distinct(IEnumerable<EventInfo> events) => events.DistinctBy(e => e.Key);
+        public static IEnumerable<EventInfo> Distinct(IEnumerable<EventInfo> events) => events.DistinctBy(SameEventKey);
+
+        /// <summary>Pam's trailer, and the house it becomes with the community upgrade; both list Penny's heart events.</summary>
+        private const string Trailer = "Trailer", TrailerBig = "Trailer_Big";
+
+        /// <summary>Whether the community upgrade for Pam's house is done, after which the game sends anyone going to the trailer to the house.</summary>
+        private static bool PamHouseUpgraded => Game1.MasterPlayer.mailReceived.Contains("pamHouseUpgrade");
+
+        /// <summary>The same event listed in locations the game swaps for each other counts once: "Trailer|35" and "Trailer_Big|35".</summary>
+        public static string SameEventKey(EventInfo evt) => $"{(evt.LocationName == TrailerBig ? Trailer : evt.LocationName)}|{evt.Id}";
+
+        /// <summary>Whether the game now sends anyone going to this location somewhere else for good, so its events can't play (Pam's old trailer).</summary>
+        public static bool IsReplacedForGood(string location) => location == Trailer && PamHouseUpgraded;
+
+        /// <summary>Whether this location only exists once something is built, and isn't yet (Pam's upgraded house).</summary>
+        public static bool IsNotBuiltYet(string location) => location == TrailerBig && !PamHouseUpgraded;
 
         /// <summary>A label for an event ID, e.g. "Abigail's 4-heart event at Mountain (#4)".</summary>
         public string DescribeEvent(string id)
