@@ -2,23 +2,21 @@
                              STARDEW EVENT TRACKER
 ================================================================================
 
-Never miss a heart event again. Stardew Event Tracker shows every heart and
-story event you haven't seen yet, what's still standing in the way, and when
-it's time to head out.
+Stardew Event Tracker is a SMAPI mod for Stardew Valley 1.6. It lists the
+heart events and story events you haven't seen, where and when each one can
+take place, and which requirements are still unmet.
 
-  * Every event's location, time of day, and what's left to do: hearts,
-    weather, day, season, earlier events, story flags
-  * Pin the NPCs you're courting, and a small on-screen tracker, reminders
-    and map hearts keep you on schedule
-  * The loved gifts you already own for each NPC, and whether you can give
-    one today
-  * Works with Stardew Valley Expanded, Ridgeside Village, East Scarp and
-    other content mods: their events are included automatically
+Features:
+  * Event details: location, time window, and the status of each
+    requirement (hearts, weather, day, season, earlier events, story flags)
+  * Pinning, with an on-screen tracker, timed reminders and map markers for
+    the NPCs and events you choose to follow
+  * Loved gifts you own for each NPC, and whether a gift can be given today
+  * Support for content mods such as Stardew Valley Expanded, Ridgeside
+    Village and East Scarp, whose events are read from the game's data
+  * An optional spoiler-free mode that hides details of locked events
 
-New to the game? Turn on spoiler-free mode to keep upcoming events a
-surprise. The tracker asks the first time you open it.
-
-Speak another language? Translations are welcome and easy to make: see
+The mod is currently available in English. Translations are welcome; see
 "Translations" below.
 
 
