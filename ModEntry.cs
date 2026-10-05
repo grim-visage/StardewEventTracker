@@ -357,6 +357,18 @@ namespace StardewEventTracker
             if (changed.Count == dialogue.Count)
                 return;
 
+            // event files can be checked for real changes before rebuilding; anything else means rebuilding
+            foreach ((_, PlayerState state) in this.screen.GetActiveValues())
+            {
+                foreach (IAssetName name in changed.Except(dialogue))
+                {
+                    if (name.StartsWith("Data/Events/"))
+                        state.PendingEventAssets.Add(name.Name);
+                    else
+                        state.OtherDataChanged = true;
+                }
+            }
+
             // each split-screen player has their own index
             foreach ((int screen, _) in this.dataChangedTick.GetActiveValues())
                 this.dataChangedTick.SetValueForScreen(screen, Game1.ticks);
@@ -403,6 +415,11 @@ namespace StardewEventTracker
                 return;
 
             this.dataChangedTick.Value = null;
+            bool onlySameEvents = !this.State.OtherDataChanged && this.Index.EventAssetsUnchanged(this.State.PendingEventAssets);
+            this.State.PendingEventAssets.Clear();
+            this.State.OtherDataChanged = false;
+            if (onlySameEvents)
+                return;
             this.Index.Rebuild();
             this.NormalizeStoryPins();
         }

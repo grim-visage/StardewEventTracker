@@ -124,6 +124,7 @@ namespace StardewEventTracker.Data
             });
 
             var seenAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            this.eventAssetHashes.Clear();
 
             // the same event (ID and script) listed under two locations, e.g. Pam's trailer before and after its upgrade
             var seenEvents = new HashSet<string>();
@@ -158,6 +159,7 @@ namespace StardewEventTracker.Data
 
                 if (events == null || !seenAssets.Add(assetName))
                     continue;
+                this.eventAssetHashes[NormalizeAssetName(assetName)] = HashEvents(events);
 
                 bool isFarmHouseAsset = assetName.Equals("Data\\Events\\FarmHouse", StringComparison.OrdinalIgnoreCase);
                 string displayName = GetLocationDisplayName(name);
@@ -235,6 +237,42 @@ namespace StardewEventTracker.Data
 
             this.Invalidate();
             this.monitor.Log($"Indexed {all.Count} events across {locationCount} locations ({this.byOwner.Count} NPCs with heart events, {this.storyByLocation.Count} locations with story events) in {timer.ElapsedMilliseconds}ms.", LogLevel.Debug);
+        }
+
+        /// <summary>A fingerprint of each event asset read by the last <see cref="Rebuild"/>, by asset name ("Data/Events/Town").</summary>
+        private readonly Dictionary<string, int> eventAssetHashes = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Whether these event assets still hold what the last <see cref="Rebuild"/> read. Content Patcher reloads an
+        /// asset whenever a token it depends on changes, often with the same result (some packs do it on every warp), so
+        /// this saves rebuilding the whole index for nothing.
+        /// </summary>
+        public bool EventAssetsUnchanged(IEnumerable<string> assetNames)
+        {
+            foreach (string name in assetNames)
+            {
+                string key = NormalizeAssetName(name);
+                Dictionary<string, string>? events = Game1.content.DoesAssetExist<Dictionary<string, string>>(key)
+                    ? Game1.content.Load<Dictionary<string, string>>(key)
+                    : null;
+                bool hadEvents = this.eventAssetHashes.TryGetValue(key, out int hash);
+                if (events == null ? hadEvents : !hadEvents || HashEvents(events) != hash)
+                    return false;
+            }
+            return true;
+        }
+
+        private static string NormalizeAssetName(string name) => name.Replace('\\', '/');
+
+        private static int HashEvents(Dictionary<string, string> events)
+        {
+            var hash = new HashCode();
+            foreach ((string key, string script) in events.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                hash.Add(key);
+                hash.Add(script);
+            }
+            return hash.ToHashCode();
         }
 
         /// <summary>Drops cached evaluations; call when time, location, weather or friendship may have changed.</summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using StardewEventTracker.Data;
 using StardewModdingAPI;
@@ -48,6 +49,12 @@ namespace StardewEventTracker
         /// <summary>NPCs whose dialogue a mod changed, to read again on the next tick.</summary>
         public HashSet<string> PendingDialogue { get; } = new();
 
+        /// <summary>Event assets a mod reloaded since the index was last rebuilt, to check for real changes.</summary>
+        public HashSet<string> PendingEventAssets { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Whether data other than event files and dialogue (letters, quests, ...) changed since the last rebuild.</summary>
+        public bool OtherDataChanged { get; set; }
+
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
 
@@ -74,6 +81,8 @@ namespace StardewEventTracker
             this.PinnedStoryEvents.Clear();
             this.AutoPinDismissed.Clear();
             this.PendingDialogue.Clear();
+            this.PendingEventAssets.Clear();
+            this.OtherDataChanged = false;
             this.Index.Clear();
         }
     }
