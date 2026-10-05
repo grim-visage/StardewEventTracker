@@ -38,6 +38,8 @@ namespace StardewEventTracker.Data
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeMarker(a[0], index, forStep: false) is { } marker => marker,
                 // an event a content pack adds once its conditions are met: say what those are
                 "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null && DescribeAddedLater(a[0], index, forStep: false) is { } later => later,
+                // nothing says what it is: an event a mod's own code handles
+                "sawevent" when !c.Negated && a.Length == 1 && index.FindById(a[0]) == null => I18n.Get("cond.story-progress"),
                 "sawevent" => I18n.Get("cond.saw-event" + neg, new { events = JoinList(a.Select(index.DescribeEvent), or) }),
                 // a mod that wrote "D" (dating) for "d" (day of week): nobody is called "Mon", so it can never be true
                 "dating" or "spouse" when !c.Negated && a.Length > 0 && !IsCharacter(a[0]) => I18n.Get("cond.not-a-character", new { name = a[0] }),
