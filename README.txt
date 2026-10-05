@@ -4,9 +4,9 @@
 ================================================================================
 
 Heart events are easy to miss. Many only happen in one place, at a certain
-time, in certain weather, or after another event. The tracker shows every
-event you haven't seen yet, what you still need to do, and where and when to
-be so it plays.
+time, in certain weather, or after another event. I created Stardew Event
+Tracker to show every event you haven't seen yet, what you still need to do,
+and where and when to be so it plays.
 
 FEATURES
 
