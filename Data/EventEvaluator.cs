@@ -366,9 +366,14 @@ namespace StardewEventTracker.Data
         /// <summary>A game state query's RANDOM clause (not SYNCED_RANDOM, which is fixed for the day).</summary>
         private static readonly Regex RandomQuery = new(@"\bRANDOM\b", RegexOptions.IgnoreCase);
 
-        private static ConditionState Check(GameLocation location, string eventId, Precondition condition)
+        /// <summary>
+        /// Checks one requirement with the game's own code, without side effects. Everything that asks the game about a
+        /// requirement must come through here: the game's SendMail check puts a letter in the mailbox and marks the event
+        /// seen, so running it from the tracker sends real mail (1.4.0 sent No Pam Enabling's juice letter over and over).
+        /// </summary>
+        internal static ConditionState Check(GameLocation location, string eventId, Precondition condition)
         {
-            // SendMail has side effects (it queues a letter), so never run it; Tile/Random can't be predicted.
+            // SendMail has side effects (it adds a letter and marks the event seen), so never run it; Tile/Random can't be predicted.
             // A RANDOM query can't be predicted either, and checking it would use up the game's random numbers.
             if (condition.Is("SendMail") || condition.Is("Tile") || condition.Is("Random") || condition.IsNeverTrue
                 || (condition.Is("GameStateQuery") && RandomQuery.IsMatch(condition.Raw)))

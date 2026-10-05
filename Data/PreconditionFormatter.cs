@@ -398,15 +398,11 @@ namespace StardewEventTracker.Data
                 // when it can play is shown once it's in the game; what's missing matters now
                 if (c.Category != ConditionCategory.Progress || c.IsNeverTrue)
                     continue;
-                try
-                {
-                    if (Event.CheckPrecondition(location, pack.Id, c.Raw))
-                        continue;
-                }
-                catch (Exception)
-                {
-                    // can't tell, so list it
-                }
+                // through the evaluator's check, which never runs SendMail (it would deliver the letter); a letter the
+                // event sends is what it does, not something it needs
+                ConditionState state = EventEvaluator.Check(location, pack.Id, c);
+                if (state is ConditionState.Met or ConditionState.Neutral)
+                    continue;
                 string text = Describe(c, index);
                 needs.Add(text.Length > 1 && char.IsUpper(text[0]) && char.IsLower(text[1]) && !IsCharacter(text.Split(' ')[0].TrimEnd('\'', 's')) ? char.ToLowerInvariant(text[0]) + text[1..] : text);
             }
