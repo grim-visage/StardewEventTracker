@@ -101,7 +101,7 @@ namespace StardewEventTracker
             helper.Events.Input.ButtonsChanged += this.OnButtonsChanged;
 
             helper.ConsoleCommands.Add("tracker_dump", "Lists an NPC's heart events (or a location's story events) and the status of each requirement.\n\nUsage: tracker_dump <npc or location name>", this.OnDumpCommand);
-            helper.ConsoleCommands.Add("tracker_export", "Writes every indexed event and its current status, and every NPC, to exports/events.json in the mod folder.\n\nUsage: tracker_export", this.OnExportCommand);
+            helper.ConsoleCommands.Add("tracker_export", "Writes every indexed event and its current status, and every NPC, to StardewEventTracker-events.json in the SMAPI log folder.\n\nUsage: tracker_export", this.OnExportCommand);
             helper.ConsoleCommands.Add("tracker_travel", "Estimates the walk from you to a location, in in-game minutes.\n\nUsage: tracker_travel <location name>", (_, args) =>
             {
                 if (!Context.IsWorldReady || args.Length == 0)
@@ -977,8 +977,9 @@ namespace StardewEventTracker
                 })
                 .ToList();
 
-            const string path = "exports/events.json";
-            this.Helper.Data.WriteJsonFile(path, new
+            // next to the SMAPI log rather than in the mod folder, which a mod update replaces
+            string path = System.IO.Path.Combine(Constants.LogDir, "StardewEventTracker-events.json");
+            var export = new
             {
                 Exported = $"{Game1.currentSeason} {Game1.dayOfMonth}, year {Game1.year}, {Game1.getTimeOfDayString(Game1.timeOfDay)}",
                 Location = Game1.currentLocation?.NameOrUniqueName,
@@ -994,10 +995,12 @@ namespace StardewEventTracker
                 },
                 Npcs = npcs,
                 Events = rows
-            });
+            };
+            System.IO.Directory.CreateDirectory(Constants.LogDir);
+            System.IO.File.WriteAllText(path, Newtonsoft.Json.JsonConvert.SerializeObject(export, Newtonsoft.Json.Formatting.Indented));
             this.Monitor.Log(
                 $"Exported {rows.Count} events and {npcs.Count} NPCs ({npcs.Count(n => n.CanSocialize)} you can befriend, {npcs.Count(n => n.HeartEvents > 0)} with heart events) "
-                + $"to {System.IO.Path.Combine(this.Helper.DirectoryPath, path)}.",
+                + $"to {path}.",
                 LogLevel.Info);
         }
 
