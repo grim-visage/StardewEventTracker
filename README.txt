@@ -23,14 +23,14 @@ FEATURES
   Staying on schedule
     * Pin NPCs and story events to follow; partners are pinned
       automatically
-    * On-screen tracker (HUD) with a compact layout
+    * On-screen tracker with a compact layout
     * Reminders before an event can start, when it's time to leave, and
       when it becomes available
     * Map markers where pinned events can happen today
     * Loved gifts you own for each NPC, shown in the tracker menu, and
       whether you can give one today
 
-  HUD themes
+  On-screen tracker themes
     * Community Center, with Junimos who cheer when an event can happen
     * Joja "Social Planner" and Spirit's Eve
     * Spring, Summer, Fall and Winter in light or dark, or Seasonal to
@@ -75,16 +75,16 @@ HOW TO USE IT
   ------------------  ---------------------------------------------------
   F2                  Open or close the tracker menu (on the game's Social
                       tab: open it at the NPC under your cursor)
-  Shift + F2          Show or hide the HUD tracker
+  Shift + F2          Show or hide the on-screen tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
                       or on the game's Social tab)
-  Right-click + drag  Move the HUD tracker
+  Right-click + drag  Move the on-screen tracker
 
 
 Pinning
 ~~~~~~~
-Pin the NPCs and story events you want to follow. Reminders, the HUD tracker
-and map markers cover what you've pinned. You can pin someone by:
+Pin the NPCs and story events you want to follow. Reminders, the on-screen
+tracker and map markers cover what you've pinned. You can pin someone by:
 
   * clicking "Pin" next to their name on the Hearts tab
   * pointing at them in the world and pressing Ctrl + F2
@@ -121,7 +121,8 @@ Each event also shows:
   * how far away it is on foot, when it can happen today
   * what seeing it leads to ("Leads to: ..."), for event chains
   * a Snooze button, for pinned events: no reminders for that event until
-    tomorrow, and the HUD moves on to the next one. Click Wake to undo it.
+    tomorrow, and the on-screen tracker moves on to the next one. Click
+    Wake to undo it.
 
 Events that can no longer happen (you saw another version, or an earlier
 choice ruled them out) aren't listed; the NPC's entry just says how many.
@@ -210,10 +211,11 @@ Events only start when you arrive at a location. If you're already there
 when one becomes available, step out and come back in.
 
 
-HUD tracker (Shift + F2)
-~~~~~~~~~~~~~~~~~~~~~~~~
+On-screen tracker (Shift + F2)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 A small box showing each pinned NPC's next event and each pinned story event,
-where it happens, and a short status.
+where it happens, and a short status. In config.json its settings start with
+"Hud" (short for heads-up display).
 
   Status              Meaning
   ------------------  -----------------------------------------------------
@@ -239,25 +241,26 @@ where it happens, and a short status.
   tomorrow
   all caught up       You've seen all of the NPC's events
 
-Entries are sorted by urgency, soonest first. Set "HUD order" to Alphabetical
-for a fixed list.
+Entries are sorted by urgency, soonest first. Set "Tracker order" to
+Alphabetical for a fixed list.
 
-Tracking a lot? Set "HUD layout" to Compact: every entry takes one short
+Tracking a lot? Set "Tracker layout" to Compact: every entry takes one short
 line, with the colour saying how soon, e.g.
 
   Abigail at the Mountain: Leave now (40m walk)
   Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
   Leah: 1 more heart to go
 
-The HUD shows up to 5 entries (HudMaxNpcs). The rest are summed up in a last
-line, e.g. "+2 more pinned (F2 to see all)", which turns green if one of them
-needs you now.
+The on-screen tracker shows up to 5 entries (HudMaxNpcs). The rest are summed
+up in a last line, e.g. "+2 more pinned (F2 to see all)", which turns green
+if one of them needs you now.
 
-The HUD fades almost all the way out while you or the mouse are under it, so
-it never hides what's behind it. Turn this off with "Fade HUD when in the
-way", or keep it visible under the mouse with "Also fade on mouse hover".
+The on-screen tracker fades almost all the way out while you or the mouse are
+under it, so it never hides what's behind it. Turn this off with "Fade
+tracker when in the way", or keep it visible under the mouse with "Also fade
+on mouse hover".
 
-Pick a look with the "HUD theme" setting:
+Pick a look with the "Tracker theme" setting:
   * Community Center  The bundle book's title tab, with three Junimos perched
                       on the box who cheer when an event can happen now.
                       (The default.)
@@ -271,7 +274,7 @@ Pick a look with the "HUD theme" setting:
   * Fall              Fallen leaves on top, pumpkins on the title
   * Winter            Snow and icicles, crystal fruit
 
-The season themes come in light and dark: pick one with "HUD mode".
+The season themes come in light and dark: pick one with "Tracker mode".
 
 
 Map markers
@@ -327,8 +330,8 @@ that, change it in the settings.
 
 Split-screen co-op
 ~~~~~~~~~~~~~~~~~~
-Each player on the same screen has their own pins, reminders, HUD, search and
-filters.
+Each player on the same screen has their own pins, reminders, on-screen
+tracker, search and filters.
 
 
 SETTINGS
@@ -339,7 +342,8 @@ menu opens it), or in config.json after the first launch.
   Setting                Default          Description
   ---------------------  ---------------  -----------------------------------
   OpenMenuKey            F2               Opens the tracker menu
-  ToggleHudKey           LeftShift + F2   Shows or hides the HUD tracker
+  ToggleHudKey           LeftShift + F2   Shows or hides the on-screen
+                                          tracker
   PinKey                 LeftControl      Pins or unpins the NPC under the
                          + F2             cursor
   AutoPinPartners        true             Pin your spouse, roommate and
@@ -347,11 +351,12 @@ menu opens it), or in config.json after the first launch.
   SpoilerFree            false            Hide details of locked events
   ShowLovedGifts         true             Show loved gifts you own next to
                                           NPCs in the tracker menu
-  ShowHud                true             Whether the HUD tracker is visible
-  HudFade                true             Fade the HUD while you or the
-                                          mouse are under it
-  HudFadeOnHover         true             Fade the HUD on mouse hover too
-  HudFadeOpacity         3                How much of the HUD shows while
+  ShowHud                true             Whether the on-screen tracker is
+                                          visible
+  HudFade                true             Fade the on-screen tracker while
+                                          you or the mouse are under it
+  HudFadeOnHover         true             Fade it on mouse hover too
+  HudFadeOpacity         3                How much of it shows while
                                           faded, in percent
   ShowMapMarkers         true             Hearts on the map for pinned
                                           events
@@ -375,19 +380,19 @@ menu opens it), or in config.json after the first launch.
   AvailableSound         questcomplete    Sound for "time to visit" messages
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
-  HudX / HudY            16 / 120         HUD position on screen, in pixels
+  HudX / HudY            16 / 120         Its position on screen, in pixels
   HudLayout              detailed         "detailed", or "compact" for one
                                           short line per entry
-  HudSortOrder           urgency          HUD order: "urgency" or
+  HudSortOrder           urgency          Its order: "urgency" or
                                           "alphabetical"
-  HudTheme               community-center HUD look: "community-center",
+  HudTheme               community-center Its look: "community-center",
                                           "joja", "spirits-eve",
                                           "seasonal", "spring", "summer",
                                           "fall" or "winter"
   HudMode                light            "light" or "dark", for the season
                                           themes
   HudMaxNpcs             5                Most entries (NPCs and story
-                                          events) shown on the HUD
+                                          events) shown on it
 
 Pins are saved separately for each save file and each player.
 
