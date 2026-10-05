@@ -19,7 +19,7 @@ namespace StardewEventTracker.Data
         /// <summary>Forgets cached festival data, e.g. when content packs reload.</summary>
         public static void Clear() => FestivalCache.Clear();
 
-        /// <summary>The festival held at a location on a date, if any. The game blocks that location's events during festival hours.</summary>
+        /// <summary>The festival held at a location on a date, if any. The game blocks that location from the start of the day until the festival ends.</summary>
         public static FestivalInfo? GetFestivalAt(string locationName, SDate date)
         {
             FestivalInfo? festival = GetFestival(date);
@@ -119,12 +119,14 @@ namespace StardewEventTracker.Data
             return unknown ? null : true;
         }
 
-        /// <summary>Whether a festival's hours cover the whole time an event could start (all day if it has no window).</summary>
-        public static bool CoversWindow(FestivalInfo festival, TimeWindow? window)
-        {
-            int start = window?.Start ?? 600;
-            int end = window?.End ?? 2600;
-            return festival.Start <= start && festival.End >= end;
-        }
+        /// <summary>
+        /// When the festival's location lets players in again (HHMM). The game blocks warps there from the start of the day
+        /// while the festival is set up, and still sends arrivals to the festival at its end time, so it's 10 minutes after.
+        /// </summary>
+        public static int ReopensAfter(FestivalInfo festival) => Utility.ModifyTime(festival.End, 10);
+
+        /// <summary>Whether a festival keeps players out for the whole time an event could start (all day if it has no window).</summary>
+        public static bool CoversWindow(FestivalInfo festival, TimeWindow? window) =>
+            festival.End >= (window?.End ?? 2600);
     }
 }

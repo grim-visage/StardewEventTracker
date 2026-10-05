@@ -196,7 +196,7 @@ namespace StardewEventTracker.Data
 
             // the door's hours, unless the Town Key opens it any time
             (int Open, int Close)? doorHours = door is { AllDay: false } d ? (d.Open, d.Close) : null;
-            bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(evt.Window?.End ?? 2600, hours.Close);
+            bool doorNeverOpen = doorHours is { } hours && Math.Max(evt.Window?.Start ?? 600, hours.Open) >= Math.Min(WindowEnd(evt.Window), hours.Close);
 
             // the event can start while the door is open and the NPC is there
             (int Open, int Close)? openHours = doorHours;
@@ -254,29 +254,26 @@ namespace StardewEventTracker.Data
 
         /// <summary>
         /// Works out when the event can start today: within its time window, while the door into its location is open,
-        /// and outside festival hours there (entering during a festival loads the festival instead of any event).
+        /// and once a festival there is over (the game keeps everyone out while it's set up, and sends anyone arriving
+        /// during it to the festival instead of any event).
         /// </summary>
         private static (EventStatus Status, int? UntilStart, int? StartTime) WithFestival(EventInfo evt, FestivalInfo? festival, (int Open, int Close)? doorHours, bool timeOpen, int? untilStart)
         {
             int now = Game1.timeOfDay;
             int start = evt.Window?.Start ?? 600;
-            int end = evt.Window?.End ?? 2600;
+            int end = WindowEnd(evt.Window);
             if (doorHours is { } hours)
             {
                 start = Math.Max(start, hours.Open);
                 end = Math.Min(end, hours.Close);
             }
 
-            if (festival is { } f && f.Start < end && f.End > start)
+            if (festival is { } f)
             {
-                if (CalendarInfo.CoversWindow(f, evt.Window) || (now >= f.Start && f.End >= end))
+                int reopens = CalendarInfo.ReopensAfter(f);
+                if (reopens >= end)
                     return (EventStatus.FestivalHere, null, null);
-
-                // the usable window starts once the festival is over
-                if (start >= f.Start && start < f.End)
-                    start = f.End;
-                if (now >= f.Start && now < f.End)
-                    return (EventStatus.LaterToday, TimeWindow.ToMinutes(f.End) - TimeWindow.ToMinutes(now), f.End);
+                start = Math.Max(start, reopens);
             }
 
             if (timeOpen && now >= start && now < end)
@@ -286,6 +283,13 @@ namespace StardewEventTracker.Data
                 return (EventStatus.LaterToday, minutes, start);
             return (EventStatus.MissedToday, untilStart, start);
         }
+
+        /// <summary>
+        /// The first time an event's time window no longer allows it (HHMM), to compare with door and NPC hours, which end
+        /// when the door closes or the NPC leaves. The game's <c>t 600 1200</c> still matches at 12:00, so this is 12:10.
+        /// </summary>
+        private static int WindowEnd(TimeWindow? window) =>
+            window is { } w ? Utility.ModifyTime(w.End, 10) : 2600;
 
         /// <summary>
         /// When an "NPC is here" requirement can be met today, from the NPC's schedule: the stay going on now if they're

@@ -686,6 +686,7 @@ namespace StardewEventTracker.UI
                 bool heartsOnly = next.Event.Relationship == null && next.Event.RequiredPoints > 0 && next.Event.ProgressRank == next.Event.RequiredPoints;
                 string need = heartsOnly && PreconditionFormatter.MoreFriendship(next.Event.Owner, next.Event.RequiredPoints) is { } more
                     ? I18n.Get("menu.next.more", new { more })
+                    : this.mod.HidesDetails(next.Eval) ? I18n.Get("status.hidden")
                     : EventNarrator.NextStep(next.Event, next.Eval, this.Index);
                 string title = this.mod.Config.SpoilerFree
                     ? next.Event.Title
