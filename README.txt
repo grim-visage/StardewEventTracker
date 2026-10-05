@@ -14,8 +14,7 @@ included automatically.
 
 FIRST PLAYTHROUGH? The tracker shows where every event happens and what it
 needs, including ones you haven't unlocked yet. If you'd rather discover them
-yourself, turn on spoiler-free mode (see "Spoiler-free mode" below). The
-first time you open the menu, it asks whether you want it on.
+yourself, turn on spoiler-free mode (see "Spoiler-free mode" below).
 
 
 REQUIREMENTS
@@ -33,8 +32,6 @@ INSTALLATION
      up with "Mods/StardewEventTracker/".
   3. Launch the game through SMAPI.
 
-There's nothing to enable: SMAPI loads every mod in the Mods folder.
-
 
 HOW TO USE IT
 -------------
@@ -45,7 +42,7 @@ HOW TO USE IT
   Shift + F2          Show or hide the HUD tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
                       or on the Social tab)
-  Right-click + drag  Move the HUD tracker with the mouse
+  Right-click + drag  Move the HUD tracker
 
 
 Pinning
@@ -61,32 +58,27 @@ Your spouse, roommate and anyone you're dating are pinned automatically. If
 you unpin one of them, they stay unpinned.
 
 Story events aren't tied to one NPC, so you pin them one at a time: click
-"Pin" next to the event on the Story tab. Pinned story events show in the
-Pinned tab, on the HUD and on the map, and get reminders too (turn that off
-with the StoryReminders setting). They're unpinned once you've seen them.
+"Pin" next to the event on the Story tab. They're unpinned once you've seen
+them.
 
 
 Tracker menu (F2)
 ~~~~~~~~~~~~~~~~~
-  * Pinned     Pending heart events for the NPCs you've pinned, your pinned
-               story events, and a "Today's messages" list of every
-               reminder from today.
-  * Hearts     Every NPC with heart events, with their portrait and hearts
-               shown like on the game's Social tab ("Not met" until you
-               meet them). Click the arrow or the row to expand it, or the
-               portrait or name to open their Social tab profile (close it
-               to come back). NPCs whose events you've all seen move to
-               the Completed tab.
+  * Pinned     Pending events for the NPCs and story events you've pinned,
+               and a "Today's messages" list of every reminder from today.
+  * Hearts     Every NPC with heart events you haven't seen, with their
+               portrait and hearts. Click the arrow or the row to expand
+               it, or the portrait or name to open their Social tab
+               profile (close it to come back).
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
   * Completed  Events you've already seen. Switch between Hearts and Story
                at the top. Names in green have every event seen.
 
-Each NPC's events are listed in story order (when two need the same hearts,
-the one with fewer requirements left comes first), followed by a "Next up" line
-for the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
-heart to go)" or "(marry Leah first)". Only the event to follow next shows its
-details; click any event's heading to open or close it.
+Each NPC's events are listed in story order, followed by a "Next up" line for
+the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
+heart to go)". Only the event to follow next shows its details; click any
+event's heading to open or close it.
 
 Each event also shows:
   * how far away it is on foot, when it can happen today
@@ -94,28 +86,25 @@ Each event also shows:
   * a Snooze button, for pinned events: no reminders for that event until
     tomorrow, and the HUD moves on to the next one. Click Wake to undo it.
 
+Events that can no longer happen (you saw another version, or an earlier
+choice ruled them out) aren't listed; the NPC's entry just says how many.
+
 
 Search and filters
 ~~~~~~~~~~~~~~~~~~
 Type in the search box to find an NPC, a location, an event ID, or anything
-in an event's requirements. While it's selected, keys go to the search box,
-so typing doesn't close the menu. Press Enter or Escape when you're done.
+in an event's requirements. Press Enter or Escape when you're done.
 
 Filter buttons next to the search box (combine as many as you like):
 
   Button          Shows
   -------------   ---------------------------------------------------------
   Available now   Every requirement is met and it's the right time of day
-  Today           Available now, or everything is met and it can start
-                  later today
+  Today           Available now, or it can start later today
   Not today       Everything's done, it just can't happen today: waiting
                   on the weather, day, season, Green Rain or a festival,
                   or today's time window has passed
   Show locked     Also list events that need more hearts
-
-A search lists the matching groups closed; click a group's heading to open
-it. The filter buttons open matching groups automatically, and you can click
-a heading to close one again.
 
 
 Event status
@@ -126,27 +115,27 @@ Each event shows where it stands right now:
   --------------------  ------------------------------------------------
   Available now         Walk into the location and it plays
   Later today           Everything is met; it can start later today
-  Plays when you go     A story event with no requirements (other than
-  there                 "hasn't seen ..." ones): it plays the next time
-                        you enter that place, once you can get there
-                        (often the first visit to a new area)
-  Wait for ...          Needs a different day, e.g. "a sunny day"
+  Plays when you next   A story event with no requirements: it plays the
+  go there              next time you enter that place
+  Wait for ...          Needs a different day ("a sunny day"), or an NPC
+                        to arrive ("Alex to be at the Beach")
   No events during      Green Rain stops every location event that day
   Green Rain
-  Festival here today   A festival is on at that location; events there
-                        can't start during festival hours
+  Festival here today   A festival is on at that location
+  The ... takes over    A market or festival replaces the location all
+  ... today             day, e.g. the Night Market on the Beach
   Doors are locked for  On festival days every shop and house in the
   today's festival      valley is locked all day
-  Missed today          Today's time window has passed
-  Not yet: ...          Something still needs doing first. Names the first
-                        thing, e.g. "see Leah's 4-heart event first"
-  Special trigger       Started by the game or a mod some other way, not
-                        by visiting the location
-  Locked: ...           Needs more hearts, or to be dating or married.
-                        Names what's needed, e.g. "marry Leah first"
+  Missed today's window Today's time window has passed
+  Not yet: ...          Something still needs doing first, e.g. "see
+                        Leah's 4-heart event first"
+  Special trigger       Started some other way, not by visiting the
+                        location
+  Locked: ...           Needs more hearts, or to be dating or married,
+                        e.g. "marry Leah first"
 
-When only the day is in the way, the status also checks tomorrow's weather
-forecast and date: "(tomorrow works!)" or "(not tomorrow either)".
+When only the day is in the way, the status also checks tomorrow's forecast:
+"(tomorrow works!)" or "(not tomorrow either)".
 
 Each requirement has a mark showing whether it's met right now:
 
@@ -160,54 +149,24 @@ Each requirement has a mark showing whether it's met right now:
                 on a specific tile)
   ?  (grey)     The game couldn't check it
 
-Events inside shops and houses also account for the door: its opening hours
-(the Town Key opens it any time), any hearts the resident requires before
-letting you in (Leah's cottage needs 2 hearts, for example), and festival days,
-when every shop and house in the valley is locked. The game's special doors
-count too: the Community Center (locked until Lewis opens it, or you join
-Joja), Caroline's Sunroom (2 hearts with Caroline) and Willy's back room, the
-Boat Tunnel (locked until his invitation letter arrives). These show as "Door"
-lines under the event.
+Events inside shops and houses also account for the door, shown as "Door"
+lines under the event: opening hours (the Town Key opens it any time), hearts
+the resident wants before letting you in (Leah's cottage needs 2), and
+special doors like the Community Center, Caroline's Sunroom and Willy's back
+room.
 
-When a door needs hearts with someone and they're in the event, it's their
-heart event even if the event itself doesn't ask for hearts. Caroline's
-2-heart event in the Sunroom is listed under Hearts for that reason.
+Many events (especially in mods) depend on hidden story flags. The tracker
+explains them in plain words instead of showing an internal ID, e.g.:
 
-Many events (especially in mods) depend on hidden "story flags" and
-conversation topics. Where the game's data says how they're set, the tracker
-explains them instead of showing an internal ID:
-
-  * a letter:          Get the letter 'Invitation from Jade' (sent once you
-                       have 10 hearts with Jade and are dating Jade)
-  * a special order:   Complete the special order 'Luma's Slime Eggs': Deliver
-                       10 Slime Eggs to the fridge in the Orchard House
-  * an automatic rule: Once you have Cherry Pit
-  * a cooldown:        Wait 4 days after Cirrus's 1-heart event
-  * another event:     See Corwin's 6-heart event (including choices you
-                       make during it)
-  * a quest:           Complete the quest 'Stone for a garden'
-  * a conversation:    Talk to Kataryna
-
-A few flags aren't set by anything in the game's data (the game's or a mod's
-own code, or content that isn't finished yet). For those, assets/hints.json
-has short hand-written hints researched from the game code, mod wikis and
-handbooks, e.g. "Complete Jade's quest 'Iron Bar for Jade' (from the East
-Scarp wiki)". A hint is also used when the data's explanation is unclear, and
-always wins. Any flag still unexplained is shown as words, e.g. "Story flag:
-Duskspire defeated". The same file explains requirements that other mods add
-to the game, e.g. Ridgeside's "Arrive riding your horse"; ones it doesn't
-know read "Other requirement: ...". Hint contributions are welcome on GitHub:
-keep them short, in your own words, and say where the information came from.
-
-Some mods (Ridgeside Village, for example) start certain events from their own
-code and give them a requirement that can never be met, so the game won't
-also start them on its own. The tracker recognizes these and marks them
-"special trigger" instead of showing that requirement as missing.
+  * Get the letter 'Invitation from Jade'
+  * Complete the special order 'Luma's Slime Eggs'
+  * Wait 4 days after Cirrus's 1-heart event
+  * Complete the quest 'Stone for a garden'
+  * Talk to Kataryna
 
 Some areas that mods add have no way in at first, e.g. Stardew Valley
-Expanded's Highlands, which open up once Marlon lets you use his boat. Events
-there show "Not yet" with a "Getting there" line until a way in exists, and
-assets/hints.json can say how to open it up.
+Expanded's Highlands. Events there show "Not yet" with a "Getting there" line
+until a way in opens up.
 
 Events only start when you arrive at a location. If you're already there
 when one becomes available, step out and come back in.
@@ -216,12 +175,12 @@ when one becomes available, step out and come back in.
 HUD tracker (Shift + F2)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 A small box showing each pinned NPC's next event and each pinned story event,
-where it happens, and a short status. For an NPC, "next" means an event you
-can act on today if there is one, otherwise the earliest one in their story.
+where it happens, and a short status.
 
   Status              Meaning
   ------------------  -----------------------------------------------------
-  Time to visit!      The event can happen right now
+  Time to visit!      The event can happen right now ("Something's
+                      happening!" for story events)
   Leave now           The walk there takes about as long as you have left
   Head out soon       It starts within your shortest reminder (1 hour by
                       default)
@@ -230,160 +189,113 @@ can act on today if there is one, otherwise the earliest one in their story.
   Later today         It starts later today
   Wait for ...        Needs a different day, e.g. "a sunny day"
   Green Rain today    No events today because of Green Rain
-  Festival here       A festival blocks it today (or every shop and house
-  today               is locked for one)
+  Festival here       A festival blocks it today
+  today
   Missed today        Today's time window has passed
-  Not yet - ...       The first thing you still need, e.g. "1 more heart
-                      with Leah to get in" or "see Leah's 4-heart event
-                      first", plus how many more
+  Not yet: ...        The first thing you still need, e.g. "see Leah's
+                      4-heart event first"
   N more hearts to    The next event is locked, e.g. "Abigail: 1 more heart
-  unlock ...          to unlock her 8-heart event"; or "next - marry Leah
-                      first" for dating and marriage events
+  unlock ...          to unlock her 8-heart event", or "next - marry Leah
+                      first"
   snoozed until       You snoozed the NPC's events for today
   tomorrow
   all caught up       You've seen all of the NPC's events
 
-Events that can happen today also show how far away they are ("40m away").
-Statuses held up by the day add "(tomorrow works!)" when the forecast says
-tomorrow is fine. If more events are waiting, the first line ends in
-"(+N more)".
-
-Entries are sorted by urgency: things you can do now first, then time to set
-off, later today, not today, and finally locked or caught-up entries. Within
-each group, whatever starts soonest comes first. Entries with nothing to do
-today take a single line. Prefer a fixed list? Set "HUD order" to
-Alphabetical (NPCs A-Z, then story events).
+Entries are sorted by urgency, soonest first. Set "HUD order" to Alphabetical
+for a fixed list.
 
 Tracking a lot? Set "HUD layout" to Compact: every entry takes one short
 line, with the colour saying how soon, e.g.
 
   Abigail at the Mountain: Leave now (40m walk)
   Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
-  Haley: Wait for Summer
   Leah: 1 more heart to go
 
-The HUD shows up to 5 entries (HudMaxNpcs), and fewer if they wouldn't fit on
-screen. Anything left over is summed up in a last line, e.g. "+2 more pinned
-(F2 to see all)", which turns green if one of them can happen now or it's
-time to set off.
+The HUD shows up to 5 entries (HudMaxNpcs). The rest are summed up in a last
+line, e.g. "+2 more pinned (F2 to see all)", which turns green if one of them
+needs you now.
 
-Drag the box (or its title) with the right mouse button to move it.
-
-The HUD fades almost all the way out while you walk under it or the mouse is
-over it, so it never hides what's behind it. It comes back while you drag it
-with the right mouse button. Turn this off with "Fade HUD when in the way"
-(HudFade), keep it up while you point at it by turning off "Also fade on mouse
-hover" (HudFadeOnHover), or set how much still shows with "Faded HUD opacity"
-(HudFadeOpacity, 3% by default).
+The HUD fades almost all the way out while you or the mouse are under it, so
+it never hides what's behind it. Turn this off with "Fade HUD when in the
+way", or keep it visible under the mouse with "Also fade on mouse hover".
 
 Pick a look with the "HUD theme" setting:
-  * Community Center  The title on the bundle book's title tab, with three
-                      Junimos perched on the box. They cheer when an event
-                      can happen right now. (The default.)
-  * Joja              A dark mode: Joja's "Social Planner" and the Joja
-                      logo on a banner in Joja Cola blues, over a navy box.
-                      The logo's sunburst sparkles, and status lights blink
-                      like an office computer's (the green one flashes
-                      when an event can happen right now)
-  * Spirit's Eve      A dark mode: a night-purple box with light text, and
-                      a ghost and a flickering jack-o'-lantern by the title
+  * Community Center  The bundle book's title tab, with three Junimos perched
+                      on the box who cheer when an event can happen now.
+                      (The default.)
+  * Joja              A dark "Social Planner" in Joja Cola blues, with the
+                      Joja logo in the corner and blinking status lights
+  * Spirit's Eve      A night-purple box with a ghost and a flickering
+                      jack-o'-lantern
   * Seasonal          Follows the calendar: Spring, Summer, Fall or Winter
-  * Spring            A frame of vines and blossoms, butterflies on the title
-  * Summer            A frame of vines and yellow flowers, sunflowers
-  * Fall              Fallen leaves piled on top, pumpkins on the title
-  * Winter            Snow on top, short icicles underneath, crystal fruit
+  * Spring            Vines and blossoms, butterflies on the title
+  * Summer            Vines and yellow flowers, sunflowers
+  * Fall              Fallen leaves on top, pumpkins on the title
+  * Winter            Snow and icicles, crystal fruit
 
-The season themes come in a light and a dark mode: pick one with the
-"HUD mode" setting.
+The season themes come in light and dark: pick one with "HUD mode".
 
 
 Map markers
 ~~~~~~~~~~~
-Open the map to see a heart where a pinned event can happen today. It
-bobs when the event can happen right now and is faded when it's later today.
-Hover a heart for details. Works with NPC Map Locations and World Maps.
+Open the map to see a heart where a pinned event can happen today. It bobs
+when the event can happen right now and is faded when it's later today.
+Hover a heart for details.
 
 
 Reminders
 ~~~~~~~~~
-For NPCs and story events you've pinned, the mod sends gentle reminders so you
-have time to get there:
+For NPCs and story events you've pinned, the mod sends reminders so you have
+time to get there:
 
-  * Morning heads-up   At the start of the day, which events can happen
-                       today ("Today looks like a good day to see Abigail at
-                       the Mountain...").
-  * Before it starts   By default 2 hours and 1 hour before an event can
-                       start (in-game time). Choose from 3 hours, 2 hours,
-                       1 hour, 30 minutes, and 15 minutes.
-  * Leave now          When the walk there (from where you are, on foot or
-                       horse, plus 10 minutes to spare) takes about as long
-                       as you have left.
-  * When it's ready    When the event can happen right now ("It's time to
-                       visit Robin at her home, the Carpenter's Shop.").
-  * Evening look-ahead From 6:00 pm, events that couldn't happen today but
-                       should work tomorrow ("Tomorrow looks rainy...").
+  * Morning heads-up   Which events can happen today
+  * Before it starts   2 hours and 1 hour before an event can start, by
+                       default (in-game time)
+  * Leave now          When the walk there (plus 10 minutes to spare) takes
+                       about as long as you have left
+  * When it's ready    When the event can happen right now
+  * Evening look-ahead From 6:00 pm, events that should work tomorrow
 
-Messages fit the situation: they use the NPC's name and pronouns, mention
-their home when the event is there, and change with rain and the time of day
-("On a rainy day like this, Abigail might be at the Mountain.").
+Each reminder is sent once per day. Walk estimates follow the map's real
+routes and the actual clock speed, so time mods are accounted for. Missed
+one? The Pinned tab lists every reminder from today.
 
-The leave-now estimate follows the map's real routes. The mod measures how
-fast the in-game clock is actually running, so mods that slow time down or
-speed it up (like It's Stardew Time) are accounted for. If your clock runs at
-different speeds indoors and outdoors, the estimate follows where you've been
-recently, so it's approximate.
-
-Each reminder is sent once per day, plays a sound, and stays on screen for
-10 seconds. You can pick the sounds (or turn them off) and the duration in the
-settings; picking a sound in Generic Mod Config Menu plays a preview.
-
-Missed one? The Pinned tab has a "Today's messages" list at the top with every
-reminder from today.
-
-Want to hear about events you haven't pinned too? Turn on "Remind me about
-unpinned events" (UnpinnedReminders). It only covers events with a start
-time: you get the "before it starts" reminders and a pop-up when they open,
-but no morning, evening or leave-now messages, and nothing for events that
-can happen all day. At most two pop-ups come at once; the rest are summed up
-as "+3 more events coming up".
+Turn on "Remind me about unpinned events" to also hear about unpinned events
+with a start time ("before it starts" and "ready" reminders only).
 
 
 Loved gifts
 ~~~~~~~~~~~
-Next to each NPC on the Hearts and Pinned tabs, you'll see up to three items
-they love that you have: in your inventory, or in any chest, fridge,
-mini-fridge or Junimo chest. Things you're
-carrying come first. Hover over them in the menu to see what they are, how
-many you have and whether they're with you or in storage.
+On the Hearts and Pinned tabs, each NPC shows up to three items they love
+that you own: carried, or in any chest, fridge or Junimo chest. Hover over
+them to see what they are, where they are, and whether you can give that
+NPC a gift today (one a day and two a week; birthdays and spouses are
+exceptions). The icons fade when you can't.
 
-The icons fade when you can't give that NPC a gift today (you've already given
-one today, or two this week). In spoiler-free mode they only show gifts you've
-already found out the NPC loves. Turn them off with ShowLovedGifts.
+In spoiler-free mode they only show gifts you've already found out the NPC
+loves.
 
 
 Spoiler-free mode
 ~~~~~~~~~~~~~~~~~
-Turn on SpoilerFree for a first playthrough. Events that aren't unlocked yet
-only show their title: no location, requirements, or what they lead to.
-Story events that aren't unlocked are hidden completely. Events you can
-already do still show everything you need to find them.
+Events that aren't unlocked yet only show their title: no location,
+requirements, or what they lead to. Story events that aren't unlocked are
+hidden completely. Events you can already do still show everything you need.
 
-The first time you open the menu, a message asks whether you want it on.
-After that, change it any time in Generic Mod Config Menu or config.json.
+The first time you open the menu, it asks whether you want it on. After
+that, change it in the settings.
 
 
 Split-screen co-op
 ~~~~~~~~~~~~~~~~~~
 Each player on the same screen has their own pins, reminders, HUD, search and
-filters, based on their own friendships and seen events.
+filters.
 
 
 SETTINGS
 --------
-Change these in Generic Mod Config Menu, or in config.json after the first
-launch. With Generic Mod Config Menu installed, the Settings button at the end
-of the tracker menu's tabs opens this mod's page directly, and closing it
-takes you back to the tracker.
+Change these in Generic Mod Config Menu (the Settings button in the tracker
+menu opens it), or in config.json after the first launch.
 
   Setting                Default          Description
   ---------------------  ---------------  -----------------------------------
@@ -394,7 +306,8 @@ takes you back to the tracker.
   AutoPinPartners        true             Pin your spouse, roommate and
                                           partners automatically
   SpoilerFree            false            Hide details of locked events
-  ShowLovedGifts         true             Show loved gifts you own next to NPCs
+  ShowLovedGifts         true             Show loved gifts you own next to
+                                          NPCs
   ShowHud                true             Whether the HUD tracker is visible
   HudFade                true             Fade the HUD while you or the
                                           mouse are under it
@@ -440,62 +353,32 @@ takes you back to the tracker.
 Pins are saved separately for each save file and each player.
 
 
-TRANSLATIONS
-------------
-All text is in i18n/default.json. To translate the mod, copy it to a file
-named after your language (for example i18n/de.json or i18n/pt-BR.json) and
-translate the values. Keep the {{tokens}} as they are.
-
-
-CONSOLE COMMANDS
-----------------
-Type these in the SMAPI console window:
-
-  tracker_dump <name>
-      Print every heart event for an NPC (or story event for a location),
-      with each requirement's status and raw code.
-  tracker_travel <location>
-      Estimate the walk from you to a location.
-  tracker_export
-      Write every event and its status to exports/events.json in the mod
-      folder, with a count of every NPC in your game (how many you can
-      befriend and how many have heart events).
-  tracker_reach
-      List the areas mods added that there's no way into yet. Events there
-      show "Not yet" until a way in opens up.
-  tracker_reindex
-      Re-read event data. The tracker also does this by itself each morning
-      and whenever a mod changes events, letters or dialogue.
-
-
 COMPATIBILITY
 -------------
-  * Data Layers also uses F2 (and Ctrl to switch layers), so pressing F2
-    opens both. Rebind one of them in Generic Mod Config Menu.
+  * Data Layers also uses F2, so pressing F2 opens both. Rebind one of them
+    in Generic Mod Config Menu.
   * NPC Map Locations and World Maps: map hearts work with both.
   * Event Lookup does a similar job (on the N key). They can run together.
-  * Expanded Preconditions Utility and other mods that add event
-    requirements: those requirements are still checked, but may be shown as
-    raw code.
   * Time mods such as It's Stardew Time: walk estimates follow the actual
     clock speed.
-  * Content packs that add NPCs, locations or events are picked up
-    automatically.
 
 
 KNOWN LIMITATIONS
 -----------------
-  * Some mods add an event only after a story flag or quest is done. Those
-    events appear in the tracker from that point on, not before.
   * Events started some other way than entering a location (clicking a tile,
-    using an item, a trigger action) are marked "special trigger". The
+    using an item, a mod's own code) are marked "special trigger". The
     tracker can't predict when they'll happen.
-  * Requirement types the mod doesn't recognize are shown as their raw code.
-    Whether they're met is still checked correctly.
-  * The HUD and map markers only cover what you've pinned, and so do
-    reminders unless "Remind me about unpinned events" is on.
-  * Walking estimates count walking and riding only, not minecarts, the bus,
+  * Requirements added by other mods (e.g. Expanded Preconditions Utility)
+    that the tracker doesn't recognize read "Other requirement: ..." with
+    their raw code. Whether they're met is still checked correctly.
+  * Walk estimates count walking and riding only, not minecarts, the bus,
     boats or totems.
+
+
+TRANSLATIONS, HINTS AND DEVELOPMENT
+-----------------------------------
+Translations, hint contributions, console commands and build instructions
+are covered in DEVELOPMENT.md on GitHub.
 
 
 ABOUT THIS MOD
@@ -510,14 +393,3 @@ LICENSE
 -------
 MIT License. See the LICENSE file. Source code:
 https://github.com/grim-visage/StardewEventTracker
-
-
-BUILDING FROM SOURCE
---------------------
-Requires the .NET 8 SDK or later:
-
-    dotnet build -c Release
-
-This installs the mod into your Mods folder and creates a release zip in
-bin/Release/net6.0/. Close the game first: replacing the mod while the game
-is running can crash it.
