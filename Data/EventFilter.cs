@@ -5,6 +5,25 @@ using StardewModdingAPI.Utilities;
 
 namespace StardewEventTracker.Data
 {
+    /// <summary>How the menu orders its groups (NPCs or locations).</summary>
+    internal enum EventSort
+    {
+        /// <summary>Alphabetical (pinned NPCs first on the Hearts tab).</summary>
+        Name,
+
+        /// <summary>Groups with an event available now first, then later today, and so on.</summary>
+        Ready,
+
+        /// <summary>Most hearts first; NPCs you haven't met last.</summary>
+        Hearts,
+
+        /// <summary>Most events first: unseen ones, or seen ones on the Completed tab.</summary>
+        Count,
+
+        /// <summary>Completed tab: the share of each group's events seen, highest first.</summary>
+        Progress
+    }
+
     /// <summary>The menu's search text and filter toggles, shared by all tabs for the rest of the session.</summary>
     internal static class EventFilter
     {
@@ -12,6 +31,7 @@ namespace StardewEventTracker.Data
         {
             public string SearchText = "";
             public bool AvailableNow, AvailableToday, WaitingOnDay, ShowLocked, CompletedShowsStory;
+            public readonly Dictionary<string, EventSort> Sort = new();
         }
 
         // each split-screen player has their own search and filters
@@ -26,6 +46,25 @@ namespace StardewEventTracker.Data
 
         /// <summary>Whether the Completed tab shows story events instead of heart events.</summary>
         public static bool CompletedShowsStory { get => Current.Value.CompletedShowsStory; set => Current.Value.CompletedShowsStory = value; }
+
+        /// <summary>The sorts a tab offers, its default first.</summary>
+        public static EventSort[] SortsFor(string tab) => tab switch
+        {
+            "story" => new[] { EventSort.Ready, EventSort.Name, EventSort.Count },
+            "completed" => new[] { EventSort.Name, EventSort.Progress, EventSort.Count },
+            _ => new[] { EventSort.Name, EventSort.Ready, EventSort.Hearts, EventSort.Count }
+        };
+
+        /// <summary>The sort chosen for a tab, or its default.</summary>
+        public static EventSort GetSort(string tab) =>
+            Current.Value.Sort.TryGetValue(tab, out EventSort sort) ? sort : SortsFor(tab)[0];
+
+        /// <summary>Moves a tab to its next sort, back to the first after the last.</summary>
+        public static void NextSort(string tab)
+        {
+            EventSort[] sorts = SortsFor(tab);
+            Current.Value.Sort[tab] = sorts[(Array.IndexOf(sorts, GetSort(tab)) + 1) % sorts.Length];
+        }
 
         public static bool HasSearch => SearchText.Trim().Length > 0;
 

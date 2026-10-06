@@ -228,6 +228,16 @@ namespace StardewEventTracker.UI
                 this.chips.Add(new Chip { Label = I18n.Get("menu.chip.locked"), Tooltip = I18n.Get("menu.chip.locked.tip"), IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
             }
 
+            // cycles through this tab's sorts; lit while it isn't the default
+            string sortTab = this.SortTab;
+            this.chips.Add(new Chip
+            {
+                Label = I18n.Get("menu.chip.sort", new { sort = I18n.Get("menu.sort." + EventFilter.GetSort(sortTab).ToString().ToLowerInvariant()) }),
+                Tooltip = I18n.Get("menu.chip.sort.tip"),
+                IsOn = () => EventFilter.GetSort(sortTab) != EventFilter.SortsFor(sortTab)[0],
+                Toggle = () => EventFilter.NextSort(sortTab)
+            });
+
             int left = this.xPositionOnScreen + Padding;
             int right = this.xPositionOnScreen + this.width - Padding;
             int top = this.yPositionOnScreen + Padding + TabHeight + 12;
@@ -254,6 +264,26 @@ namespace StardewEventTracker.UI
             this.contentTop = y + lineHeight + 16;
             this.builtVersion = -1;
         }
+
+        /// <summary>The key this tab's sort is remembered under.</summary>
+        private string SortTab => this.tab.ToString().ToLowerInvariant();
+
+        /// <summary>Orders NPCs by this tab's sort, then by name.</summary>
+        /// <param name="pinnedFirst">Sorting by name lists pinned NPCs first.</param>
+        private List<string> SortNpcs(IEnumerable<string> npcs, bool pinnedFirst)
+        {
+            return EventFilter.GetSort(this.SortTab) switch
+            {
+                EventSort.Ready => npcs.OrderBy(n => ReadyRank(this.Index.GetPending(n))).ThenBy(EventIndex.GetNpcDisplayName).ToList(),
+                EventSort.Hearts => npcs.OrderByDescending(n => Game1.player.friendshipData.TryGetValue(n, out Friendship? f) ? f.Points : -1).ThenBy(EventIndex.GetNpcDisplayName).ToList(),
+                EventSort.Count => npcs.OrderByDescending(n => this.Index.GetPending(n).Pending.Count).ThenBy(EventIndex.GetNpcDisplayName).ToList(),
+                _ => npcs.OrderBy(n => pinnedFirst && !this.mod.PinnedNpcs.Contains(n)).ThenBy(EventIndex.GetNpcDisplayName).ToList()
+            };
+        }
+
+        /// <summary>How soon a group's best event can happen (its pending events are sorted by status); groups with none last.</summary>
+        private static int ReadyRank(PendingEvents pending) =>
+            pending.Pending.Count > 0 ? (int)pending.Pending[0].Eval.Status : int.MaxValue;
 
         public override void gameWindowSizeChanged(Rectangle oldBounds, Rectangle newBounds)
         {
@@ -294,7 +324,7 @@ namespace StardewEventTracker.UI
         {
             this.AddTodaysMessages();
 
-            var pinned = this.mod.PinnedNpcs.OrderBy(EventIndex.GetNpcDisplayName).ToList();
+            var pinned = this.SortNpcs(this.mod.PinnedNpcs, pinnedFirst: false);
             var pinnedStory = this.mod.GetPinnedStoryEvents();
             var missingStory = EventFilter.IsActive ? new List<string>() : this.mod.GetMissingStoryPins();
             if (pinned.Count == 0 && pinnedStory.Count == 0 && missingStory.Count == 0)
@@ -322,6 +352,10 @@ namespace StardewEventTracker.UI
             var storyVisible = pinnedStory
                 .Where(p => EventFilter.MatchesStatus(p.Eval.Status) && EventFilter.MatchesSearch(p.Event, this.Index, this.mod.HidesDetails(p.Eval)))
                 .ToList();
+            if (EventFilter.GetSort(this.SortTab) == EventSort.Ready)
+                storyVisible = storyVisible.OrderBy(p => p.Eval.Status).ToList();
+            else if (EventFilter.GetSort(this.SortTab) == EventSort.Name)
+                storyVisible = storyVisible.OrderBy(p => p.Event.Title).ToList();
             if (storyVisible.Count > 0 || missingStory.Count > 0)
             {
                 any = true;
@@ -378,11 +412,7 @@ namespace StardewEventTracker.UI
         private void BuildHeartsTab()
         {
             // NPCs whose events can all never happen aren't listed
-            var owners = this.Index.ByOwner.Keys
-                .Where(k => this.Index.GetEvents(k).Count > 0)
-                .OrderBy(k => !this.mod.PinnedNpcs.Contains(k))
-                .ThenBy(EventIndex.GetNpcDisplayName)
-                .ToList();
+            var owners = this.SortNpcs(this.Index.ByOwner.Keys.Where(k => this.Index.GetEvents(k).Count > 0), pinnedFirst: true);
 
             bool any = false;
             int allSeen = 0;
@@ -423,11 +453,15 @@ namespace StardewEventTracker.UI
 
         private void BuildStoryTab()
         {
-            var locations = this.Index.StoryByLocation.Keys
+            var unsorted = this.Index.StoryByLocation.Keys
                 .Select(loc => (Location: loc, Name: this.Index.GetLocationName(loc), Pending: this.Index.GetStoryPending(loc)))
-                .Where(g => g.Pending.Pending.Count > 0)
-                .OrderBy(g => g.Pending.Pending[0].Eval.Status)
-                .ThenBy(g => g.Name)
+                .Where(g => g.Pending.Pending.Count > 0);
+            var locations = (EventFilter.GetSort(this.SortTab) switch
+                {
+                    EventSort.Name => unsorted.OrderBy(g => g.Name),
+                    EventSort.Count => unsorted.OrderByDescending(g => g.Pending.Pending.Count).ThenBy(g => g.Name),
+                    _ => unsorted.OrderBy(g => ReadyRank(g.Pending)).ThenBy(g => g.Name)
+                })
                 .ToList();
 
             bool any = false;
@@ -475,12 +509,16 @@ namespace StardewEventTracker.UI
                     : this.Index.ByOwner.Keys.Select(k => (Key: k, Name: EventIndex.GetNpcDisplayName(k), Events: this.Index.GetEvents(k))))
                 .Select(g => (g.Key, g.Name, Events: EventIndex.Distinct(g.Events).ToList()))
                 .Select(g => (g.Key, g.Name, Seen: g.Events.Where(e => e.Seen).ToList(), Total: g.Events.Count))
-                .Where(g => g.Seen.Count > 0)
-                .OrderBy(g => g.Name)
-                .ToList();
+                .Where(g => g.Seen.Count > 0);
+            groups = EventFilter.GetSort(this.SortTab) switch
+            {
+                EventSort.Progress => groups.OrderByDescending(g => (double)g.Seen.Count / g.Total).ThenBy(g => g.Name),
+                EventSort.Count => groups.OrderByDescending(g => g.Seen.Count).ThenBy(g => g.Name),
+                _ => groups.OrderBy(g => g.Name)
+            };
 
             bool any = false;
-            foreach ((string groupKey, string name, List<EventInfo> seen, int total) in groups)
+            foreach ((string groupKey, string name, List<EventInfo> seen, int total) in groups.ToList())
             {
                 bool nameMatch = EventFilter.HasSearch && EventFilter.MatchesText(name);
                 var visible = nameMatch ? seen : seen.Where(e => EventFilter.MatchesSearch(e, this.Index)).ToList();
@@ -1002,7 +1040,8 @@ namespace StardewEventTracker.UI
                 {
                     chip.Toggle();
                     this.scrollY = 0;
-                    this.builtVersion = -1;
+                    // the sort chip's label (and width) changes
+                    this.LayoutToolbar();
                     Game1.playSound("smallSelect");
                     return;
                 }

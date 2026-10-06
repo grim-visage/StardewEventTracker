@@ -162,6 +162,17 @@ Filter buttons next to the search box (combine as many as you like):
                   or today's time window has passed
   Show locked     Also list events that need more hearts
 
+The Sort button after the filters changes the order of the list; click it
+again to move to the next order. Each tab remembers its own:
+
+  Tab               Orders
+  ----------------  ------------------------------------------------------
+  Pinned, Hearts    Name (pinned NPCs first on Hearts), Soonest (whoever
+                    has an event available now first), Hearts (best
+                    friends first), Most events (most unseen first)
+  Story             Soonest (the default), Name, Most events
+  Completed         Name, Progress (largest share seen first), Most events
+
 
 Event status
 ~~~~~~~~~~~~
