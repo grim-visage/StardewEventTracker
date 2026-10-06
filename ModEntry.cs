@@ -710,8 +710,15 @@ namespace StardewEventTracker
         /// <summary>Sends reminders, available-now alerts and (at day start) heads-ups for pinned NPCs' events.</summary>
         private void RunReminders(bool morning = false)
         {
+            // a cutscene at the start of the day: send the day-start reminders once it's over
             if (!Context.IsWorldReady || Game1.eventUp)
+            {
+                if (morning && Context.IsWorldReady)
+                    this.State.MorningRemindersPending = true;
                 return;
+            }
+            morning |= this.State.MorningRemindersPending;
+            this.State.MorningRemindersPending = false;
 
             // ascending, so the first interval the remaining time fits in is the smallest one crossed
             var intervals = this.Config.ReminderMinutesBefore.Where(m => m > 0).Distinct().OrderBy(m => m).ToList();
@@ -779,14 +786,15 @@ namespace StardewEventTracker
             }
 
             if (this.Config.UnpinnedReminders)
-                this.RunUnpinnedReminders(intervals);
+                this.RunUnpinnedReminders(intervals, morning);
         }
 
         /// <summary>
         /// Reminders for events that aren't pinned: only those with a start time, at the reminder intervals and again
         /// when they open, so events that can happen all day don't flood the screen. A few at a time, then a summary.
         /// </summary>
-        private void RunUnpinnedReminders(List<int> intervals)
+        /// <param name="morning">The day just started: events whose time window is already open get their alert now, since they never had a "coming up" one.</param>
+        private void RunUnpinnedReminders(List<int> intervals, bool morning)
         {
             const int maxPopups = 2;
             var pinnedStory = this.State.PinnedStoryEvents;
@@ -802,10 +810,12 @@ namespace StardewEventTracker
                 if (this.IsSnoozed(evt) || this.HidesDetails(eval))
                     continue;
 
-                // open now: only worth saying if it was reminded about while it was coming up
+                // open now: only worth saying if it was reminded about while it was coming up, or its time window
+                // opens at the start of the day (so there was nothing to remind about)
                 if (eval.Status == EventStatus.AvailableNow)
                 {
-                    if (this.Config.AlertWhenAvailable && this.alertedToday.Contains($"upcoming:{evt.Key}") && this.alertedToday.Add($"now:{evt.Key}"))
+                    bool announce = this.alertedToday.Contains($"upcoming:{evt.Key}") || (morning && evt.Window != null);
+                    if (this.Config.AlertWhenAvailable && announce && this.alertedToday.Add($"now:{evt.Key}"))
                         messages.Add((EventNarrator.AvailableNow(evt), true));
                     continue;
                 }

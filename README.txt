@@ -333,7 +333,9 @@ routes and the actual clock speed, so time mods are accounted for. Missed
 one? The Pinned tab lists every reminder from today.
 
 Turn on "Remind me about unpinned events" to also hear about unpinned events
-with a start time ("before it starts" and "ready" reminders only).
+with a start time ("before it starts" and "ready" reminders only). One
+whose time window is already open when the day starts gets its "ready"
+reminder as you wake up.
 
 
 Loved gifts

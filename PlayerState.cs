@@ -55,6 +55,9 @@ namespace StardewEventTracker
         /// <summary>Whether data other than event files and dialogue (letters, quests, ...) changed since the last rebuild.</summary>
         public bool OtherDataChanged { get; set; }
 
+        /// <summary>Whether the day-start reminders couldn't run yet (a cutscene was playing) and are still to send.</summary>
+        public bool MorningRemindersPending { get; set; }
+
         /// <summary>Event keys the player snoozed until tomorrow.</summary>
         public HashSet<string> SnoozedToday { get; } = new();
 
@@ -70,6 +73,7 @@ namespace StardewEventTracker
             this.AlertedToday.Clear();
             this.MessagesToday.Clear();
             this.SnoozedToday.Clear();
+            this.MorningRemindersPending = false;
             this.Travel.Invalidate();
         }
 
