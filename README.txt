@@ -278,9 +278,12 @@ Alphabetical for a fixed list.
 Tracking a lot? Set "Tracker event detail" to Compact: every entry takes
 one short line, with the colour saying how soon, e.g.
 
-  Abigail at the Mountain: Leave now (40m walk)
-  Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
-  Leah: 1 more heart to go
+  Abigail (Mountain): Go now (40m)
+  Sebastian (Carpenter's Shop): 6:00 pm
+  Haley: not today
+  Leah: 1 more heart
+
+The menu (F2) still has the full details.
 
 The tracker is at most 30% of the screen wide (HudMaxWidth, 15-60%); longer
 lines wrap onto the next line.

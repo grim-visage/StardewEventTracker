@@ -265,14 +265,14 @@ namespace StardewEventTracker.UI
 
             // e.g. a pinned story event was just seen (it's unpinned at the end of the day) and the other pins aren't around today
             if (entries.Count == 0)
-                lines.AddRange(Wrap(new() { (I18n.Get("hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted) }, maxWidth));
+                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.nothing" : "hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted) }, maxWidth));
 
             var hidden = entries.Skip(shown).ToList();
             if (hidden.Count > 0)
             {
                 // highlight the note if something you could act on soon didn't fit
                 bool urgentHidden = hidden.Any(e => e.Urgency <= Urgency.SetOff);
-                lines.AddRange(Wrap(new() { (I18n.Get("hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted) }, maxWidth));
+                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.overflow" : "hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted) }, maxWidth));
             }
 
             this.lines = lines;
@@ -293,10 +293,10 @@ namespace StardewEventTracker.UI
 
             // everything pending is snoozed
             if (next == null && pending.Pending.Count > 0)
-                return OneLine(name, I18n.Get("hud.snoozed", new { name }));
+                return OneLine(name, I18n.Get(this.Compact ? "hud.short.snoozed" : "hud.snoozed", new { name }));
 
             if (next == null)
-                return OneLine(name, I18n.Get("hud.caught-up", new { name }));
+                return OneLine(name, I18n.Get(this.Compact ? "hud.short.caught-up" : "hud.caught-up", new { name }));
 
             (EventInfo evt, EventEvaluation eval) = next.Value;
             if (eval.Status == EventStatus.Locked)
@@ -309,6 +309,7 @@ namespace StardewEventTracker.UI
                         poss = EventNarrator.Possessive(npc),
                         title = evt.TitleInline
                     })
+                    : this.Compact ? I18n.Get("hud.short.line", new { head = name, stage = I18n.Get("hud.short.not-yet") })
                     : I18n.Get("hud.next-step", new { name, step = this.mod.HidesDetails(eval) ? I18n.Get("status.hidden") : EventNarrator.NextStep(evt, eval, this.mod.Index) });
                 return OneLine(name, text);
             }
@@ -319,7 +320,7 @@ namespace StardewEventTracker.UI
             if (this.Compact)
             {
                 // "Abigail at the Mountain" for what's on today, just "Abigail" otherwise
-                string at = hidden ? name : I18n.Get("hud.short.at", new { name, location });
+                string at = hidden ? name : I18n.Get("hud.short.at", new { name, location = evt.LocationDisplayName });
                 return this.EventEntry(evt, eval, name, at, name, "", isStory: false);
             }
 
@@ -334,7 +335,7 @@ namespace StardewEventTracker.UI
             string place = EventNarrator.WithArticle(evt.LocationDisplayName);
             string sortName = evt.LocationDisplayName;
             if (this.mod.IsSnoozed(evt))
-                return OneLine(sortName, I18n.Get("hud.story-snoozed", new { location = place }), isStory: true);
+                return OneLine(sortName, this.Compact ? I18n.Get("hud.short.snoozed", new { name = sortName }) : I18n.Get("hud.story-snoozed", new { location = place }), isStory: true);
 
             string head = this.Compact ? sortName : I18n.Get("hud.story", new { location = place, title = evt.Title });
             return this.EventEntry(evt, eval, sortName, head, head, "", isStory: true);
@@ -382,7 +383,7 @@ namespace StardewEventTracker.UI
         {
             // spoiler-free mode doesn't say what's still needed
             if (this.mod.HidesDetails(eval))
-                return (I18n.Get("status.hidden"), this.Palette.Muted, EventNarrator.HudTone.Normal);
+                return (I18n.Get(this.Compact ? "hud.short.locked" : "status.hidden"), this.Palette.Muted, EventNarrator.HudTone.Normal);
 
             int? travel = eval.Status is EventStatus.AvailableNow or EventStatus.LaterToday ? this.mod.State.Travel.MinutesTo(evt.LocationName) : null;
             (string stage, EventNarrator.HudTone tone) = EventNarrator.HudLine(evt, eval, this.mod.Config.ReminderMinutesBefore, travel, this.mod.Config.TravelBufferMinutes, this.mod.Index, this.Compact);

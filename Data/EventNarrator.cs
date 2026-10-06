@@ -153,6 +153,24 @@ namespace StardewEventTracker.Data
         /// <param name="compact">Whether to say it in as few words as possible, for the HUD's compact layout: the colour (from the tone) says how soon.</param>
         public static (string Text, HudTone Tone) HudLine(EventInfo evt, EventEvaluation eval, IEnumerable<int> reminderMinutes, int? travelMinutes = null, int travelBuffer = 0, EventIndex? index = null, bool compact = false)
         {
+            // compact: a word or two for anything that isn't on today; the menu has the details
+            if (compact && eval.Status is not (EventStatus.AvailableNow or EventStatus.LaterToday))
+            {
+                string key = eval.Status switch
+                {
+                    EventStatus.OnEntry => "hud.short.on-entry",
+                    EventStatus.WrongDay => "hud.short.wrong-day",
+                    EventStatus.GreenRain => "hud.short.green-rain",
+                    EventStatus.FestivalHere => "hud.short.festival",
+                    EventStatus.MissedToday => "hud.short.missed",
+                    EventStatus.Special => "hud.short.special",
+                    EventStatus.Locked => "hud.short.locked",
+                    EventStatus.Unreachable => "hud.short.unreachable",
+                    _ => "hud.short.not-yet"
+                };
+                return (I18n.Get(key), HudTone.Normal);
+            }
+
             string away = travelMinutes > 0 && !compact ? I18n.Get("hud.away", new { duration = PreconditionFormatter.FormatDuration(travelMinutes.Value) }) : "";
             string tomorrow = compact ? "" : TomorrowHint(eval, includeNo: false);
             switch (eval.Status)
@@ -177,7 +195,7 @@ namespace StardewEventTracker.Data
                         stages = new List<int> { 60, 120 };
                     HudTone tone = minutes <= stages[0] ? HudTone.Urgent : minutes <= stages[^1] ? HudTone.Soon : HudTone.Normal;
                     if (compact)
-                        return (when, tone);
+                        return (I18n.Get("hud.short.starts", new { start }), tone);
                     return (I18n.Get(tone switch { HudTone.Urgent => "hud.head-out", HudTone.Soon => "hud.get-ready", _ => "hud.later-today" }, new { when }), tone);
 
                 case EventStatus.OnEntry:
