@@ -134,9 +134,17 @@ namespace StardewEventTracker.Data
                 Scans.Remove(gone);
             ChangedMaps.Clear();
 
+            // where each location's warps, doors and map actions lead, to find areas there's no way into yet
+            var routes = Scans.ToDictionary(
+                p => p.Key,
+                p => new HashSet<string>(p.Value.Mentions.Where(names.Contains), StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
+            AreaAccess.Rebuild(names, routes, monitor);
+
             // what can be walked to from outdoors without a locked door in the way: an unlocked way in from there makes a
-            // LockedDoorWarp moot, but one from inside (Sebastian's stairs down into Robin's house) doesn't
-            var free = new HashSet<string>(Scans.Where(p => p.Value.Outdoors).Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
+            // LockedDoorWarp moot, but one from inside (Sebastian's stairs down into Robin's house) doesn't. Only outdoors
+            // the player can get to: cutscene copies of a town (Eli and Dylan's East Scarp flashback) have the doors unlocked.
+            var free = new HashSet<string>(Scans.Where(p => p.Value.Outdoors && AreaAccess.IsReachable(p.Key)).Select(p => p.Key), StringComparer.OrdinalIgnoreCase);
             var queue = new Queue<string>(free);
             while (queue.Count > 0)
             {
@@ -176,13 +184,6 @@ namespace StardewEventTracker.Data
                 }
             }
             locks = found;
-
-            // where each location's warps, doors and map actions lead, to find areas there's no way into yet
-            var routes = Scans.ToDictionary(
-                p => p.Key,
-                p => new HashSet<string>(p.Value.Mentions.Where(names.Contains), StringComparer.OrdinalIgnoreCase),
-                StringComparer.OrdinalIgnoreCase);
-            AreaAccess.Rebuild(names, routes, monitor);
             monitor.Log($"Read {read} of {Scans.Count} maps; {locks.Count} locations are behind locked doors ({timer.ElapsedMilliseconds}ms).", LogLevel.Trace);
         }
 
