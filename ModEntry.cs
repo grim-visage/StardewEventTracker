@@ -279,9 +279,13 @@ namespace StardewEventTracker
             gmcm.AddNumberOption(m, () => this.Config.PopupSeconds, v => this.Config.PopupSeconds = v, () => I18n.Get("config.popup-seconds"), () => I18n.Get("config.popup-seconds.tip"),
                 min: 3, max: 30, formatValue: v => I18n.Get("config.seconds", new { seconds = v }));
 
-            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.hud"));
+            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.map"));
             gmcm.AddBoolOption(m, () => this.Config.ShowMapMarkers, v => this.Config.ShowMapMarkers = v, () => I18n.Get("config.map-markers"), () => I18n.Get("config.map-markers.tip"));
+
+            gmcm.AddSectionTitle(m, () => I18n.Get("config.section.hud"));
             gmcm.AddBoolOption(m, () => this.Config.ShowHud, v => this.Config.ShowHud = v, () => I18n.Get("config.show-hud"));
+            gmcm.AddTextOption(m, () => this.Config.HudLayout, v => this.Config.HudLayout = v, () => I18n.Get("config.hud-layout"), () => I18n.Get("config.hud-layout.tip"),
+                allowedValues: ModConfig.HudLayouts, formatAllowedValue: v => I18n.Get($"config.hud-layout.{v}"));
             gmcm.AddBoolOption(m, () => this.Config.HudFade, v => this.Config.HudFade = v, () => I18n.Get("config.hud-fade"), () => I18n.Get("config.hud-fade.tip"));
             gmcm.AddBoolOption(m, () => this.Config.HudFadeOnHover, v => this.Config.HudFadeOnHover = v, () => I18n.Get("config.hud-fade-hover"), () => I18n.Get("config.hud-fade-hover.tip"));
             gmcm.AddNumberOption(m, () => this.Config.HudFadeOpacity, v => this.Config.HudFadeOpacity = v, () => I18n.Get("config.hud-fade-opacity"), () => I18n.Get("config.hud-fade-opacity.tip"),
@@ -290,8 +294,6 @@ namespace StardewEventTracker
                 allowedValues: ModConfig.HudPositions, formatAllowedValue: v => I18n.Get($"config.hud-position.{v}"));
             gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
-            gmcm.AddTextOption(m, () => this.Config.HudLayout, v => this.Config.HudLayout = v, () => I18n.Get("config.hud-layout"), () => I18n.Get("config.hud-layout.tip"),
-                allowedValues: ModConfig.HudLayouts, formatAllowedValue: v => I18n.Get($"config.hud-layout.{v}"));
             gmcm.AddTextOption(m, () => this.Config.HudSortOrder, v => this.Config.HudSortOrder = v, () => I18n.Get("config.hud-order"), () => I18n.Get("config.hud-order.tip"),
                 allowedValues: ModConfig.HudOrders, formatAllowedValue: v => I18n.Get($"config.hud-order.{v}"));
             gmcm.AddTextOption(m, () => this.Config.HudTheme, v => this.Config.HudTheme = v, () => I18n.Get("config.hud-theme"), () => I18n.Get("config.hud-theme.tip"),

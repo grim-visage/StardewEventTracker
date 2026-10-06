@@ -275,8 +275,8 @@ where it happens, and a short status. In config.json its settings start with
 Entries are sorted by urgency, soonest first. Set "Tracker order" to
 Alphabetical for a fixed list.
 
-Tracking a lot? Set "Tracker layout" to Compact: every entry takes one short
-line, with the colour saying how soon, e.g.
+Tracking a lot? Set "Tracker event detail" to Compact: every entry takes
+one short line, with the colour saying how soon, e.g.
 
   Abigail at the Mountain: Leave now (40m walk)
   Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
