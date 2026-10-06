@@ -38,16 +38,6 @@ Mods like Ridgeside and GI Extra Locations give events impossible preconditions 
 
 To check how the game itself evaluates something, decompile it instead of guessing: `DOTNET_ROLL_FORWARD=Major ilspycmd -t StardewValley.GameLocation "<game>/Stardew Valley.dll" -r "<game>"` (the game is at `~/.local/share/Steam/steamapps/common/Stardew Valley`).
 
-## Agent skills
+## Issues
 
-### Issue tracker
-
-Issues live in GitHub Issues on `grim-visage/StardewEventTracker`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The five default triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Issues live in GitHub Issues on `grim-visage/StardewEventTracker`; use the `gh` CLI.
