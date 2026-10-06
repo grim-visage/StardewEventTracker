@@ -50,6 +50,13 @@ namespace StardewEventTracker.UI
             public string? Owner;
         }
 
+        /// <summary>
+        /// Something a controller can move to: a tab, the search box, a filter, or part of a row (0 the row, 1 the NPC's
+        /// name, 2 and 3 its buttons). <see cref="Row"/> is -1 above the list. <see cref="Bounds"/> is the whole row, which
+        /// has to be in view for the row to be drawn.
+        /// </summary>
+        private readonly record struct Focusable(int Row, int Part, Rectangle Area, Rectangle Bounds);
+
         /// <summary>A toggle button in the toolbar next to the search box.</summary>
         private sealed class Chip
         {
@@ -125,13 +132,34 @@ namespace StardewEventTracker.UI
         private int contentTop;
         private string hoverText = "";
 
+        /// <summary>
+        /// What the controller has moved to, and the NPC its row is about (so it follows them when the list is reordered);
+        /// null while the cursor moves freely (the right stick or a mouse).
+        /// </summary>
+        private (int Row, int Part, string? Owner)? focus;
+
+        /// <summary>Where the cursor was put for <see cref="focus"/>, and when, to tell when it's moved by hand.</summary>
+        private Point focusPoint;
+        private int focusTick;
+
+        /// <summary>Whether to move to the first thing in view once the list is built: opening with a controller, or changing tabs from the list.</summary>
+        private bool focusFirst = Game1.options.gamepadControls && Game1.options.snappyMenus;
+
+        /// <summary>Whether the search is being typed with the game's on-screen keyboard.</summary>
+        private bool typingOnScreen;
+
+        /// <summary>The height of the line of controller buttons under the list, shown while playing with a controller.</summary>
+        private static int HintHeight => Game1.options.gamepadControls ? 40 : 0;
+
         private EventIndex Index => this.mod.Index;
 
         private Rectangle ContentArea => new(
             this.xPositionOnScreen + Padding,
             this.contentTop,
             this.width - Padding * 2 - 24,
-            this.yPositionOnScreen + this.height - Padding - this.contentTop);
+            this.yPositionOnScreen + this.height - Padding - HintHeight - this.contentTop);
+
+        private Rectangle SearchArea => new(this.searchBox.X, this.searchBox.Y, this.searchBox.Width, this.searchBox.Height);
 
         /// <param name="focusNpc">An NPC to open the Hearts tab at, expanded (e.g. pressing the menu key on their Social tab entry).</param>
         public TrackerMenu(ModEntry mod, string? focusNpc = null)
@@ -918,6 +946,18 @@ namespace StardewEventTracker.UI
                 this.builtVersion = -1;
             this.configWasOpen = configOpen;
 
+            // the on-screen keyboard closed: stop typing, so B closes the menu again
+            if (this.typingOnScreen && Game1.textEntry == null)
+            {
+                this.typingOnScreen = false;
+                this.searchBox.Selected = false;
+            }
+
+            // moving the cursor by hand lets go of the controller's focus (not while the profile or keyboard has it)
+            if (this.focus != null && !configOpen && Game1.textEntry == null && Game1.ticks != this.focusTick
+                && (Math.Abs(Game1.getMouseX(ui_scale: true) - this.focusPoint.X) > 8 || Math.Abs(Game1.getMouseY(ui_scale: true) - this.focusPoint.Y) > 8))
+                this.focus = null;
+
             if (this.searchBox.Text != EventFilter.SearchText)
             {
                 EventFilter.SearchText = this.searchBox.Text;
@@ -930,11 +970,13 @@ namespace StardewEventTracker.UI
         {
             base.receiveLeftClick(x, y, playSound);
 
-            bool inSearch = new Rectangle(this.searchBox.X, this.searchBox.Y, this.searchBox.Width, this.searchBox.Height).Contains(x, y);
+            bool inSearch = this.SearchArea.Contains(x, y);
             this.searchBox.Selected = inSearch;
             if (inSearch)
             {
                 Game1.keyboardDispatcher.Subscriber = this.searchBox;
+                if (Game1.options.gamepadControls && !Game1.lastCursorMotionWasMouse)
+                    this.TypeOnScreen();
                 return;
             }
 
@@ -997,8 +1039,16 @@ namespace StardewEventTracker.UI
             // while typing, keys belong to the search box (so 'E' doesn't close the menu)
             if (this.searchBox.Selected)
             {
-                if (key is Keys.Escape or Keys.Enter)
+                if (key is Keys.Escape or Keys.Enter && !this.typingOnScreen)
                     this.searchBox.Selected = false;
+                return;
+            }
+
+            // with a controller, the game sends the D-pad and left stick as movement keys; they move between everything
+            // that can be pressed. With snappy menus off the left stick moves the cursor instead.
+            if (Game1.options.gamepadControls && (Game1.options.snappyMenus || !Game1.isGamePadThumbstickInMotion()) && MoveDirection(key) is { } direction)
+            {
+                this.MoveFocus(direction.X, direction.Y);
                 return;
             }
 
@@ -1020,15 +1070,30 @@ namespace StardewEventTracker.UI
             base.receiveKeyPress(key);
         }
 
+        /// <remarks>
+        /// The D-pad and left stick arrive as movement keys (see <see cref="receiveKeyPress"/>), A as a left click where
+        /// the cursor is, and the right stick moves the cursor freely.
+        /// </remarks>
         public override void receiveGamePadButton(Buttons b)
         {
+            if (this.searchBox.Selected)
+                return;
+
             switch (b)
             {
-                case Buttons.DPadUp or Buttons.LeftThumbstickUp or Buttons.RightThumbstickUp:
-                    this.Scroll(-ScrollStep);
+                case Buttons.Y:
+                    // the game also sends Y as the menu key; typing makes the menu ignore that
+                    Game1.playSound("smallSelect");
+                    this.TypeOnScreen();
                     return;
-                case Buttons.DPadDown or Buttons.LeftThumbstickDown or Buttons.RightThumbstickDown:
-                    this.Scroll(ScrollStep);
+                case Buttons.X when EventFilter.SearchText.Length > 0:
+                    this.searchBox.Text = "";
+                    Game1.playSound("smallSelect");
+                    return;
+                case Buttons.LeftTrigger or Buttons.RightTrigger:
+                    this.Scroll(b == Buttons.LeftTrigger ? -this.ContentArea.Height : this.ContentArea.Height);
+                    if (this.focus is { Row: >= 0 })
+                        this.FocusFirstShown();
                     return;
                 case Buttons.LeftShoulder:
                     this.SetTab((Tab)(((int)this.tab + TabLabels.Length - 1) % TabLabels.Length));
@@ -1048,6 +1113,9 @@ namespace StardewEventTracker.UI
 
         private void SetTab(Tab newTab)
         {
+            // from the list, go on to the new tab's list; from the tabs, stay on them
+            if (this.focus is { Row: >= 0 })
+                this.focusFirst = true;
             this.tab = LastTab.Value = newTab;
             this.scrollY = 0;
             this.LayoutToolbar();
@@ -1063,11 +1131,195 @@ namespace StardewEventTracker.UI
         }
 
         /****
+        ** Controller
+        ****/
+        /// <summary>Opens the game's on-screen keyboard on the search box.</summary>
+        private void TypeOnScreen()
+        {
+            this.searchBox.Selected = true;
+            this.typingOnScreen = true;
+            Game1.showTextEntry(this.searchBox);
+        }
+
+        private static Point? MoveDirection(Keys key)
+        {
+            if (Game1.options.doesInputListContain(Game1.options.moveUpButton, key))
+                return new Point(0, -1);
+            if (Game1.options.doesInputListContain(Game1.options.moveDownButton, key))
+                return new Point(0, 1);
+            if (Game1.options.doesInputListContain(Game1.options.moveLeftButton, key))
+                return new Point(-1, 0);
+            if (Game1.options.doesInputListContain(Game1.options.moveRightButton, key))
+                return new Point(1, 0);
+            return null;
+        }
+
+        /// <summary>Everything a controller can move to, where it is now: the tabs and toolbar, then each row's parts.</summary>
+        private List<Focusable> GetFocusables()
+        {
+            var list = new List<Focusable>();
+
+            // fixed parts keep their numbers when one is missing (no settings button), so the focus stays put
+            var fixedAreas = this.tabAreas.Concat(new[] { this.settingsArea, this.SearchArea }).Concat(this.chips.Select(c => c.Area));
+            int part = 0;
+            foreach (Rectangle area in fixedAreas)
+            {
+                if (!area.IsEmpty)
+                    list.Add(new Focusable(-1, part, area, area));
+                part++;
+            }
+
+            Rectangle content = this.ContentArea;
+            int y = content.Y - this.scrollY;
+            for (int i = 0; i < this.rows.Count; i++)
+            {
+                Row row = this.rows[i];
+                if (row.Text.Length > 0)
+                {
+                    var bounds = new Rectangle(content.X, y, content.Width, row.Height);
+                    if (row.OnClick != null)
+                    {
+                        // an NPC's expand arrow, or the row's text
+                        Rectangle area = row.DrawLead != null
+                            ? new Rectangle(content.X, y, row.NameClickFrom, row.Height)
+                            : new Rectangle(content.X + row.Indent, y, (int)row.Font.MeasureString(row.Text).X, row.Height);
+                        list.Add(new Focusable(i, 0, area, bounds));
+                    }
+                    if (row.OnNameClick != null)
+                        list.Add(new Focusable(i, 1, NameArea(row, content, y), bounds));
+                    int button = 2;
+                    foreach ((Rectangle area, _, _) in RowButtons(row, content, y))
+                        list.Add(new Focusable(i, button++, area, bounds));
+                }
+                y += row.Height;
+            }
+            return list;
+        }
+
+        private Focusable? FindFocus(List<Focusable> all)
+        {
+            if (this.focus is not { } focus)
+                return null;
+
+            // follow the NPC if the list was reordered, e.g. pinning them moves them to the top
+            int row = focus.Row;
+            if (focus.Owner != null && (row >= this.rows.Count || this.rows[row].Owner != focus.Owner))
+                row = this.rows.FindIndex(r => r.Owner == focus.Owner);
+
+            foreach (Focusable f in all)
+            {
+                if (f.Row == row && f.Part == focus.Part)
+                    return f;
+            }
+            return null;
+        }
+
+        private bool IsShown(Focusable f)
+        {
+            Rectangle content = this.ContentArea;
+            return f.Row < 0 || (f.Bounds.Top >= content.Top && f.Bounds.Bottom <= content.Bottom);
+        }
+
+        /// <summary>Moves to the nearest thing in a direction, scrolling the list to it.</summary>
+        private void MoveFocus(int dx, int dy)
+        {
+            List<Focusable> all = this.GetFocusables();
+            Focusable? current = this.FindFocus(all);
+            Rectangle from = current?.Area ?? new Rectangle(Game1.getMouseX(ui_scale: true), Game1.getMouseY(ui_scale: true), 1, 1);
+            bool inList = current is { } c ? c.Row >= 0 : this.ContentArea.Contains(from.Location);
+
+            // ahead: past the middle of where we are; across: on the same line
+            bool Ahead(Rectangle to) => dy != 0
+                ? (dy < 0 ? to.Bottom <= from.Center.Y : to.Top >= from.Center.Y)
+                : to.Top < from.Bottom && to.Bottom > from.Top && (dx < 0 ? to.Right <= from.Center.X : to.Left >= from.Center.X);
+
+            // the nearest along the way, keeping to the same column or line
+            int Cost(Rectangle to)
+            {
+                int gapX = Math.Max(0, Math.Max(to.Left - from.Right, from.Left - to.Right));
+                int gapY = Math.Abs(to.Center.Y - from.Center.Y);
+                return dy != 0 ? gapY + gapX * 2 : gapX + gapY * 2;
+            }
+
+            Focusable? Best(IEnumerable<Focusable> candidates) =>
+                candidates.Select(f => (Focusable?)f).OrderBy(f => Cost(f!.Value.Area)).FirstOrDefault();
+
+            var ahead = all.Where(f => f != current && Ahead(f.Area)).ToList();
+
+            // within the list, rows out of view count; from the toolbar, only rows in view (the rest are scrolled past it)
+            Focusable? next = Best(ahead.Where(f => inList ? f.Row >= 0 : this.IsShown(f)));
+            if (next == null && inList)
+            {
+                // nothing more to press that way: scroll through the text that's left, then go up to the toolbar
+                if (dy != 0 && (dy < 0 ? this.scrollY > 0 : this.scrollY < this.MaxScroll))
+                {
+                    this.Scroll(dy * ScrollStep);
+                    this.focus = null;
+                    return;
+                }
+                next = Best(ahead.Where(f => f.Row < 0));
+            }
+
+            if (next is { } target)
+                this.FocusOn(target, playSound: true);
+        }
+
+        /// <summary>Moves to the first thing in view in the list, or the open tab if there's nothing to press.</summary>
+        private void FocusFirstShown()
+        {
+            List<Focusable> all = this.GetFocusables();
+            Focusable? first = all.Where(f => f.Row >= 0 && this.IsShown(f)).Select(f => (Focusable?)f).FirstOrDefault()
+                ?? all.Where(f => f.Row < 0 && f.Part == (int)this.tab).Select(f => (Focusable?)f).FirstOrDefault();
+            if (first is { } target)
+                this.FocusOn(target, playSound: false);
+        }
+
+        /// <summary>After the list was rebuilt, puts the cursor back on what the controller had moved to.</summary>
+        private void SyncFocus()
+        {
+            if (this.focus == null)
+                return;
+            if (this.FindFocus(this.GetFocusables()) is not { } target)
+            {
+                this.focus = null;
+                return;
+            }
+            if (target.Area.Center != this.focusPoint || !this.IsShown(target))
+                this.FocusOn(target, playSound: false);
+        }
+
+        /// <summary>Scrolls the target into view and puts the cursor on it, so A presses it and its hover text shows.</summary>
+        private void FocusOn(Focusable target, bool playSound)
+        {
+            this.focus = (target.Row, target.Part, target.Row >= 0 ? this.rows[target.Row].Owner : null);
+
+            Rectangle area = target.Area;
+            if (target.Row >= 0)
+            {
+                Rectangle content = this.ContentArea;
+                int old = this.scrollY;
+                if (target.Bounds.Top < content.Top)
+                    this.scrollY -= content.Top - target.Bounds.Top;
+                else if (target.Bounds.Bottom > content.Bottom)
+                    this.scrollY += target.Bounds.Bottom - content.Bottom;
+                this.scrollY = Math.Clamp(this.scrollY, 0, this.MaxScroll);
+                area.Y -= this.scrollY - old;
+            }
+
+            this.focusPoint = area.Center;
+            this.focusTick = Game1.ticks;
+            Game1.setMousePosition(this.focusPoint.X, this.focusPoint.Y, ui_scale: true);
+            if (playSound)
+                Game1.playSound("shiny4");
+        }
+
+        /****
         ** Draw
         ****/
         public override void draw(SpriteBatch b)
         {
-            if (this.builtVersion != this.Index.Version)
+            bool rebuilt = this.builtVersion != this.Index.Version;
+            if (rebuilt)
                 this.RebuildRows();
 
             // opened from an NPC's Social tab entry: scroll to them once
@@ -1085,6 +1337,16 @@ namespace StardewEventTracker.UI
                 }
                 this.scrollTo = null;
             }
+
+            // the hint line comes and goes as the player switches between controller and mouse
+            this.scrollY = Math.Clamp(this.scrollY, 0, this.MaxScroll);
+            if (this.focusFirst)
+            {
+                this.focusFirst = false;
+                this.FocusFirstShown();
+            }
+            else if (rebuilt)
+                this.SyncFocus();
 
             int mouseX = Game1.getMouseX(), mouseY = Game1.getMouseY();
 
@@ -1140,7 +1402,7 @@ namespace StardewEventTracker.UI
                     // the portrait and name open the NPC's profile; underline the name while pointing at it
                     if (row.OnNameClick != null)
                     {
-                        var nameArea = new Rectangle(content.X + row.NameClickFrom, y, row.Indent - row.NameClickFrom + (int)textSize.X, row.Height);
+                        Rectangle nameArea = NameArea(row, content, y);
                         this.hitAreas.Add((nameArea, row.OnNameClick));
                         if (row.NameHover != null)
                             this.hoverAreas.Add((nameArea, row.NameHover));
@@ -1150,15 +1412,10 @@ namespace StardewEventTracker.UI
                     int buttonsWidth = ((row.Button != null ? 1 : 0) + (row.Button2 != null ? 1 : 0)) * (ButtonWidth + 16);
                     row.DrawAfter?.Invoke(b, new Vector2(content.X + row.Indent + textSize.X + 24, textY + textSize.Y / 2), content.Right - buttonsWidth);
 
-                    int buttonRight = content.Right;
-                    foreach ((string? label, Action? action) in new[] { (row.Button, row.OnButton), (row.Button2, row.OnButton2) })
+                    foreach ((Rectangle buttonArea, string label, Action action) in RowButtons(row, content, y))
                     {
-                        if (label == null || action == null)
-                            continue;
-                        var buttonArea = new Rectangle(buttonRight - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48);
                         DrawButton(b, buttonArea, label, active: true, hovered: buttonArea.Contains(mouseX, mouseY));
                         this.hitAreas.Add((buttonArea, action));
-                        buttonRight -= ButtonWidth + 12;
                     }
                 }
                 y += row.Height;
@@ -1174,10 +1431,36 @@ namespace StardewEventTracker.UI
                 b.Draw(Game1.staminaRect, new Rectangle(track.X, thumbY, track.Width, thumbHeight), Game1.textColor * 0.6f);
             }
 
+            if (HintHeight > 0)
+            {
+                string hints = I18n.Get("menu.controller-hints");
+                Vector2 size = Game1.smallFont.MeasureString(hints);
+                float scale = Math.Min(1f, content.Width / size.X);
+                var at = new Vector2(content.Center.X - size.X * scale / 2, content.Bottom + (HintHeight - size.Y * scale) / 2 + 4);
+                b.DrawString(Game1.smallFont, hints, at, MutedColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.9f);
+            }
+
             base.draw(b);
             if (this.hoverText.Length > 0)
                 drawHoverText(b, this.hoverText, Game1.smallFont);
             this.drawMouse(b);
+        }
+
+        /// <summary>Where a row's portrait and name are, which open the NPC's profile.</summary>
+        private static Rectangle NameArea(Row row, Rectangle content, int y) =>
+            new(content.X + row.NameClickFrom, y, row.Indent - row.NameClickFrom + (int)row.Font.MeasureString(row.Text).X, row.Height);
+
+        /// <summary>A row's buttons, from the right edge.</summary>
+        private static IEnumerable<(Rectangle Area, string Label, Action Action)> RowButtons(Row row, Rectangle content, int y)
+        {
+            int right = content.Right;
+            foreach ((string? label, Action? action) in new[] { (row.Button, row.OnButton), (row.Button2, row.OnButton2) })
+            {
+                if (label == null || action == null)
+                    continue;
+                yield return (new Rectangle(right - ButtonWidth, y + (row.Height - 48) / 2, ButtonWidth, 48), label, action);
+                right -= ButtonWidth + 12;
+            }
         }
 
         /// <summary>

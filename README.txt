@@ -78,7 +78,24 @@ HOW TO USE IT
   Shift + F2          Show or hide the on-screen tracker
   Ctrl + F2           Pin or unpin the NPC under your cursor (in the world
                       or on the game's Social tab)
-  Right-click + drag  Move the on-screen tracker
+  Right-click + drag  Move the on-screen tracker (or pick a corner with the
+                      HudPosition setting)
+
+With a controller:
+
+  Button              Action
+  ------------------  ---------------------------------------------------
+  Right stick click   Open or close the tracker menu (on the game's Social
+                      tab: open it at the highlighted NPC)
+  Hold left stick +   Show or hide the on-screen tracker
+  right stick click
+  Hold LT + right     Pin or unpin the NPC in front of you, or the
+  stick click         highlighted NPC on the game's Social tab
+
+In the tracker menu, the D-pad or left stick moves between tabs, filters,
+rows and buttons, and A presses what's highlighted. Y opens the on-screen
+keyboard to search, X clears the search, LB/RB switch tabs, LT/RT scroll a
+page, the right stick moves the cursor freely, and B closes the menu.
 
 
 Pinning
@@ -87,9 +104,10 @@ Pin the NPCs and story events you want to follow. Reminders, the on-screen
 tracker and map markers cover what you've pinned. You can pin someone by:
 
   * clicking "Pin" next to their name on the Hearts tab
-  * pointing at them in the world and pressing Ctrl + F2
+  * pointing at them in the world and pressing Ctrl + F2 (controller: hold
+    LT and click the right stick)
   * hovering their row on the game's Social tab (Esc menu) and pressing
-    Ctrl + F2
+    Ctrl + F2 (or the controller buttons)
 
 Your spouse, roommate and anyone you're dating are pinned automatically. If
 you unpin one of them, they stay unpinned.
@@ -341,11 +359,14 @@ menu opens it), or in config.json after the first launch.
 
   Setting                Default          Description
   ---------------------  ---------------  -----------------------------------
-  OpenMenuKey            F2               Opens the tracker menu
-  ToggleHudKey           LeftShift + F2   Shows or hides the on-screen
-                                          tracker
+  OpenMenuKey            F2, RightStick   Opens the tracker menu
+  ToggleHudKey           LeftShift + F2,  Shows or hides the on-screen
+                         LeftStick +      tracker
+                         RightStick
   PinKey                 LeftControl      Pins or unpins the NPC under the
-                         + F2             cursor
+                         + F2,            cursor
+                         LeftTrigger +
+                         RightStick
   AutoPinPartners        true             Pin your spouse, roommate and
                                           partners automatically
   SpoilerFree            false            Hide details of locked events
@@ -381,7 +402,11 @@ menu opens it), or in config.json after the first launch.
                                           (Crystal chime)
   PopupSeconds           10               How long reminder messages stay
                                           on screen, in seconds (3 to 30)
-  HudX / HudY            16 / 120         Its position on screen, in pixels
+  HudPosition            custom           Where it sits: "custom" (HudX /
+                                          HudY), "top-left", "top-right",
+                                          "bottom-left" or "bottom-right"
+  HudX / HudY            16 / 120         Its custom position on screen, in
+                                          pixels
   HudLayout              detailed         "detailed", or "compact" for one
                                           short line per entry
   HudSortOrder           urgency          Its order: "urgency" or

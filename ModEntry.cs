@@ -285,6 +285,8 @@ namespace StardewEventTracker
             gmcm.AddBoolOption(m, () => this.Config.HudFadeOnHover, v => this.Config.HudFadeOnHover = v, () => I18n.Get("config.hud-fade-hover"), () => I18n.Get("config.hud-fade-hover.tip"));
             gmcm.AddNumberOption(m, () => this.Config.HudFadeOpacity, v => this.Config.HudFadeOpacity = v, () => I18n.Get("config.hud-fade-opacity"), () => I18n.Get("config.hud-fade-opacity.tip"),
                 min: 0, max: 100, interval: 1, formatValue: v => $"{v}%");
+            gmcm.AddTextOption(m, () => this.Config.HudPosition, v => this.Config.HudPosition = v, () => I18n.Get("config.hud-position"), () => I18n.Get("config.hud-position.tip"),
+                allowedValues: ModConfig.HudPositions, formatAllowedValue: v => I18n.Get($"config.hud-position.{v}"));
             gmcm.AddNumberOption(m, () => this.Config.HudX, v => this.Config.HudX = v, () => I18n.Get("config.hud-x"), min: 0, max: 3000, interval: 4);
             gmcm.AddNumberOption(m, () => this.Config.HudY, v => this.Config.HudY = v, () => I18n.Get("config.hud-y"), min: 0, max: 2000, interval: 4);
             gmcm.AddTextOption(m, () => this.Config.HudLayout, v => this.Config.HudLayout = v, () => I18n.Get("config.hud-layout"), () => I18n.Get("config.hud-layout.tip"),
@@ -474,6 +476,7 @@ namespace StardewEventTracker
             Point box = this.hud.Value.BoxPosition;
             this.hudDragOffset.Value = new Point(cursor.X - box.X, cursor.Y - box.Y);
             this.hud.Value.Dragging = true;
+            this.Config.HudPosition = ModConfig.HudPositionCustom;
         }
 
         private void UpdateHudDrag()
@@ -499,19 +502,23 @@ namespace StardewEventTracker
             if (!Context.IsWorldReady)
                 return;
 
-            // keys belong to the config page while it's open over the tracker menu, e.g. while setting a keybind there
-            if (Game1.activeClickableMenu is TrackerMenu tracker && tracker.GetChildMenu() != null)
+            // keys belong to the config page while it's open over the tracker menu (e.g. while setting a keybind there),
+            // and to the on-screen keyboard while it's open
+            if (Game1.activeClickableMenu is TrackerMenu tracker && tracker.GetChildMenu() != null || Game1.textEntry != null)
                 return;
 
             // modifier combos are checked first: Ctrl/Shift + F2 also count as pressing the menu's F2
+            // the game doesn't see the buttons too; on a controller, clicking the right stick opens chat and holding it the emote menu
             if (this.Config.PinKey.JustPressed())
             {
+                this.Helper.Input.SuppressActiveKeybinds(this.Config.PinKey);
                 this.PinUnderCursor();
                 return;
             }
 
             if (this.Config.ToggleHudKey.JustPressed())
             {
+                this.Helper.Input.SuppressActiveKeybinds(this.Config.ToggleHudKey);
                 if (Context.IsPlayerFree)
                 {
                     this.Config.ShowHud = !this.Config.ShowHud;
@@ -522,6 +529,7 @@ namespace StardewEventTracker
 
             if (this.Config.OpenMenuKey.JustPressed())
             {
+                this.Helper.Input.SuppressActiveKeybinds(this.Config.OpenMenuKey);
                 if (Game1.activeClickableMenu is TrackerMenu menu)
                     menu.exitThisMenu();
                 // from the Social tab, open at the NPC under the cursor
@@ -868,7 +876,7 @@ namespace StardewEventTracker
             ModConfig defaults = new();
             if (this.Config.OpenMenuKey is null || this.Config.ToggleHudKey is null || this.Config.PinKey is null
                 || this.Config.ReminderMinutesBefore is null || this.Config.ReminderSound is null || this.Config.AvailableSound is null
-                || this.Config.HudTheme is null || this.Config.HudMode is null)
+                || this.Config.HudTheme is null || this.Config.HudMode is null || this.Config.HudPosition is null)
             {
                 this.Config.OpenMenuKey ??= defaults.OpenMenuKey;
                 this.Config.ToggleHudKey ??= defaults.ToggleHudKey;
@@ -878,6 +886,7 @@ namespace StardewEventTracker
                 this.Config.AvailableSound ??= defaults.AvailableSound;
                 this.Config.HudTheme ??= defaults.HudTheme;
                 this.Config.HudMode ??= defaults.HudMode;
+                this.Config.HudPosition ??= defaults.HudPosition;
                 changed = true;
             }
 
@@ -901,6 +910,19 @@ namespace StardewEventTracker
                 changed = true;
             }
 
+            // the keys were keyboard-only before; give controller buttons to anyone who kept those defaults (once, so they can be removed)
+            if (!this.Config.ControllerKeysAdded)
+            {
+                if (this.Config.OpenMenuKey.ToString() == "F2")
+                    this.Config.OpenMenuKey = defaults.OpenMenuKey;
+                if (this.Config.ToggleHudKey.ToString() == "LeftShift + F2")
+                    this.Config.ToggleHudKey = defaults.ToggleHudKey;
+                if (this.Config.PinKey.ToString() == "LeftControl + F2")
+                    this.Config.PinKey = defaults.PinKey;
+                this.Config.ControllerKeysAdded = true;
+                changed = true;
+            }
+
             if (!HudTheme.Ids.Contains(this.Config.HudTheme, StringComparer.OrdinalIgnoreCase))
             {
                 this.Config.HudTheme = HudTheme.Default.Id;
@@ -916,6 +938,12 @@ namespace StardewEventTracker
             if (!ModConfig.HudLayouts.Contains(this.Config.HudLayout))
             {
                 this.Config.HudLayout = ModConfig.HudLayoutDetailed;
+                changed = true;
+            }
+
+            if (!ModConfig.HudPositions.Contains(this.Config.HudPosition))
+            {
+                this.Config.HudPosition = ModConfig.HudPositionCustom;
                 changed = true;
             }
 

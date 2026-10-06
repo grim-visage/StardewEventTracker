@@ -22,6 +22,12 @@ namespace StardewEventTracker.UI
 
         private const float Scale = 4f;
 
+        /// <summary>
+        /// How near a controller's cursor has to be to a marker to show its tooltip. The cursor jumps between the map's
+        /// areas rather than moving freely, so it rarely lands on the heart itself.
+        /// </summary>
+        private const int GamepadReach = 64;
+
         private readonly ModEntry mod;
 
         /// <summary>The markers last worked out, and for which map region and evaluations.</summary>
@@ -85,7 +91,9 @@ namespace StardewEventTracker.UI
                 b.Draw(Game1.mouseCursors, position + new Vector2(2, 2), HeartSprite, Color.Black * 0.35f, 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
                 b.Draw(Game1.mouseCursors, position, HeartSprite, now ? Color.White : Color.White * 0.55f, 0f, Vector2.Zero, Scale, SpriteEffects.None, 1f);
 
-                if (area.Contains(mouseX, mouseY))
+                bool near = Game1.options.gamepadControls
+                    && Vector2.Distance(new Vector2(mouseX, mouseY), new Vector2(area.Center.X, area.Center.Y)) <= GamepadReach;
+                if (area.Contains(mouseX, mouseY) || near)
                     hovered.Add(label);
             }
 

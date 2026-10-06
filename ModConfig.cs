@@ -49,14 +49,20 @@ namespace StardewEventTracker
 
         public static readonly string[] HudLayouts = { HudLayoutDetailed, HudLayoutCompact };
 
+        /// <summary>Where the HUD sits: at <see cref="HudX"/> and <see cref="HudY"/>, or in a corner of the screen.</summary>
+        public const string HudPositionCustom = "custom", HudPositionTopLeft = "top-left", HudPositionTopRight = "top-right",
+            HudPositionBottomLeft = "bottom-left", HudPositionBottomRight = "bottom-right";
+
+        public static readonly string[] HudPositions = { HudPositionCustom, HudPositionTopLeft, HudPositionTopRight, HudPositionBottomLeft, HudPositionBottomRight };
+
         /// <summary>Opens or closes the tracker menu.</summary>
-        public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2");
+        public KeybindList OpenMenuKey { get; set; } = KeybindList.Parse("F2, RightStick");
 
         /// <summary>Shows or hides the HUD tracker.</summary>
-        public KeybindList ToggleHudKey { get; set; } = KeybindList.Parse("LeftShift + F2");
+        public KeybindList ToggleHudKey { get; set; } = KeybindList.Parse("LeftShift + F2, LeftStick + RightStick");
 
         /// <summary>Pins or unpins the NPC under the cursor, in the world or on the Social tab.</summary>
-        public KeybindList PinKey { get; set; } = KeybindList.Parse("LeftControl + F2");
+        public KeybindList PinKey { get; set; } = KeybindList.Parse("LeftControl + F2, LeftTrigger + RightStick");
 
         /// <summary>Whether to pin your spouse, roommate and anyone you're dating automatically.</summary>
         public bool AutoPinPartners { get; set; } = true;
@@ -109,6 +115,9 @@ namespace StardewEventTracker
         /// <summary>Whether to mark pinned NPCs' events that can happen today on the map page.</summary>
         public bool ShowMapMarkers { get; set; } = true;
 
+        /// <summary>Where the HUD tracker sits: one of <see cref="HudPositions"/>. Dragging it sets <see cref="HudPositionCustom"/>.</summary>
+        public string HudPosition { get; set; } = HudPositionCustom;
+
         /// <summary>HUD tracker position from the left edge of the screen, in UI pixels.</summary>
         public int HudX { get; set; } = 16;
 
@@ -138,6 +147,9 @@ namespace StardewEventTracker
 
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
+
+        /// <summary>Whether the controller buttons have been added to keybinds still at the old keyboard-only defaults.</summary>
+        public bool ControllerKeysAdded { get; set; }
 
         /// <summary>The pre-release alert toggle, read once to migrate to <see cref="AlertWhenAvailable"/>.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

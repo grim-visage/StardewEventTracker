@@ -80,7 +80,7 @@ namespace StardewEventTracker.UI
             // what fits depends on the screen height, where the box sits and the theme's title
             HudTheme theme = this.Theme;
             if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.PinCount || this.builtForTheme != theme
-                || this.builtForHeight != Game1.uiViewport.Height || (!this.Dragging && this.builtForY != this.mod.Config.HudY))
+                || this.builtForHeight != Game1.uiViewport.Height || (!this.Dragging && this.builtForY != this.TopLimit(theme)))
                 this.Rebuild();
 
             SpriteFont font = Game1.smallFont;
@@ -91,8 +91,9 @@ namespace StardewEventTracker.UI
             int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2 + theme.FooterInside;
 
             // a title drawn above the box stays on screen too
-            int x = Math.Clamp(this.mod.Config.HudX, 0, Math.Max(0, Game1.uiViewport.Width - width));
-            int y = Math.Clamp(this.mod.Config.HudY, theme.TitleAbove, Math.Max(theme.TitleAbove, Game1.uiViewport.Height - height));
+            (int startX, int startY) = this.Position(width, height, theme);
+            int x = Math.Clamp(startX, 0, Math.Max(0, Game1.uiViewport.Width - width));
+            int y = Math.Clamp(startY, theme.TitleAbove, Math.Max(theme.TitleAbove, Game1.uiViewport.Height - height));
 
             var box = new Rectangle(x, y, width, height);
             Rectangle title = theme.TitleArea(box);
@@ -143,6 +144,38 @@ namespace StardewEventTracker.UI
         }
 
         /// <summary>The theme the player picked in the config.</summary>
+        /// <summary>Space kept clear of the clock in the top right, and of the health and energy bars in the bottom right.</summary>
+        private const int ClockHeight = 300, BarsWidth = 136, Margin = 16;
+
+        /// <summary>The bottom presets sit above the toolbar's height, so they don't cover it on narrow screens.</summary>
+        private const int ToolbarHeight = 112;
+
+        /// <summary>Where the box goes for the position setting: a corner, or the saved custom position.</summary>
+        private (int X, int Y) Position(int width, int height, HudTheme theme)
+        {
+            int right = Game1.uiViewport.Width - width - Margin;
+            int bottom = Game1.uiViewport.Height - height - Margin;
+            return this.mod.Config.HudPosition switch
+            {
+                ModConfig.HudPositionTopLeft => (Margin, Margin + theme.TitleAbove),
+                ModConfig.HudPositionTopRight => (right, ClockHeight + theme.TitleAbove),
+                ModConfig.HudPositionBottomLeft => (Margin, bottom - ToolbarHeight),
+                ModConfig.HudPositionBottomRight => (right - BarsWidth, bottom),
+                _ => (this.mod.Config.HudX, this.mod.Config.HudY)
+            };
+        }
+
+        /// <summary>The highest the box can start, which limits how many lines fit below it.</summary>
+        private int TopLimit(HudTheme theme) => this.mod.Config.HudPosition switch
+        {
+            ModConfig.HudPositionTopLeft => Margin + theme.TitleAbove,
+            ModConfig.HudPositionTopRight => ClockHeight + theme.TitleAbove,
+            // the bottom corners grow upwards, so the whole screen is room
+            ModConfig.HudPositionBottomLeft => theme.TitleAbove + ToolbarHeight + Margin,
+            ModConfig.HudPositionBottomRight => theme.TitleAbove + Margin,
+            _ => Math.Max(theme.TitleAbove, this.mod.Config.HudY)
+        };
+
         private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme, this.mod.Config.HudMode == ModConfig.HudModeDark);
 
         private HudPalette Palette => this.Theme.Palette;
@@ -170,7 +203,7 @@ namespace StardewEventTracker.UI
             HudTheme theme = this.Theme;
             var lines = new List<(string, Color)>();
             int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
-            int boxY = Math.Max(theme.TitleAbove, this.mod.Config.HudY);
+            int boxY = this.TopLimit(theme);
             int maxLines = Math.Max(2, (Game1.uiViewport.Height - boxY - theme.Padding * 2 - theme.TitleInside - theme.FooterInside) / LineHeight);
             int shown = 0;
             foreach (Entry entry in entries)
@@ -199,7 +232,7 @@ namespace StardewEventTracker.UI
             this.builtVersion = this.mod.Index.Version;
             this.pinCount = this.PinCount;
             this.builtForHeight = Game1.uiViewport.Height;
-            this.builtForY = this.mod.Config.HudY;
+            this.builtForY = boxY;
             this.builtForTheme = theme;
             this.anyAvailableNow = entries.Any(e => e.Urgency == Urgency.Now);
         }
