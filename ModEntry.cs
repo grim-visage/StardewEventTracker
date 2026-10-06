@@ -299,6 +299,8 @@ namespace StardewEventTracker
             gmcm.AddTextOption(m, () => this.Config.HudMode, v => this.Config.HudMode = v, () => I18n.Get("config.hud-mode"), () => I18n.Get("config.hud-mode.tip"),
                 allowedValues: ModConfig.HudModes, formatAllowedValue: v => I18n.Get($"config.hud-mode.{v}"));
             gmcm.AddNumberOption(m, () => this.Config.HudMaxNpcs, v => this.Config.HudMaxNpcs = v, () => I18n.Get("config.hud-max"), min: 1, max: 15);
+            gmcm.AddNumberOption(m, () => this.Config.HudMaxWidth, v => this.Config.HudMaxWidth = v, () => I18n.Get("config.hud-max-width"), () => I18n.Get("config.hud-max-width.tip"),
+                min: ModConfig.HudMaxWidthMin, max: ModConfig.HudMaxWidthMax, interval: 5, formatValue: v => $"{v}%");
         }
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)

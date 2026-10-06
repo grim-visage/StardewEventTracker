@@ -282,6 +282,9 @@ line, with the colour saying how soon, e.g.
   Sebastian at the Carpenter's Shop: starts 6:00 pm (in 3h)
   Leah: 1 more heart to go
 
+The tracker is at most 30% of the screen wide (HudMaxWidth, 15-60%); longer
+lines wrap onto the next line.
+
 The on-screen tracker shows up to 5 entries (HudMaxNpcs). The rest are summed
 up in a last line, e.g. "+2 more pinned (F2 to see all)", which turns green
 if one of them needs you now.
@@ -437,6 +440,8 @@ menu opens it), or in config.json after the first launch.
                                           themes
   HudMaxNpcs             5                Most entries (NPCs and story
                                           events) shown on it
+  HudMaxWidth            30               Widest it gets, in percent of
+                                          the screen width (15-60)
 
 Pins are saved separately for each save file and each player.
 

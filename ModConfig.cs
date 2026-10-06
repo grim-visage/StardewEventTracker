@@ -151,6 +151,11 @@ namespace StardewEventTracker
         /// <summary>Maximum number of entries (pinned NPCs and story events) listed in the HUD tracker.</summary>
         public int HudMaxNpcs { get; set; } = 5;
 
+        /// <summary>The widest the HUD tracker gets, as a percent of the screen width; longer lines wrap.</summary>
+        public int HudMaxWidth { get; set; } = 30;
+
+        public const int HudMaxWidthMin = 15, HudMaxWidthMax = 60;
+
         /// <summary>Whether the controller buttons have been added to keybinds still at the old keyboard-only defaults.</summary>
         public bool ControllerKeysAdded { get; set; }
 

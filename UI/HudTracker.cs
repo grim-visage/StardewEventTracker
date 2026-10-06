@@ -40,6 +40,7 @@ namespace StardewEventTracker.UI
         private int pinCount = -1;
         private int builtForHeight = -1;
         private int builtForY = -1;
+        private int builtForWidth = -1;
         private HudTheme? builtForTheme;
 
         /// <summary>How long a full fade in or out takes, in milliseconds.</summary>
@@ -80,7 +81,8 @@ namespace StardewEventTracker.UI
             // what fits depends on the screen height, where the box sits and the theme's title
             HudTheme theme = this.Theme;
             if (this.builtVersion != this.mod.Index.Version || this.pinCount != this.PinCount || this.builtForTheme != theme
-                || this.builtForHeight != Game1.uiViewport.Height || (!this.Dragging && this.builtForY != this.TopLimit(theme)))
+                || this.builtForHeight != Game1.uiViewport.Height || this.builtForWidth != this.MaxTextWidth(theme)
+                || (!this.Dragging && this.builtForY != this.TopLimit(theme)))
                 this.Rebuild();
 
             SpriteFont font = Game1.smallFont;
@@ -176,6 +178,47 @@ namespace StardewEventTracker.UI
             _ => Math.Max(theme.TitleAbove, this.mod.Config.HudY)
         };
 
+        /// <summary>The widest a line can be before it wraps: the max width setting, less the padding, but never narrower than the theme needs.</summary>
+        private int MaxTextWidth(HudTheme theme)
+        {
+            int percent = Math.Clamp(this.mod.Config.HudMaxWidth, ModConfig.HudMaxWidthMin, ModConfig.HudMaxWidthMax);
+            int box = Math.Max(Game1.uiViewport.Width * percent / 100, theme.MinBoxWidth);
+            return Math.Max(100, box - theme.Padding * 2);
+        }
+
+        /// <summary>Splits lines wider than <paramref name="maxWidth"/> at spaces, indenting what wraps under the line's own text.</summary>
+        private static List<(string Text, Color Color)> Wrap(List<(string Text, Color Color)> lines, int maxWidth)
+        {
+            SpriteFont font = Game1.smallFont;
+            var wrapped = new List<(string, Color)>();
+            foreach ((string text, Color color) in lines)
+            {
+                if (font.MeasureString(text).X <= maxWidth)
+                {
+                    wrapped.Add((text, color));
+                    continue;
+                }
+
+                string indent = new string(' ', text.Length - text.TrimStart().Length) + "   ";
+                string line = text[..(text.Length - text.TrimStart().Length)];
+                bool lineHasWord = false;
+                foreach (string word in text.TrimStart().Split(' '))
+                {
+                    string candidate = lineHasWord ? line + " " + word : line + word;
+                    if (lineHasWord && font.MeasureString(candidate).X > maxWidth)
+                    {
+                        wrapped.Add((line, color));
+                        line = indent + word;
+                    }
+                    else
+                        line = candidate;
+                    lineHasWord = true;
+                }
+                wrapped.Add((line, color));
+            }
+            return wrapped;
+        }
+
         private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme, this.mod.Config.HudMode == ModConfig.HudModeDark);
 
         private HudPalette Palette => this.Theme.Palette;
@@ -194,13 +237,17 @@ namespace StardewEventTracker.UI
                 .Concat(this.mod.GetPinnedStoryEvents().Select(p => this.BuildStoryEntry(p.Event, p.Eval)))
                 .ToList();
 
+            // long lines wrap, so the box doesn't stretch across the screen
+            HudTheme theme = this.Theme;
+            int maxWidth = this.MaxTextWidth(theme);
+            entries = entries.Select(e => e with { Lines = Wrap(e.Lines, maxWidth) }).ToList();
+
             entries = this.mod.Config.HudSortOrder == ModConfig.HudOrderAlphabetical
                 // NPCs A-Z, then story events by location
                 ? entries.OrderBy(e => e.IsStory).ThenBy(e => e.SortName, StringComparer.CurrentCultureIgnoreCase).ToList()
                 : entries.OrderBy(e => e.Urgency).ThenBy(e => e.Minutes).ThenBy(e => e.SortName, StringComparer.CurrentCultureIgnoreCase).ToList();
 
             // fit as many entries as the setting allows and the screen has room for, keeping a line for the overflow note
-            HudTheme theme = this.Theme;
             var lines = new List<(string, Color)>();
             int maxEntries = Math.Max(1, this.mod.Config.HudMaxNpcs);
             int boxY = this.TopLimit(theme);
@@ -218,14 +265,14 @@ namespace StardewEventTracker.UI
 
             // e.g. a pinned story event was just seen (it's unpinned at the end of the day) and the other pins aren't around today
             if (entries.Count == 0)
-                lines.Add((I18n.Get("hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted));
+                lines.AddRange(Wrap(new() { (I18n.Get("hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted) }, maxWidth));
 
             var hidden = entries.Skip(shown).ToList();
             if (hidden.Count > 0)
             {
                 // highlight the note if something you could act on soon didn't fit
                 bool urgentHidden = hidden.Any(e => e.Urgency <= Urgency.SetOff);
-                lines.Add((I18n.Get("hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted));
+                lines.AddRange(Wrap(new() { (I18n.Get("hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted) }, maxWidth));
             }
 
             this.lines = lines;
@@ -233,6 +280,7 @@ namespace StardewEventTracker.UI
             this.pinCount = this.PinCount;
             this.builtForHeight = Game1.uiViewport.Height;
             this.builtForY = boxY;
+            this.builtForWidth = maxWidth;
             this.builtForTheme = theme;
             this.anyAvailableNow = entries.Any(e => e.Urgency == Urgency.Now);
         }

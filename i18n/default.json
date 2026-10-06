@@ -345,6 +345,8 @@
   "config.hud-x": "Tracker X position",
   "config.hud-y": "Tracker Y position",
   "config.hud-max": "Max entries on the tracker",
+  "config.hud-max-width": "Max tracker width",
+  "config.hud-max-width.tip": "The widest the on-screen tracker gets, as a share of the screen's width. Longer lines wrap onto the next line.",
   "sound.none": "None",
   "sound.newArtifact": "Sparkle",
   "sound.jingle1": "Jingle",
