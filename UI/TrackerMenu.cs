@@ -1356,7 +1356,7 @@ namespace StardewEventTracker.UI
                         // an NPC's expand arrow, or the row's text
                         Rectangle area = row.DrawLead != null
                             ? new Rectangle(content.X, y, row.NameClickFrom, row.Height)
-                            : new Rectangle(content.X + row.Indent, y, (int)row.Font.MeasureString(row.Text).X, row.Height);
+                            : new Rectangle(content.X + row.Indent, y, (int)HeartText.Measure(row.Font, row.Text).X, row.Height);
                         list.Add(new Focusable(i, 0, area, bounds));
                     }
                     if (row.OnNameClick != null)
@@ -1572,10 +1572,11 @@ namespace StardewEventTracker.UI
                         this.hitAreas.Add((rowArea, row.OnClick));
                     }
 
-                    Vector2 textSize = row.Font.MeasureString(row.Text);
+                    Vector2 textSize = HeartText.Measure(row.Font, row.Text);
                     int textY = y + (row.Button != null || row.Button2 != null ? (row.Height - (int)textSize.Y) / 2 : 0);
                     row.DrawLead?.Invoke(b, new Rectangle(content.X, y, row.Indent, row.Height));
-                    Utility.drawTextWithShadow(b, row.Text, row.Font, new Vector2(content.X + row.Indent, textY), row.Color, shadowIntensity: 0.25f);
+                    HeartText.Draw(b, row.Font, row.Text, new Vector2(content.X + row.Indent, textY), 1f,
+                        (run, at) => Utility.drawTextWithShadow(b, run, row.Font, at, row.Color, shadowIntensity: 0.25f));
 
                     // the portrait and name open the NPC's profile; underline the name while pointing at it
                     if (row.OnNameClick != null)
@@ -1646,7 +1647,7 @@ namespace StardewEventTracker.UI
 
         /// <summary>Where a row's portrait and name are, which open the NPC's profile.</summary>
         private static Rectangle NameArea(Row row, Rectangle content, int y) =>
-            new(content.X + row.NameClickFrom, y, row.Indent - row.NameClickFrom + (int)row.Font.MeasureString(row.Text).X, row.Height);
+            new(content.X + row.NameClickFrom, y, row.Indent - row.NameClickFrom + (int)HeartText.Measure(row.Font, row.Text).X, row.Height);
 
         /// <summary>A row's buttons, from the right edge.</summary>
         private static IEnumerable<(Rectangle Area, string Label, Action Action)> RowButtons(Row row, Rectangle content, int y)

@@ -88,7 +88,7 @@ namespace StardewEventTracker.UI
             SpriteFont font = Game1.smallFont;
             int lineHeight = LineHeight;
             int padding = theme.Padding;
-            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => font.MeasureString(l.Text).X) : 0;
+            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => HeartText.Measure(font, l.Text).X) : 0;
             int width = Math.Max(textWidth + padding * 2, theme.MinBoxWidth);
             int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2 + theme.FooterInside;
 
@@ -109,7 +109,10 @@ namespace StardewEventTracker.UI
                 theme.DrawBox(b, box, this.Dragging);
                 int top = y + padding + theme.TitleInside;
                 for (int i = 0; i < this.lines.Count; i++)
-                    theme.DrawLine(b, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), this.lines[i].Color);
+                {
+                    Color color = this.lines[i].Color;
+                    HeartText.Draw(b, font, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), HudTheme.Opacity, (run, at) => theme.DrawLine(b, run, at, color));
+                }
                 theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
             }
             finally
@@ -193,7 +196,7 @@ namespace StardewEventTracker.UI
             var wrapped = new List<(string, Color)>();
             foreach ((string text, Color color) in lines)
             {
-                if (font.MeasureString(text).X <= maxWidth)
+                if (HeartText.Measure(font, text).X <= maxWidth)
                 {
                     wrapped.Add((text, color));
                     continue;
@@ -205,7 +208,7 @@ namespace StardewEventTracker.UI
                 foreach (string word in text.TrimStart().Split(' '))
                 {
                     string candidate = lineHasWord ? line + " " + word : line + word;
-                    if (lineHasWord && font.MeasureString(candidate).X > maxWidth)
+                    if (lineHasWord && HeartText.Measure(font, candidate).X > maxWidth)
                     {
                         wrapped.Add((line, color));
                         line = indent + word;
