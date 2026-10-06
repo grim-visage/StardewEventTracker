@@ -326,6 +326,8 @@
   "config.show-hud": "Show on-screen tracker",
   "config.unpinned-reminders": "Remind me about unpinned events",
   "config.unpinned-reminders.tip": "Also send reminders for events you haven't pinned, at the times picked below and again when they start. Only events with a start time get them, so ones that can happen all day don't flood the screen.",
+  "config.unpinned-heart-reminders": "  Include unpinned NPCs' heart events",
+  "config.unpinned-heart-reminders.tip": "With unpinned reminders on, also remind you about heart events of NPCs you haven't pinned. Turn off to only hear about unpinned story events.",
   "msg.unpinned-more": "+{{count}} more events coming up ({{key}} to see them all)",
   "config.hud-fade": "Fade tracker when in the way",
   "config.hud-fade.tip": "Fades the on-screen tracker while you walk under it or the mouse is over it. It comes back while you drag it with the right mouse button.",

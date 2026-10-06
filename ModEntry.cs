@@ -246,6 +246,7 @@ namespace StardewEventTracker
             gmcm.AddSectionTitle(m, () => I18n.Get("config.section.reminders"), () => I18n.Get("config.section.reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.StoryReminders, v => this.Config.StoryReminders = v, () => I18n.Get("config.story-reminders"), () => I18n.Get("config.story-reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.UnpinnedReminders, v => this.Config.UnpinnedReminders = v, () => I18n.Get("config.unpinned-reminders"), () => I18n.Get("config.unpinned-reminders.tip"));
+            gmcm.AddBoolOption(m, () => this.Config.UnpinnedHeartReminders, v => this.Config.UnpinnedHeartReminders = v, () => I18n.Get("config.unpinned-heart-reminders"), () => I18n.Get("config.unpinned-heart-reminders.tip"));
             gmcm.AddBoolOption(m, () => this.Config.MorningHeadsUp, v => this.Config.MorningHeadsUp = v, () => I18n.Get("config.morning"), () => I18n.Get("config.morning.tip"));
             foreach (int minutes in ModConfig.AllowedReminderMinutes)
             {
@@ -798,8 +799,9 @@ namespace StardewEventTracker
         {
             const int maxPopups = 2;
             var pinnedStory = this.State.PinnedStoryEvents;
+            // heart events of unpinned NPCs can be left out, leaving only story events
             var events = this.Index.ByOwner.Keys
-                .Where(npc => !this.PinnedNpcs.Contains(npc))
+                .Where(npc => this.Config.UnpinnedHeartReminders && !this.PinnedNpcs.Contains(npc))
                 .SelectMany(npc => this.Index.GetPending(npc).Pending)
                 .Concat(this.Index.StoryByLocation.Keys.SelectMany(location => this.Index.GetStoryPending(location).Pending).Where(p => !pinnedStory.Contains(p.Event.Key)))
                 .DistinctBy(p => p.Event.Key);

@@ -335,7 +335,8 @@ one? The Pinned tab lists every reminder from today.
 Turn on "Remind me about unpinned events" to also hear about unpinned events
 with a start time ("before it starts" and "ready" reminders only). One
 whose time window is already open when the day starts gets its "ready"
-reminder as you wake up.
+reminder as you wake up. Turn off "Include unpinned NPCs' heart events" to
+get these for unpinned story events only.
 
 
 Loved gifts
@@ -399,6 +400,8 @@ menu opens it), or in config.json after the first launch.
   StoryReminders         true             Reminders for pinned story events
   UnpinnedReminders      false            Reminders for unpinned events with
                                           a start time
+  UnpinnedHeartReminders true             Whether those include heart events
+                                          of NPCs you haven't pinned
   MorningHeadsUp         true             Day-start message about today's
                                           events
   ReminderMinutesBefore  [120, 60]        When to remind you before an

@@ -88,6 +88,9 @@ namespace StardewEventTracker
         /// <summary>Whether events nobody pinned get reminders too: only those with a start time, before it and when it comes.</summary>
         public bool UnpinnedReminders { get; set; }
 
+        /// <summary>Whether <see cref="UnpinnedReminders"/> includes heart events of NPCs who aren't pinned, or only story events.</summary>
+        public bool UnpinnedHeartReminders { get; set; } = true;
+
         /// <summary>Whether to send a "leave now" reminder based on how long the walk there takes.</summary>
         public bool TravelReminders { get; set; } = true;
 
