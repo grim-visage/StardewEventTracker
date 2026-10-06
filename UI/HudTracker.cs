@@ -88,7 +88,8 @@ namespace StardewEventTracker.UI
             SpriteFont font = Game1.smallFont;
             int lineHeight = LineHeight;
             int padding = theme.Padding;
-            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => HeartText.Measure(font, l.Text).X) : 0;
+            bool hearts = this.Compact;
+            int textWidth = this.lines.Count > 0 ? (int)this.lines.Max(l => Measure(font, l.Text, hearts).X) : 0;
             int width = Math.Max(textWidth + padding * 2, theme.MinBoxWidth);
             int height = theme.TitleInside + this.lines.Count * lineHeight + padding * 2 + theme.FooterInside;
 
@@ -111,7 +112,11 @@ namespace StardewEventTracker.UI
                 for (int i = 0; i < this.lines.Count; i++)
                 {
                     Color color = this.lines[i].Color;
-                    HeartText.Draw(b, font, this.lines[i].Text, new Vector2(x + padding, top + i * lineHeight), HudTheme.Opacity, (run, at) => theme.DrawLine(b, run, at, color));
+                    var at = new Vector2(x + padding, top + i * lineHeight);
+                    if (hearts)
+                        HeartText.Draw(b, font, this.lines[i].Text, at, HudTheme.Opacity, (run, runAt) => theme.DrawLine(b, run, runAt, color));
+                    else
+                        theme.DrawLine(b, this.lines[i].Text, at, color);
                 }
                 theme.DrawTitle(b, box, new HudState(this.anyAvailableNow));
             }
@@ -190,13 +195,14 @@ namespace StardewEventTracker.UI
         }
 
         /// <summary>Splits lines wider than <paramref name="maxWidth"/> at spaces, indenting what wraps under the line's own text.</summary>
-        private static List<(string Text, Color Color)> Wrap(List<(string Text, Color Color)> lines, int maxWidth)
+        /// <param name="hearts">Whether "heart" is drawn as a sprite (the compact layout), which changes the width.</param>
+        private static List<(string Text, Color Color)> Wrap(List<(string Text, Color Color)> lines, int maxWidth, bool hearts)
         {
             SpriteFont font = Game1.smallFont;
             var wrapped = new List<(string, Color)>();
             foreach ((string text, Color color) in lines)
             {
-                if (HeartText.Measure(font, text).X <= maxWidth)
+                if (Measure(font, text, hearts).X <= maxWidth)
                 {
                     wrapped.Add((text, color));
                     continue;
@@ -208,7 +214,7 @@ namespace StardewEventTracker.UI
                 foreach (string word in text.TrimStart().Split(' '))
                 {
                     string candidate = lineHasWord ? line + " " + word : line + word;
-                    if (lineHasWord && HeartText.Measure(font, candidate).X > maxWidth)
+                    if (lineHasWord && Measure(font, candidate, hearts).X > maxWidth)
                     {
                         wrapped.Add((line, color));
                         line = indent + word;
@@ -221,6 +227,10 @@ namespace StardewEventTracker.UI
             }
             return wrapped;
         }
+
+        /// <summary>A line's size, with "heart" as a sprite in the compact layout.</summary>
+        private static Vector2 Measure(SpriteFont font, string text, bool hearts) =>
+            hearts ? HeartText.Measure(font, text) : font.MeasureString(text);
 
         private HudTheme Theme => HudTheme.Get(this.mod.Config.HudTheme, this.mod.Config.HudMode == ModConfig.HudModeDark);
 
@@ -243,7 +253,7 @@ namespace StardewEventTracker.UI
             // long lines wrap, so the box doesn't stretch across the screen
             HudTheme theme = this.Theme;
             int maxWidth = this.MaxTextWidth(theme);
-            entries = entries.Select(e => e with { Lines = Wrap(e.Lines, maxWidth) }).ToList();
+            entries = entries.Select(e => e with { Lines = Wrap(e.Lines, maxWidth, this.Compact) }).ToList();
 
             entries = this.mod.Config.HudSortOrder == ModConfig.HudOrderAlphabetical
                 // NPCs A-Z, then story events by location
@@ -268,14 +278,14 @@ namespace StardewEventTracker.UI
 
             // e.g. a pinned story event was just seen (it's unpinned at the end of the day) and the other pins aren't around today
             if (entries.Count == 0)
-                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.nothing" : "hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted) }, maxWidth));
+                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.nothing" : "hud.nothing", new { key = this.mod.Config.OpenMenuKey }), this.Palette.Muted) }, maxWidth, this.Compact));
 
             var hidden = entries.Skip(shown).ToList();
             if (hidden.Count > 0)
             {
                 // highlight the note if something you could act on soon didn't fit
                 bool urgentHidden = hidden.Any(e => e.Urgency <= Urgency.SetOff);
-                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.overflow" : "hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted) }, maxWidth));
+                lines.AddRange(Wrap(new() { (I18n.Get(this.Compact ? "hud.short.overflow" : "hud.overflow", new { count = hidden.Count, key = this.mod.Config.OpenMenuKey }), urgentHidden ? this.Palette.Ready : this.Palette.Muted) }, maxWidth, this.Compact));
             }
 
             this.lines = lines;

@@ -7,7 +7,7 @@ using StardewValley;
 
 namespace StardewEventTracker.UI
 {
-    /// <summary>Text with the word "heart" or "hearts" drawn as the game's heart sprite, e.g. "1 more ♥" or "8-♥ event".</summary>
+    /// <summary>Text with the word "heart" or "hearts" drawn as the game's heart sprite, e.g. "1 more ♥", for the HUD's compact layout.</summary>
     internal static class HeartText
     {
         private static readonly Regex HeartWord = new(@"\b[Hh]earts?\b", RegexOptions.Compiled);
