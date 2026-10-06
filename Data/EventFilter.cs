@@ -59,12 +59,7 @@ namespace StardewEventTracker.Data
         public static EventSort GetSort(string tab) =>
             Current.Value.Sort.TryGetValue(tab, out EventSort sort) ? sort : SortsFor(tab)[0];
 
-        /// <summary>Moves a tab to its next sort, back to the first after the last.</summary>
-        public static void NextSort(string tab)
-        {
-            EventSort[] sorts = SortsFor(tab);
-            Current.Value.Sort[tab] = sorts[(Array.IndexOf(sorts, GetSort(tab)) + 1) % sorts.Length];
-        }
+        public static void SetSort(string tab, EventSort sort) => Current.Value.Sort[tab] = sort;
 
         public static bool HasSearch => SearchText.Trim().Length > 0;
 

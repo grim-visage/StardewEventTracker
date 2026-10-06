@@ -93,7 +93,8 @@ With a controller:
   stick click         highlighted NPC on the game's Social tab
 
 In the tracker menu, the D-pad or left stick moves between tabs, filters,
-rows and buttons, and A presses what's highlighted. Y opens the on-screen
+rows and buttons, and A presses what's highlighted. A on Filters or Sort
+opens its list: move through it, A ticks an option, and B closes the list. Y opens the on-screen
 keyboard to search, X clears the search, LB/RB switch tabs, LT/RT scroll a
 page, the right stick moves the cursor freely, and B closes the menu.
 
@@ -127,8 +128,8 @@ Tracker menu (F2)
                game's Social tab (close it to come back).
   * Story      Story events (no friendship needed), grouped by location,
                with the characters who appear in each one.
-  * Completed  Events you've already seen. Switch between Hearts and Story
-               at the top. Names in green have every event seen.
+  * Completed  Events you've already seen. Pick Hearts or Story from the
+               Show list at the top. Names in green have every event seen.
 
 Each NPC's events are listed in story order, followed by a "Next up" line for
 the next locked one, e.g. "Next up: 4-heart event at Leah's Cottage (1 more
@@ -151,9 +152,10 @@ Search and filters
 Type in the search box to find an NPC, a location, an event ID, or anything
 in an event's requirements. Press Enter or Escape when you're done.
 
-Filter buttons next to the search box (combine as many as you like):
+The Filters list next to the search box (tick as many as you like; the
+button shows how many are on):
 
-  Button          Shows
+  Filter          Shows
   -------------   ---------------------------------------------------------
   Available now   Every requirement is met and it's the right time of day
   Today           Available now, or it can start later today
@@ -162,8 +164,8 @@ Filter buttons next to the search box (combine as many as you like):
                   or today's time window has passed
   Show locked     Also list events that need more hearts
 
-The Sort button after the filters changes the order of the list; click it
-again to move to the next order. Each tab remembers its own:
+The Sort list after it changes the order of the list. Each tab remembers
+its own:
 
   Tab               Orders
   ----------------  ------------------------------------------------------

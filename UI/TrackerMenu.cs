@@ -57,14 +57,31 @@ namespace StardewEventTracker.UI
         /// </summary>
         private readonly record struct Focusable(int Row, int Part, Rectangle Area, Rectangle Bounds);
 
-        /// <summary>A toggle button in the toolbar next to the search box.</summary>
-        private sealed class Chip
+        /// <summary>A button in the toolbar next to the search box that opens a list of options under it.</summary>
+        private sealed class Dropdown
+        {
+            public Rectangle Area;
+            public string Label = "";
+            public string Tooltip = "";
+
+            /// <summary>Whether the button is lit: a filter is on, or the choice isn't the default.</summary>
+            public Func<bool> IsOn = () => false;
+
+            /// <summary>Whether it stays open after picking an option, for options that can be combined.</summary>
+            public bool Multi;
+            public List<DropdownOption> Options = new();
+
+            /// <summary>The open list, below the button.</summary>
+            public Rectangle Panel;
+        }
+
+        private sealed class DropdownOption
         {
             public Rectangle Area;
             public string Label = "";
             public string Tooltip = "";
             public Func<bool> IsOn = () => false;
-            public Action Toggle = () => { };
+            public Action Pick = () => { };
         }
 
         private static readonly Color MetColor = new(30, 110, 30);
@@ -76,6 +93,19 @@ namespace StardewEventTracker.UI
         private const int Padding = 32;
         private const int TabHeight = 56;
         private const int ChipHeight = 48;
+        private const int OptionHeight = 52;
+
+        /// <summary>The game's checkbox, unticked and ticked.</summary>
+        private static readonly Rectangle CheckboxSource = new(227, 425, 9, 9), CheckedSource = new(236, 425, 9, 9);
+
+        /// <summary>The game's small down arrow, drawn at the end of a dropdown's button.</summary>
+        private static readonly Rectangle ArrowSource = new(421, 472, 11, 12);
+
+        /// <summary>The <see cref="Focusable.Row"/> of an open dropdown's options.</summary>
+        private const int OptionRow = -2;
+
+        /// <summary>The <see cref="Focusable.Part"/> of the first dropdown button: after the tabs, settings and search.</summary>
+        private static int FirstDropdownPart => TabLabels.Length + 2;
         private const int ButtonWidth = 130;
         private const int ScrollStep = 64;
 
@@ -116,7 +146,12 @@ namespace StardewEventTracker.UI
 
         /// <summary>The NPC to scroll to once the rows are built (opened from their Social tab entry).</summary>
         private string? scrollTo;
-        private readonly List<Chip> chips = new();
+        private readonly List<Dropdown> dropdowns = new();
+
+        /// <summary>The open dropdown, or -1.</summary>
+        private int openDropdown = -1;
+
+        private Dropdown? OpenDropdown => this.openDropdown >= 0 && this.openDropdown < this.dropdowns.Count ? this.dropdowns[this.openDropdown] : null;
         private readonly TextBox searchBox;
         private Rectangle[] tabAreas = Array.Empty<Rectangle>();
 
@@ -211,32 +246,54 @@ namespace StardewEventTracker.UI
             this.LayoutToolbar();
         }
 
-        /// <summary>Places the search box and this tab's chips, wrapping chips onto another line if needed.</summary>
+        /// <summary>Places the search box and this tab's dropdowns, wrapping them onto another line if needed.</summary>
         private void LayoutToolbar()
         {
-            this.chips.Clear();
+            this.dropdowns.Clear();
             if (this.tab == Tab.Completed)
             {
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.hearts"), Tooltip = I18n.Get("menu.chip.hearts.tip"), IsOn = () => !EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = false });
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.story"), Tooltip = I18n.Get("menu.chip.story.tip"), IsOn = () => EventFilter.CompletedShowsStory, Toggle = () => EventFilter.CompletedShowsStory = true });
+                this.dropdowns.Add(new Dropdown
+                {
+                    Label = I18n.Get("menu.dropdown.show", new { what = I18n.Get(EventFilter.CompletedShowsStory ? "menu.chip.story" : "menu.chip.hearts") }),
+                    Tooltip = I18n.Get("menu.dropdown.show.tip"),
+                    IsOn = () => EventFilter.CompletedShowsStory,
+                    Options =
+                    {
+                        new DropdownOption { Label = I18n.Get("menu.chip.hearts"), Tooltip = I18n.Get("menu.chip.hearts.tip"), IsOn = () => !EventFilter.CompletedShowsStory, Pick = () => EventFilter.CompletedShowsStory = false },
+                        new DropdownOption { Label = I18n.Get("menu.chip.story"), Tooltip = I18n.Get("menu.chip.story.tip"), IsOn = () => EventFilter.CompletedShowsStory, Pick = () => EventFilter.CompletedShowsStory = true }
+                    }
+                });
             }
             else
             {
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.now"), Tooltip = I18n.Get("menu.chip.now.tip"), IsOn = () => EventFilter.AvailableNow, Toggle = () => EventFilter.AvailableNow = !EventFilter.AvailableNow });
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.today"), Tooltip = I18n.Get("menu.chip.today.tip"), IsOn = () => EventFilter.AvailableToday, Toggle = () => EventFilter.AvailableToday = !EventFilter.AvailableToday });
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.not-today"), Tooltip = I18n.Get("menu.chip.not-today.tip"), IsOn = () => EventFilter.WaitingOnDay, Toggle = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay });
-                this.chips.Add(new Chip { Label = I18n.Get("menu.chip.locked"), Tooltip = I18n.Get("menu.chip.locked.tip"), IsOn = () => EventFilter.ShowLocked, Toggle = () => EventFilter.ShowLocked = !EventFilter.ShowLocked });
+                int on = new[] { EventFilter.AvailableNow, EventFilter.AvailableToday, EventFilter.WaitingOnDay, EventFilter.ShowLocked }.Count(f => f);
+                this.dropdowns.Add(new Dropdown
+                {
+                    Label = on > 0 ? I18n.Get("menu.dropdown.filters.count", new { count = on }) : I18n.Get("menu.dropdown.filters"),
+                    Tooltip = I18n.Get("menu.dropdown.filters.tip"),
+                    IsOn = () => EventFilter.HasStatusFilter || EventFilter.ShowLocked,
+                    Multi = true,
+                    Options =
+                    {
+                        new DropdownOption { Label = I18n.Get("menu.chip.now"), Tooltip = I18n.Get("menu.chip.now.tip"), IsOn = () => EventFilter.AvailableNow, Pick = () => EventFilter.AvailableNow = !EventFilter.AvailableNow },
+                        new DropdownOption { Label = I18n.Get("menu.chip.today"), Tooltip = I18n.Get("menu.chip.today.tip"), IsOn = () => EventFilter.AvailableToday, Pick = () => EventFilter.AvailableToday = !EventFilter.AvailableToday },
+                        new DropdownOption { Label = I18n.Get("menu.chip.not-today"), Tooltip = I18n.Get("menu.chip.not-today.tip"), IsOn = () => EventFilter.WaitingOnDay, Pick = () => EventFilter.WaitingOnDay = !EventFilter.WaitingOnDay },
+                        new DropdownOption { Label = I18n.Get("menu.chip.locked"), Tooltip = I18n.Get("menu.chip.locked.tip"), IsOn = () => EventFilter.ShowLocked, Pick = () => EventFilter.ShowLocked = !EventFilter.ShowLocked }
+                    }
+                });
             }
 
-            // cycles through this tab's sorts; lit while it isn't the default
+            // the tab's sorts, lit while it isn't the default
             string sortTab = this.SortTab;
-            this.chips.Add(new Chip
+            var sort = new Dropdown
             {
-                Label = I18n.Get("menu.chip.sort", new { sort = I18n.Get("menu.sort." + EventFilter.GetSort(sortTab).ToString().ToLowerInvariant()) }),
+                Label = I18n.Get("menu.chip.sort", new { sort = SortLabel(EventFilter.GetSort(sortTab)) }),
                 Tooltip = I18n.Get("menu.chip.sort.tip"),
-                IsOn = () => EventFilter.GetSort(sortTab) != EventFilter.SortsFor(sortTab)[0],
-                Toggle = () => EventFilter.NextSort(sortTab)
-            });
+                IsOn = () => EventFilter.GetSort(sortTab) != EventFilter.SortsFor(sortTab)[0]
+            };
+            foreach (EventSort option in EventFilter.SortsFor(sortTab))
+                sort.Options.Add(new DropdownOption { Label = SortLabel(option), IsOn = () => EventFilter.GetSort(sortTab) == option, Pick = () => EventFilter.SetSort(sortTab, option) });
+            this.dropdowns.Add(sort);
 
             int left = this.xPositionOnScreen + Padding;
             int right = this.xPositionOnScreen + this.width - Padding;
@@ -249,21 +306,32 @@ namespace StardewEventTracker.UI
 
             int chipLeft = left + this.searchBox.Width + 16;
             int x = chipLeft, y = top;
-            foreach (Chip chip in this.chips)
+            foreach (Dropdown dropdown in this.dropdowns)
             {
-                int chipWidth = (int)Game1.smallFont.MeasureString(chip.Label).X + 40;
+                // room for the arrow after the label
+                int chipWidth = (int)Game1.smallFont.MeasureString(dropdown.Label).X + 40 + 28;
                 if (x + chipWidth > right && x > chipLeft)
                 {
                     x = chipLeft;
                     y += lineHeight + 8;
                 }
-                chip.Area = new Rectangle(x, y + (lineHeight - ChipHeight) / 2, chipWidth, ChipHeight);
+                dropdown.Area = new Rectangle(x, y + (lineHeight - ChipHeight) / 2, chipWidth, ChipHeight);
                 x += chipWidth + 10;
+
+                // the list opens under the button, kept inside the menu
+                const int pad = 20, box = 36;
+                int panelWidth = Math.Max(dropdown.Area.Width, dropdown.Options.Max(o => (int)Game1.smallFont.MeasureString(o.Label).X) + box + 16 + pad * 2);
+                int panelX = Math.Min(dropdown.Area.X, right - panelWidth);
+                dropdown.Panel = new Rectangle(panelX, dropdown.Area.Bottom + 4, panelWidth, dropdown.Options.Count * OptionHeight + pad * 2);
+                for (int i = 0; i < dropdown.Options.Count; i++)
+                    dropdown.Options[i].Area = new Rectangle(panelX + pad / 2, dropdown.Panel.Y + pad + i * OptionHeight, panelWidth - pad, OptionHeight);
             }
 
             this.contentTop = y + lineHeight + 16;
             this.builtVersion = -1;
         }
+
+        private static string SortLabel(EventSort sort) => I18n.Get("menu.sort." + sort.ToString().ToLowerInvariant());
 
         /// <summary>The key this tab's sort is remembered under.</summary>
         private string SortTab => this.tab.ToString().ToLowerInvariant();
@@ -1008,6 +1076,24 @@ namespace StardewEventTracker.UI
         {
             base.receiveLeftClick(x, y, playSound);
 
+            // while a dropdown is open, a click picks an option or closes it
+            if (this.OpenDropdown is { } open)
+            {
+                if (open.Options.FirstOrDefault(o => o.Area.Contains(x, y)) is { } option)
+                {
+                    option.Pick();
+                    this.scrollY = 0;
+                    Game1.playSound("smallSelect");
+                    if (!open.Multi)
+                        this.CloseDropdown();
+                    // the button's label (and width) changes
+                    this.LayoutToolbar();
+                }
+                else
+                    this.CloseDropdown();
+                return;
+            }
+
             bool inSearch = this.SearchArea.Contains(x, y);
             this.searchBox.Selected = inSearch;
             if (inSearch)
@@ -1034,15 +1120,20 @@ namespace StardewEventTracker.UI
                 return;
             }
 
-            foreach (Chip chip in this.chips)
+            for (int i = 0; i < this.dropdowns.Count; i++)
             {
-                if (chip.Area.Contains(x, y))
+                if (this.dropdowns[i].Area.Contains(x, y))
                 {
-                    chip.Toggle();
-                    this.scrollY = 0;
-                    // the sort chip's label (and width) changes
-                    this.LayoutToolbar();
-                    Game1.playSound("smallSelect");
+                    this.openDropdown = i;
+                    Game1.playSound("shwip");
+
+                    // with a controller, move into the list, starting on the option that's chosen
+                    if (this.focus != null)
+                    {
+                        List<DropdownOption> options = this.dropdowns[i].Options;
+                        int start = Math.Max(0, this.dropdowns[i].Multi ? 0 : options.FindIndex(o => o.IsOn()));
+                        this.FocusOn(new Focusable(OptionRow, start, options[start].Area, options[start].Area), playSound: false);
+                    }
                     return;
                 }
             }
@@ -1063,7 +1154,12 @@ namespace StardewEventTracker.UI
         public override void performHoverAction(int x, int y)
         {
             base.performHoverAction(x, y);
-            this.hoverText = this.chips.FirstOrDefault(c => c.Area.Contains(x, y))?.Tooltip
+            if (this.OpenDropdown is { } open)
+            {
+                this.hoverText = open.Options.FirstOrDefault(o => o.Area.Contains(x, y))?.Tooltip ?? "";
+                return;
+            }
+            this.hoverText = this.dropdowns.FirstOrDefault(c => c.Area.Contains(x, y))?.Tooltip
                 ?? this.hoverAreas.Where(h => h.Area.Contains(x, y)).Select(h => h.Text).FirstOrDefault()
                 ?? "";
         }
@@ -1080,6 +1176,14 @@ namespace StardewEventTracker.UI
             {
                 if (key is Keys.Escape or Keys.Enter && !this.typingOnScreen)
                     this.searchBox.Selected = false;
+                return;
+            }
+
+            // Escape, the menu key or B (which arrives as Escape) closes an open dropdown rather than the menu
+            if (this.OpenDropdown != null && (key == Keys.Escape || Game1.options.doesInputListContain(Game1.options.menuButton, key)))
+            {
+                this.CloseDropdown();
+                Game1.playSound("shwip");
                 return;
             }
 
@@ -1117,6 +1221,15 @@ namespace StardewEventTracker.UI
         {
             if (this.searchBox.Selected)
                 return;
+
+            // the triggers page the list under an open dropdown; other buttons close it first
+            if (this.OpenDropdown != null)
+            {
+                if (b is Buttons.LeftTrigger or Buttons.RightTrigger)
+                    return;
+                if (b is Buttons.Y or Buttons.X or Buttons.LeftShoulder or Buttons.RightShoulder)
+                    this.CloseDropdown();
+            }
 
             switch (b)
             {
@@ -1156,9 +1269,23 @@ namespace StardewEventTracker.UI
             if (this.focus is { Row: >= 0 })
                 this.focusFirst = true;
             this.tab = LastTab.Value = newTab;
+            this.openDropdown = -1;
             this.scrollY = 0;
             this.LayoutToolbar();
             Game1.playSound("smallSelect");
+        }
+
+        /// <summary>Closes the open dropdown, moving a controller's focus back to its button.</summary>
+        private void CloseDropdown()
+        {
+            int closed = this.openDropdown;
+            this.openDropdown = -1;
+            this.hoverText = "";
+            if (this.focus is { Row: OptionRow } && closed >= 0 && closed < this.dropdowns.Count)
+            {
+                Rectangle area = this.dropdowns[closed].Area;
+                this.FocusOn(new Focusable(-1, FirstDropdownPart + closed, area, area), playSound: false);
+            }
         }
 
         private void Scroll(int amount)
@@ -1198,8 +1325,16 @@ namespace StardewEventTracker.UI
         {
             var list = new List<Focusable>();
 
+            // an open dropdown keeps the controller in its list until it's closed
+            if (this.OpenDropdown is { } open)
+            {
+                for (int i = 0; i < open.Options.Count; i++)
+                    list.Add(new Focusable(OptionRow, i, open.Options[i].Area, open.Options[i].Area));
+                return list;
+            }
+
             // fixed parts keep their numbers when one is missing (no settings button), so the focus stays put
-            var fixedAreas = this.tabAreas.Concat(new[] { this.settingsArea, this.SearchArea }).Concat(this.chips.Select(c => c.Area));
+            var fixedAreas = this.tabAreas.Concat(new[] { this.settingsArea, this.SearchArea }).Concat(this.dropdowns.Select(c => c.Area));
             int part = 0;
             foreach (Rectangle area in fixedAreas)
             {
@@ -1408,10 +1543,14 @@ namespace StardewEventTracker.UI
             this.searchBox.Draw(b);
             if (this.searchBox.Text.Length == 0 && !this.searchBox.Selected)
                 Utility.drawTextWithShadow(b, I18n.Get("menu.search"), Game1.smallFont, new Vector2(this.searchBox.X + 16, this.searchBox.Y + 10), MutedColor, shadowIntensity: 0f);
-            foreach (Chip chip in this.chips)
+            for (int i = 0; i < this.dropdowns.Count; i++)
             {
-                bool on = chip.IsOn();
-                DrawButton(b, chip.Area, chip.Label, active: on, hovered: chip.Area.Contains(mouseX, mouseY));
+                Dropdown dropdown = this.dropdowns[i];
+                Rectangle labelArea = new(dropdown.Area.X, dropdown.Area.Y, dropdown.Area.Width - 28, dropdown.Area.Height);
+                bool hovered = this.openDropdown == i || (this.OpenDropdown == null && dropdown.Area.Contains(mouseX, mouseY));
+                DrawButton(b, dropdown.Area, "", active: dropdown.IsOn(), hovered: hovered);
+                DrawButton(b, labelArea, dropdown.Label, active: dropdown.IsOn(), hovered: hovered, box: false);
+                b.Draw(Game1.mouseCursors, new Vector2(dropdown.Area.Right - 40, dropdown.Area.Center.Y - 11), ArrowSource, Color.White * (dropdown.IsOn() || hovered ? 1f : 0.7f), 0f, Vector2.Zero, 2f, SpriteEffects.None, 0.9f);
             }
 
             // rows
@@ -1479,10 +1618,30 @@ namespace StardewEventTracker.UI
                 b.DrawString(Game1.smallFont, hints, at, MutedColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0.9f);
             }
 
+            if (this.OpenDropdown is { } open)
+                DrawDropdownPanel(b, open, mouseX, mouseY);
+
             base.draw(b);
             if (this.hoverText.Length > 0)
                 drawHoverText(b, this.hoverText, Game1.smallFont);
             this.drawMouse(b);
+        }
+
+        /// <summary>An open dropdown's list: a box under its button with a checkbox per option.</summary>
+        private static void DrawDropdownPanel(SpriteBatch b, Dropdown dropdown, int mouseX, int mouseY)
+        {
+            drawTextureBox(b, dropdown.Panel.X, dropdown.Panel.Y, dropdown.Panel.Width, dropdown.Panel.Height, Color.White);
+            foreach (DropdownOption option in dropdown.Options)
+            {
+                Rectangle area = option.Area;
+                if (area.Contains(mouseX, mouseY))
+                    b.Draw(Game1.staminaRect, area, Color.Wheat * 0.6f);
+
+                bool on = option.IsOn();
+                b.Draw(Game1.mouseCursors, new Vector2(area.X + 8, area.Center.Y - 18), on ? CheckedSource : CheckboxSource, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+                Vector2 size = Game1.smallFont.MeasureString(option.Label);
+                Utility.drawTextWithShadow(b, option.Label, Game1.smallFont, new Vector2(area.X + 8 + 36 + 16, area.Center.Y - size.Y / 2 + 2), Game1.textColor, shadowIntensity: on ? 1f : 0.4f);
+            }
         }
 
         /// <summary>Where a row's portrait and name are, which open the NPC's profile.</summary>
@@ -1506,10 +1665,16 @@ namespace StardewEventTracker.UI
         /// A button in the game's options-menu style, its label centred and shrunk to fit. Active ones (the open tab, a
         /// filter that's on, a row's button) are bright; the rest are muted until pointed at.
         /// </summary>
-        private static void DrawButton(SpriteBatch b, Rectangle area, string label, bool active, bool hovered)
+        /// <param name="box">Whether to draw the button's box, or only its label.</param>
+        private static void DrawButton(SpriteBatch b, Rectangle area, string label, bool active, bool hovered, bool box = true)
         {
-            Color box = hovered ? Color.Wheat : active ? Color.White : Color.White * 0.6f;
-            drawTextureBox(b, Game1.mouseCursors, ButtonSource, area.X, area.Y, area.Width, area.Height, box, 4f, drawShadow: active);
+            if (box)
+            {
+                Color boxColor = hovered ? Color.Wheat : active ? Color.White : Color.White * 0.6f;
+                drawTextureBox(b, Game1.mouseCursors, ButtonSource, area.X, area.Y, area.Width, area.Height, boxColor, 4f, drawShadow: active);
+            }
+            if (label.Length == 0)
+                return;
 
             SpriteFont font = Game1.smallFont;
             Vector2 size = font.MeasureString(label);
